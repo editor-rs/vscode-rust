@@ -1,0 +1,53 @@
+{
+	"name": "RustyCode",
+	"description": "Rust language integration for VSCode",
+	"version": "0.0.1",
+	"publisher": "saviorisdead",
+	"engines": {
+		"vscode": "^0.10.1"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"onLanguage:rust"
+	],
+	"main": "./out/src/rustMain",
+	"contributes": {
+			"languages": [
+				{
+					"id": "rust",
+					"aliases": ["Rust"],
+					"extensions": [".rs"]
+				}
+			],
+			"commands": [{
+				"command": "extension.sayHello",
+				"title": "Hello World"
+			}],
+			"configuration": {
+				"title": "Rusty Code configuration",
+				"type": "object",
+				"properties": {
+					"rust.racerPath": {
+						"type": "string",
+						"default": null,
+						"description": "Specifies path to Racer binary if it's not in PATH"
+					},
+					"rust.rustLangSrcPath": {
+						"type": "string",
+						"default": null,
+						"description": "Specifies path to /src directory of local copy of Rust sources"
+					}
+				}
+			}
+	},
+	"scripts": {
+		"vscode:prepublish": "node ./node_modules/vscode/bin/compile",
+		"compile": "node ./node_modules/vscode/bin/compile -watch -p ./"
+	},
+	"devDependencies": {
+		"typescript": "^1.6.2",
+		"vscode": "0.10.x"
+	}
+}
