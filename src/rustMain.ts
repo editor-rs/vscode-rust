@@ -3,6 +3,7 @@
 import vscode = require('vscode');
 
 import { RustCompletionItemProvider } from './rustSuggest';
+import { RustDocumentFormattingEditProvider } from './rustFormat';
 import { RUST_MODE } from './rustMode';
 import { showHideStatus } from './rustStatus'; 
 
@@ -13,6 +14,7 @@ let diagnosticCollection: vscode.DiagnosticCollection;
 export function activate(ctx: vscode.ExtensionContext): void {
 	console.log('RustyCode activated');
 	ctx.subscriptions.push(vscode.languages.registerCompletionItemProvider(RUST_MODE, new RustCompletionItemProvider()));
+	ctx.subscriptions.push(vscode.languages.registerDocumentFormattingEditProvider(RUST_MODE, new RustDocumentFormattingEditProvider()));
 	
 	diagnosticCollection = vscode.languages.createDiagnosticCollection('rust');
 	ctx.subscriptions.push(diagnosticCollection);

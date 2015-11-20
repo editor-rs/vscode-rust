@@ -37,6 +37,11 @@
 						"default": null,
 						"description": "Specifies path to Racer binary if it's not in PATH"
 					},
+					"rust.rustfmtPath": {
+						"type": "string",
+						"default": null,
+						"description": "Specifies path to Rustfmt binary if it's not in PATH"	
+					},
 					"rust.rustLangSrcPath": {
 						"type": "string",
 						"default": null,
