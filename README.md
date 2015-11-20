@@ -7,7 +7,7 @@ This extension adds advanced language support for the Rust language to VS Code, 
 - [_not implemented yet_] Cargo tasks 
 
 ### IDE Features
-![IDE](ide_features.gif)
+![IDE](ide_features.png)
 
 ## Using
 
