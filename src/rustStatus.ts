@@ -30,7 +30,7 @@ export function showRustStatus(message: string, command: string, tooltip?: strin
 	statusBarEntry = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, Number.MIN_VALUE);
 	statusBarEntry.text = message;
 	statusBarEntry.command = command;
-	statusBarEntry.color = '#b7410e';
+	statusBarEntry.color = 'yellow';
 	statusBarEntry.tooltip = tooltip;
 	statusBarEntry.show();
 }
