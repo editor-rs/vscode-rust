@@ -4,7 +4,10 @@
 	"description": "Rust language integration for VSCode",
 	"version": "0.1.0",
 	"publisher": "saviorisdead",
-	"repository": "https://github.com/saviorisdead/RustyCode",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/saviorisdead/RustyCode"
+	}
 	"engines": {
 		"vscode": "^0.10.1"
 	},
