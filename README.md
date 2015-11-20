@@ -30,6 +30,8 @@ The following Visual Studio Code settings are available for the RustyCode extens
 
 ## Building and Debuggind the Extension
 
+[Repository](https://github.com/saviorisdead/RustyCode)
+
 You can set up a development enviroment for debugging the extension during extension development.
 
 First make sure you do not have the extension installed in `~/.vscode/extensions`. Then clone the repo somewhere else on your machine, run `npm install` and open a development instance of Code.
