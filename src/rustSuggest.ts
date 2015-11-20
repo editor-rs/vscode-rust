@@ -49,7 +49,13 @@ function parseRacerResult(racerOutput: string): vscode.CompletionItem[] {
 }
 
 function formatRacerCommand(args: Array<string>): string {
-	return 'RUST_SRC_PATH=' + getRustLangSrcPath() + ' ' + getRacerPath() + ' ' + args.join(' ');
+	let setEnv;
+	if (process.platform === 'win32')
+		setEnv = 'SET RUST_SRC_PATH=' + getRustLangSrcPath() + '&&';
+	else
+		setEnv = 'RUST_SRC_PATH=' + getRustLangSrcPath();
+		
+	return setEnv + ' ' + getRacerPath() + ' ' + args.join(' ');
 }
 
 export class RustCompletionItemProvider implements vscode.CompletionItemProvider {
