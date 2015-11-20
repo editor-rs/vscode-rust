@@ -1,13 +1,14 @@
 {
 	"name": "RustyCode",
 	"description": "Rust language integration for VSCode",
-	"version": "0.0.1",
+	"version": "0.1.0",
 	"publisher": "saviorisdead",
 	"engines": {
 		"vscode": "^0.10.1"
 	},
 	"categories": [
-		"Other"
+		"Languages",
+		"Linters"
 	],
 	"activationEvents": [
 		"onLanguage:rust"
@@ -21,10 +22,6 @@
 					"extensions": [".rs"]
 				}
 			],
-			"commands": [{
-				"command": "extension.sayHello",
-				"title": "Hello World"
-			}],
 			"configuration": {
 				"title": "Rusty Code configuration",
 				"type": "object",
