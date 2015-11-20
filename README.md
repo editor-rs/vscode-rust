@@ -19,7 +19,7 @@ And last step is downloading Rust language source files from [here](https://gith
 
 ### Options
 
-The following Visual Studio Code settings are available for the RustyCode extension. These can be set in user preferences (`cmd+`) or workspace settings (`.vscode/settings.json`)
+The following Visual Studio Code settings are available for the RustyCode extension. These can be set in user preferences or workspace settings (`.vscode/settings.json`)
 
 ```javascript
 {

@@ -26,6 +26,8 @@ export class RustDocumentFormattingEditProvider implements vscode.DocumentFormat
 			
 			let command = formatRustfmtCommand(fileName, this.writeMode);
 			
+			console.log(command);
+			
 			cp.exec(command, (err, stdout, stderr) => {
 				try {
 					if (err && (<any>err).code == 'ENOENT') {
@@ -35,7 +37,7 @@ export class RustDocumentFormattingEditProvider implements vscode.DocumentFormat
 					if (err) return reject('Cannot format due to syntax errors');
 					
 					let text = stdout.toString();
-					
+					console.log(text);
 					//TODO: implement parsing of rustfmt output with 'diff' writemode
 					let lastLine = document.lineCount;
 					let lastLineLastCol = document.lineAt(lastLine - 1).range.end.character;

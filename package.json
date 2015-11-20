@@ -2,7 +2,7 @@
 	"name": "RustyCode",
 	"displayName": "Rusty Code",
 	"description": "Rust language integration for VSCode",
-	"version": "0.1.2",
+	"version": "0.1.3",
 	"publisher": "saviorisdead",
 	"icon": "icon.png",
 	"repository": {
