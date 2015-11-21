@@ -1,13 +1,13 @@
-import vscode = require('vscode');
-import cp = require('child_process');
+import * as vscode from 'vscode';
+import * as cp from 'child_process';
 
-import { getRustfmtPath } from './rustPath';
+import PathService from './pathService';
 
 function formatRustfmtCommand(fileName: string, writeMode: string): string {
-	return getRustfmtPath() + ' --write-mode=' + writeMode + ' ' + fileName;
+	return PathService.getRustfmtPath() + ' --write-mode=' + writeMode + ' ' + fileName;
 }
 
-export class RustDocumentFormattingEditProvider implements vscode.DocumentFormattingEditProvider {
+export default class FormatService implements vscode.DocumentFormattingEditProvider {
 	private writeMode: string = 'display';
 	
 	constructor() {

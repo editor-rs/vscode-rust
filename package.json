@@ -2,7 +2,7 @@
 	"name": "RustyCode",
 	"displayName": "Rusty Code",
 	"description": "Rust language integration for VSCode",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"publisher": "saviorisdead",
 	"icon": "icon.png",
 	"repository": {
@@ -19,7 +19,7 @@
 	"activationEvents": [
 		"onLanguage:rust"
 	],
-	"main": "./out/src/rustMain",
+	"main": "./out/src/extension",
 	"contributes": {
 			"languages": [
 				{
@@ -62,5 +62,8 @@
 	"devDependencies": {
 		"typescript": "^1.6.2",
 		"vscode": "0.10.x"
+	},
+	"dependencies": {
+		"tmp": "*"
 	}
 }
