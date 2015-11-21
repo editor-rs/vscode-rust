@@ -14,18 +14,13 @@ export class RustDocumentFormattingEditProvider implements vscode.DocumentFormat
 		this.writeMode = 'display';
 	}
 	
-	public provideDocumentFormattingEdits(document: vscode.TextDocument, 
-										  options: vscode.FormattingOptions, 
-										  token: vscode.CancellationToken): Thenable<vscode.TextEdit[]> {
+	public provideDocumentFormattingEdits(document: vscode.TextDocument): Thenable<vscode.TextEdit[]> {
 		return document.save().then(() => {
-			return this.performFormatFile(document, options, token, this.writeMode);
+			return this.performFormatFile(document, this.writeMode);
 		});
 	}
 	
-	private performFormatFile(document: vscode.TextDocument, 
-							  options: vscode.FormattingOptions, 
-							  token: vscode.CancellationToken,
-							  writeMode: string) : Promise<vscode.TextEdit[]> {
+	private performFormatFile(document: vscode.TextDocument, writeMode: string) : Promise<vscode.TextEdit[]> {
 		return new Promise(function (resolve, reject) {
 			let fileName = document.fileName;
 			let command = formatRustfmtCommand(fileName, writeMode);
