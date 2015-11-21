@@ -2,7 +2,7 @@
 	"name": "RustyCode",
 	"displayName": "Rusty Code",
 	"description": "Rust language integration for VSCode",
-	"version": "0.1.3",
+	"version": "0.2.0",
 	"publisher": "saviorisdead",
 	"icon": "icon.png",
 	"repository": {
@@ -36,6 +36,16 @@
 						"type": "string",
 						"default": null,
 						"description": "Specifies path to Racer binary if it's not in PATH"
+					},
+					"rust.rustfmtPath": {
+						"type": "string",
+						"default": null,
+						"description": "Specifies path to Rustfmt binary if it's not in PATH"	
+					},
+					"rust.formatOnSave": {
+						"type": "boolean",
+						"default": false,
+						"description": "Turn on/off autoformatting file on save"	
 					},
 					"rust.rustLangSrcPath": {
 						"type": "string",

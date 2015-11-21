@@ -5,6 +5,13 @@ export function getRustLangSrcPath(): string {
 }
 
 export function getRacerPath(): string {
-	let racerPath = vscode.workspace.getConfiguration('rust')['racerPath']; 
-	return racerPath.length > 0 ? racerPath : 'racer';
+	let racerPath = vscode.workspace.getConfiguration('rust')['racerPath'];
+	if (racerPath.length > 0) return racerPath; 
+	return 'racer';
+}
+
+export function getRustfmtPath(): string {
+	let rusfmtPath = vscode.workspace.getConfiguration('rust')['rustfmtPath'];
+	if (rusfmtPath.length > 0) return rusfmtPath;
+	return 'rustfmt';
 }
