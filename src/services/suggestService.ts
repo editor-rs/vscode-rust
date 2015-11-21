@@ -4,9 +4,9 @@ import * as vscode from 'vscode';
 import * as tmp from 'tmp';
 
 import PathService from './pathService';
+import FilterService from './filterService';
 
 export default class SuggestService {
-    private documentSelector: [string];
     private racerDaemon: cp.ChildProcess;
     private commandCallbacks: ((lines: string[]) => void)[];
     private linesBuffer: string[];
@@ -36,21 +36,20 @@ export default class SuggestService {
     };
 
     constructor() {
-        this.documentSelector = ['rust'];
         this.listeners = [];
 
         let tmpFile = tmp.fileSync();
         this.tmpFile = tmpFile.name;
     }
 
-    start(): vscode.Disposable {
+    public start(): vscode.Disposable {
         this.commandCallbacks = [];
         this.linesBuffer = [];
         this.providers = [];
 
         this.racerPath = PathService.getRacerPath();
 
-        this.racerDaemon = cp.spawn(this.racerPath, ['daemon'], { stdio: 'pipe' });
+        this.racerDaemon = cp.spawn(PathService.getRacerPath(), ['daemon'], { stdio: 'pipe' });
         this.racerDaemon.on('error', this.stopDaemon.bind(this));
         this.racerDaemon.on('close', this.stopDaemon.bind(this));
 
@@ -79,12 +78,12 @@ export default class SuggestService {
         this.listeners = [];
     }
 
-    stop(): void {
+    public stop(): void {
         this.stopDaemon();
         this.stopListeners();
     }
 
-    restart(): void {
+    public restart(): void {
         this.stop();
         this.start();
     }
@@ -261,15 +260,15 @@ export default class SuggestService {
         });
     }
 
-    private hookCapabilities(): void {
+    public hookCapabilities(): void {
         let definitionProvider = { provideDefinition: this.definitionProvider.bind(this) };
-        this.providers.push(vscode.languages.registerDefinitionProvider(this.documentSelector, definitionProvider));
+        this.providers.push(vscode.languages.registerDefinitionProvider(FilterService.getRustModeFilter(), definitionProvider));
 
         let completionProvider = { provideCompletionItems: this.completionProvider.bind(this) };
-        this.providers.push(vscode.languages.registerCompletionItemProvider(this.documentSelector, completionProvider, ...['.', ':']));
+        this.providers.push(vscode.languages.registerCompletionItemProvider(FilterService.getRustModeFilter(), completionProvider, ...['.', ':']));
 
         let signatureProvider = { provideSignatureHelp: this.signatureHelpProvider.bind(this) };
-        this.providers.push(vscode.languages.registerSignatureHelpProvider(this.documentSelector, signatureProvider, ...['(', ',']));
+        this.providers.push(vscode.languages.registerSignatureHelpProvider(FilterService.getRustModeFilter(), signatureProvider, ...['(', ',']));
     }
 
     private dataHandler(data: Buffer) {

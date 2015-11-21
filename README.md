@@ -2,6 +2,7 @@
 This extension adds advanced language support for the Rust language to VS Code, including:
 
 - Autocompletion (using `racer`)
+- Go To Definition (using `racer`)
 - Format (using `rustfmt`) *formatOnSave is experimental*
 - [_not implemented yet_] Snippets
 - [_not implemented yet_] Cargo tasks 
@@ -14,6 +15,8 @@ This extension adds advanced language support for the Rust language to VS Code, 
 First, you will need to install Visual Studio Code `0.10` or newer. In the command pallete (`cmd-shift-p`) select `Install Extension` and choose `RustyCode`.
 
 Then, you need to install Racer (instructions and source code [here](https://github.com/phildawes/racer)).
+
+Also, you need to install Rustfmt (instructions and source code [here](https://github.com/rust-lang-nursery/rustfmt))
 
 And last step is downloading Rust language source files from [here](https://github.com/rust-lang/rust).
 

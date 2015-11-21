@@ -8,7 +8,7 @@ function formatRustfmtCommand(fileName: string, writeMode: string): string {
 }
 
 export default class FormatService implements vscode.DocumentFormattingEditProvider {
-	private writeMode: string = 'display';
+	private writeMode: string;
 	
 	constructor() {
 		this.writeMode = 'display';
@@ -18,6 +18,10 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
 		return document.save().then(() => {
 			return this.performFormatFile(document, this.writeMode);
 		});
+	}
+	
+	private formatCommand(fileName: string, writeMode: string): string {
+		return PathService.getRustfmtPath() + ' --write-mode=' + writeMode + ' ' + fileName;
 	}
 	
 	private performFormatFile(document: vscode.TextDocument, writeMode: string) : Promise<vscode.TextEdit[]> {
