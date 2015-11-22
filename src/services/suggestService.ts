@@ -19,7 +19,7 @@ export default class SuggestService {
     private providers: vscode.Disposable[];
     private listeners: vscode.Disposable[];
     private racerPath: string;
-    private typeMap = {
+    private typeMap: { [type: string]: vscode.CompletionItemKind } = {
         'Struct': vscode.CompletionItemKind.Class,
         'Module': vscode.CompletionItemKind.Module,
         'MatchArm': vscode.CompletionItemKind.Variable,
@@ -63,27 +63,12 @@ export default class SuggestService {
 
         this.listeners.push(vscode.workspace.onDidChangeConfiguration(() => {
             let newPath = PathService.getRacerPath();
-            if (this.racerPath != newPath) {
+            if (this.racerPath !== newPath) {
                 this.restart();
             }
         }));
 
         return new vscode.Disposable(this.stop.bind(this));
-    }
-
-    private stopDaemon() {
-        if(this.racerDaemon == null) return;
-
-        this.racerDaemon.kill();
-        this.racerDaemon = null;
-        this.providers.forEach((disposable) => disposable.dispose());
-        this.providers = [];
-        vscode.window.showInformationMessage('The racer process has stopped.');
-    }
-
-    private stopListeners() {
-        this.listeners.forEach((disposable) => disposable.dispose());
-        this.listeners = [];
     }
 
     public stop(): void {
@@ -96,60 +81,79 @@ export default class SuggestService {
         this.start();
     }
 
-    private updateTmpFile(document: vscode.TextDocument) {
+    private stopDaemon(): void {
+        if (this.racerDaemon == null) {
+            return;
+        }
+
+        this.racerDaemon.kill();
+        this.racerDaemon = null;
+        this.providers.forEach(disposable => disposable.dispose());
+        this.providers = [];
+        vscode.window.showInformationMessage('The racer process has stopped.');
+    }
+
+    private stopListeners() {
+        this.listeners.forEach(disposable => disposable.dispose());
+        this.listeners = [];
+    }
+
+    private updateTmpFile(document: vscode.TextDocument): void {
         fs.writeFileSync(this.tmpFile, document.getText());
     }
 
-    private definitionProvider(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): Thenable<vscode.Definition> {
+    private definitionProvider(document: vscode.TextDocument, position: vscode.Position): Thenable<vscode.Definition> {
         this.updateTmpFile(document);
         let command = `find-definition ${position.line + 1} ${position.character} ${document.fileName} ${this.tmpFile}\n`;
-        return this.runCommand(command).then((lines) => {
-            if (lines.length == 0) return null;
+        return this.runCommand(command).then(lines => {
+            if (lines.length === 0) {
+                return null;
+            }
 
             let result = lines[0];
             let parts = result.split(',');
-            let position = new vscode.Position(Number(parts[1]) - 1, Number(parts[2]));
+            let line = Number(parts[1]) - 1;
+            let character = Number(parts[2]);
             let uri = vscode.Uri.file(parts[3]);
-            return new vscode.Location(uri, position);
+
+            return new vscode.Location(uri, new vscode.Position(line, character));
         });
     }
 
-    private completionProvider(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): Thenable<vscode.CompletionItem[]> {
+    private completionProvider(document: vscode.TextDocument, position: vscode.Position): Thenable<vscode.CompletionItem[]> {
         this.updateTmpFile(document);
         let command = `complete-with-snippet ${position.line + 1} ${position.character} ${document.fileName} ${this.tmpFile}\n`;
-        return this.runCommand(command).then((lines) => {
+        return this.runCommand(command).then(lines => {
             lines.shift();
 
-            //Split on MATCH, as a definition can span more than one line
-            lines = lines.map((l) => l.trim()).join('').split('MATCH ').slice(1);
+            // Split on MATCH, as a definition can span more than one line
+            lines = lines.map(l => l.trim()).join('').split('MATCH ').slice(1);
 
             let completions = [];
             for (let line of lines) {
                 let parts = line.split(';');
                 let label = parts[0];
-                let kindKey = parts[5];
+                let type = parts[5];
                 let detail = parts[6];
 
                 let kind;
-                if (kindKey in this.typeMap) {
-                    kind = this.typeMap[kindKey];
+                if (type in this.typeMap) {
+                    kind = this.typeMap[type];
                 } else {
-                    console.warn('Kind not mapped: ' + kindKey);
+                    console.warn('Kind not mapped: ' + type);
                     kind = vscode.CompletionItemKind.Text;
                 }
 
-                //Remove trailing bracket
-                if (kindKey != 'Module' && kindKey != 'Crate') {
+                // Remove trailing bracket
+                if (type !== 'Module' && type !== 'Crate') {
                     let bracketIndex = detail.indexOf('{');
-                    if (bracketIndex == -1) bracketIndex = detail.length;
+                    if (bracketIndex === -1) {
+                        bracketIndex = detail.length;
+                    }
                     detail = detail.substring(0, bracketIndex).trim();
                 }
 
-                completions.push({
-                    label: label,
-                    kind: kind,
-                    detail: detail
-                });
+                completions.push({ label, kind, detail });
             }
 
             return completions;
@@ -157,7 +161,9 @@ export default class SuggestService {
     }
 
     private parseParameters(line: string, startingPosition: number, stopPosition?: number): [string[], number, number] {
-        if (!stopPosition) stopPosition = line.length;
+        if (!stopPosition) {
+            stopPosition = line.length;
+        }
 
         let parameters = [];
         let currentParameter = '';
@@ -168,24 +174,26 @@ export default class SuggestService {
         for (let i = startingPosition; i < stopPosition; i++) {
             let char = line.charAt(i);
 
-            if (char == '(') {
-                if (currentDepth == 0) {
+            if (char === '(') {
+                if (currentDepth === 0) {
                     parameterStart = i;
                 }
                 currentDepth += 1;
                 continue;
-            } else if (char == ')') {
+            } else if (char === ')') {
                 currentDepth -= 1;
-                if (currentDepth == 0) {
+                if (currentDepth === 0) {
                     parameterEnd = i;
                     break;
                 }
                 continue;
             }
 
-            if (currentDepth == 0) continue;
+            if (currentDepth === 0) {
+                continue;
+            }
 
-            if (currentDepth == 1 && char == ',') {
+            if (currentDepth === 1 && char === ',') {
                 parameters.push(currentParameter);
                 currentParameter = '';
             } else {
@@ -201,14 +209,16 @@ export default class SuggestService {
     private parseCall(name: string, line: string, definition: string, position: number): vscode.SignatureHelp {
         let nameEnd = definition.indexOf(name) + name.length;
         let [params, paramStart, paramEnd] = this.parseParameters(definition, nameEnd);
-        let [callParameters, , ] = this.parseParameters(line, line.indexOf(name) + name.length);
+        let [callParameters, , ] = this.parseParameters(line, line.indexOf(name) + name.length, position);
         let currentParameter = callParameters.length - 1;
 
         let nameTemplate = definition.substring(0, paramStart);
 
-        //If function is used as a method, ignore the self parameter
-        let isMethod = line.charAt(line.indexOf(name) - 1) == '.';
-        if (isMethod) params = params.slice(1);
+        // If function is used as a method, ignore the self parameter
+        let isMethod = line.charAt(line.indexOf(name) - 1) === '.';
+        if (isMethod) {
+            params = params.slice(1);
+        }
 
         let result = new vscode.SignatureHelp();
         result.activeSignature = 0;
@@ -222,68 +232,89 @@ export default class SuggestService {
             signature.label += parameter.label;
             signature.parameters.push(parameter);
 
-            if (i != params.length - 1) signature.label += ', ';
+            if (i !== params.length - 1) {
+                signature.label += ', ';
+            }
         });
 
         signature.label += ') ';
 
         let bracketIndex = definition.indexOf('{', paramEnd);
-        if (bracketIndex == -1) bracketIndex = definition.length;
+        if (bracketIndex === -1) {
+            bracketIndex = definition.length;
+        }
 
-        //Append return type without possible trailing bracket
+        // Append return type without possible trailing bracket
         signature.label += definition.substring(paramEnd + 1, bracketIndex).trim();
 
         result.signatures.push(signature);
         return result;
     }
 
-    private firstDanglingParen(line: string, position: number) {
+    private firstDanglingParen(line: string, position: number): number {
         let currentDepth = 0;
         for (let i = position; i >= 0; i--) {
             let char = line.charAt(i);
-            if (char == ')') currentDepth += 1;
-            else if (char == '(') currentDepth -= 1;
-            if (currentDepth == -1) return i;
+
+            if (char === ')') {
+                currentDepth += 1;
+            } else if (char === '(') {
+                currentDepth -= 1;
+            }
+
+            if (currentDepth === -1) {
+                return i;
+            }
         }
         return -1;
     }
 
-    private signatureHelpProvider(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): Thenable<vscode.SignatureHelp> {
+    private signatureHelpProvider(document: vscode.TextDocument, position: vscode.Position): Thenable<vscode.SignatureHelp> {
         this.updateTmpFile(document);
         let line = document.lineAt(position.line);
 
-        //Get the first dangling parenthesis, so we don't stop on a function call used as a previous parameter
+        // Get the first dangling parenthesis, so we don't stop on a function call used as a previous parameter
         let callPosition = this.firstDanglingParen(line.text, position.character - 1);
+
         let command = `complete-with-snippet ${position.line + 1} ${callPosition} ${document.fileName} ${this.tmpFile}\n`;
         return this.runCommand(command).then((lines) => {
-            lines = lines.map((l) => l.trim()).join('').split('MATCH ').slice(1);
-            if (lines.length == 0) return null;
+            lines = lines.map(l => l.trim()).join('').split('MATCH ').slice(1);
+            if (lines.length === 0) {
+                return null;
+            }
+
             let parts = lines[0].split(';');
-            let type = parts[5];
-            if (type != 'Function') return null;
             let name = parts[0];
+            let type = parts[5];
             let definition = parts[6];
+
+            if (type !== 'Function') {
+                return null;
+            }
 
             return this.parseCall(name, line.text, definition, position.character);
         });
     }
 
-    public hookCapabilities(): void {
+    private hookCapabilities(): void {
         let definitionProvider = { provideDefinition: this.definitionProvider.bind(this) };
         this.providers.push(vscode.languages.registerDefinitionProvider(FilterService.getRustModeFilter(), definitionProvider));
 
         let completionProvider = { provideCompletionItems: this.completionProvider.bind(this) };
-        this.providers.push(vscode.languages.registerCompletionItemProvider(FilterService.getRustModeFilter(), completionProvider, ...['.', ':']));
+        this.providers.push(vscode.languages.registerCompletionItemProvider(FilterService.getRustModeFilter(),
+                                                                            completionProvider, ...['.', ':']));
 
         let signatureProvider = { provideSignatureHelp: this.signatureHelpProvider.bind(this) };
-        this.providers.push(vscode.languages.registerSignatureHelpProvider(FilterService.getRustModeFilter(), signatureProvider, ...['(', ',']));
+        this.providers.push(vscode.languages.registerSignatureHelpProvider(FilterService.getRustModeFilter(),
+                                                                           signatureProvider, ...['(', ',']));
     }
 
-    private dataHandler(data: Buffer) {
+    private dataHandler(data: Buffer): void {
         let lines = data.toString().split(/\r?\n/);
         for (let line of lines) {
-            if (line.length == 0) continue;
-            if (line.startsWith('END')) {
+            if (line.length === 0) {
+                continue;
+            } else if (line.startsWith('END')) {
                 let callback = this.commandCallbacks.shift();
                 callback(this.linesBuffer);
                 this.linesBuffer = [];
@@ -294,7 +325,7 @@ export default class SuggestService {
     }
 
     private runCommand(command: string): Promise<string[]> {
-        let promise = new Promise((resolve, reject) => {
+        let promise = new Promise(resolve => {
             this.commandCallbacks.push(resolve);
         });
         this.racerDaemon.stdin.write(command);
