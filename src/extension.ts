@@ -8,29 +8,32 @@ import PathService from './services/pathService'
 
 export function activate(ctx: vscode.ExtensionContext): void {
 	// Set path to Rust language sources
-	process.env['RUST_SRC_PATH'] = PathService.getRustLangSrcPath();
-	
+	let rustSrcPath = PathService.getRustLangSrcPath();
+	if(rustSrcPath) {
+		process.env['RUST_SRC_PATH'] = rustSrcPath;
+	}
+
 	// Utils
 	let diagnosticCollection = vscode.languages.createDiagnosticCollection('rust');
 	ctx.subscriptions.push(diagnosticCollection);
-	
+
 	// Initialize suggestion service
 	let suggestService = new SuggestService().start();
 	ctx.subscriptions.push(suggestService);
-	
+
 	// Initialize format service
 	ctx.subscriptions.push(vscode.languages.registerDocumentFormattingEditProvider(FilterService.getRustModeFilter(), new FormatService()));
-	
+
 	// Initialize status bar service
 	ctx.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(StatusBarService.toggleStatus));
-	
+
 	// EXPERIMENTAL: formatting on save
 	let rustConfig = vscode.workspace.getConfiguration('rust');
 	ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument(document => {
 		if (!rustConfig['formatOnSave']) return;
 		vscode.commands.executeCommand("editor.action.format");
 	}));
-	
+
 	// Watch for configuration changes for ENV
 	ctx.subscriptions.push(vscode.workspace.onDidChangeConfiguration(() => {
 		let rustLangPath = PathService.getRustLangSrcPath();
