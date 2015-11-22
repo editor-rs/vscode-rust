@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2015 "draivin" Ian Ornelas and other contributors.
+ * Licensed under MIT (https://github.com/Draivin/vscode-racer/blob/master/LICENSE).
+ */
+
 import * as cp from 'child_process';
 import * as fs from 'fs';
 import * as vscode from 'vscode';
