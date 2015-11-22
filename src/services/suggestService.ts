@@ -72,10 +72,13 @@ export default class SuggestService {
     }
 
     private stopDaemon() {
+        if(this.racerDaemon == null) return;
+
         this.racerDaemon.kill();
+        this.racerDaemon = null;
         this.providers.forEach((disposable) => disposable.dispose());
         this.providers = [];
-        vscode.window.showInformationMessage('The "racer" stopped.');
+        vscode.window.showInformationMessage('The racer process has stopped.');
     }
 
     private stopListeners() {
