@@ -4,12 +4,13 @@ import FormatService from './services/formatService';
 import FilterService from './services/filterService';
 import StatusBarService from './services/statusBarService';
 import SuggestService from './services/suggestService';
-import PathService from './services/pathService'
+import PathService from './services/pathService';
+import CommandService from './services/commandService';
 
 export function activate(ctx: vscode.ExtensionContext): void {
 	// Set path to Rust language sources
 	let rustSrcPath = PathService.getRustLangSrcPath();
-	if(rustSrcPath) {
+	if (rustSrcPath) {
 		process.env['RUST_SRC_PATH'] = rustSrcPath;
 	}
 
@@ -42,4 +43,12 @@ export function activate(ctx: vscode.ExtensionContext): void {
 		}
 		console.log(process.env);
 	}));
+	
+	// Commands
+	// Cargo build
+	ctx.subscriptions.push(CommandService.getCargoBuildHandler(diagnosticCollection));
+	// Cargo test
+	ctx.subscriptions.push(CommandService.getCargoTestHandler());
+	// Cargo run
+	ctx.subscriptions.push(CommandService.getCargoRunHandler());
 }
