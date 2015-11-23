@@ -1,6 +1,6 @@
 # Rust for Visual Studio Code
 
-[Changelog][CHANGELOG.md]
+[Changelog](CHANGELOG.md)
 
 This extension adds advanced language support for the Rust language to VS Code, including:
 
