@@ -3,6 +3,8 @@ import * as cp from 'child_process';
 
 import PathService from './pathService';
 
+const AnsiRegex = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
+
 export default class FormatService implements vscode.DocumentFormattingEditProvider {
     private writeMode: string;
 
@@ -28,10 +30,16 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
         return line.slice(1);
     }
 
+    private stripColorCodes(input: string): string {
+        return input.replace(AnsiRegex, '');
+    }
+    
     private parseDiff(fileToProcess: vscode.Uri, diff: string): vscode.TextEdit[] {
         let patches = [];
         let currentPatch;
         let currentFile: vscode.Uri;
+
+        diff = this.stripColorCodes(diff);
 
         for (let line of diff.split(/\n/)) {
             if (line.startsWith('Diff of')) {
@@ -69,14 +77,16 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
         }
 
         let cummulativeOffset = 0;
-        return patches.map(patch => {
+        let textEdits = patches.map(patch => {
             let startLine = patch.startLine - 1 + cummulativeOffset;
             let removedLines = patch.removedLines;
             cummulativeOffset += (removedLines - patch.newLines.length);
-            let range = new vscode.Range(startLine, 0, startLine + removedLines, 0);
-            let edit = new vscode.TextEdit(range, patch.newLines.join(''));
+            let range = new vscode.Range(startLine, 0, startLine + removedLines, Number.MAX_SAFE_INTEGER);
+            let edit = vscode.TextEdit.replace(range, patch.newLines.join(''));
             return edit;
         });
+        console.log(textEdits);
+        return textEdits;
     }
 
     private performFormatFile(document: vscode.TextDocument, writeMode: string): Promise<vscode.TextEdit[]> {
@@ -93,7 +103,7 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
                     if (err) {
                         return reject('Cannot format due to syntax errors');
                     }
-
+                    
                     return resolve(this.parseDiff(document.uri, stdout.toString()));
                 } catch (e) {
                     reject(e);
