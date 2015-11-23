@@ -2,6 +2,8 @@
 
 [Changelog](CHANGELOG.md)
 
+[Roadmap](ROADMAP.md)
+
 This extension adds advanced language support for the Rust language to VS Code, including:
 
 - Autocompletion (using `racer`)
