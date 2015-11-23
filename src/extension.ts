@@ -46,9 +46,9 @@ export function activate(ctx: vscode.ExtensionContext): void {
 	
 	// Commands
 	// Cargo build
-	ctx.subscriptions.push(CommandService.getCargoBuildHandler(diagnosticCollection));
-	// Cargo test
-	ctx.subscriptions.push(CommandService.getCargoTestHandler());
-	// Cargo run
-	ctx.subscriptions.push(CommandService.getCargoRunHandler());
+	// ctx.subscriptions.push(CommandService.getCargoBuildHandler(diagnosticCollection));
+	// // Cargo test
+	// ctx.subscriptions.push(CommandService.getCargoTestHandler());
+	// // Cargo run
+	// ctx.subscriptions.push(CommandService.getCargoRunHandler());
 }
