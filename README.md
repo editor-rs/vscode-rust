@@ -1,4 +1,7 @@
 # Rust for Visual Studio Code
+
+[Changelog][CHANGELOG.md]
+
 This extension adds advanced language support for the Rust language to VS Code, including:
 
 - Autocompletion (using `racer`)
@@ -6,6 +9,7 @@ This extension adds advanced language support for the Rust language to VS Code, 
 - Format (using `rustfmt`) *formatOnSave is experimental*
 - [_not implemented yet_] Snippets
 - [_not implemented yet_] Cargo tasks 
+
 
 ### IDE Features
 ![IDE](ide_features.png)
