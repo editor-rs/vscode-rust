@@ -8,7 +8,7 @@ const AnsiRegex = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-O
 interface RustFmtDiff {
     startLine: number,
     newLines: string[],
-    removedLines: number    
+    removedLines: number
 }
 
 export default class FormatService implements vscode.DocumentFormattingEditProvider {
@@ -39,7 +39,7 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
     private stripColorCodes(input: string): string {
         return input.replace(AnsiRegex, '');
     }
-    
+
     private parseDiff(fileToProcess: vscode.Uri, diff: string): vscode.TextEdit[] {
         let patches: RustFmtDiff[] = [];
         let currentPatch: RustFmtDiff;
@@ -89,7 +89,7 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
             let rangeEndLine = removedLines == 0 ? startLine : startLine + removedLines - 1;
             let range = new vscode.Range(startLine, 0, rangeEndLine, Number.MAX_SAFE_INTEGER);
             let newLines = patch.newLines;
-            
+
             cummulativeOffset += (removedLines - patch.newLines.length);
             let lastLineIndex = newLines.length - 1;
             newLines[lastLineIndex] = newLines[lastLineIndex].replace("\n", "");
@@ -112,7 +112,7 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
                     if (err) {
                         return reject('Cannot format due to syntax errors');
                     }
-                    
+
                     return resolve(this.parseDiff(document.uri, stdout.toString()));
                 } catch (e) {
                     reject(e);
