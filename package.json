@@ -4,6 +4,7 @@
 	"description": "Rust language integration for VSCode",
 	"version": "0.3.4",
 	"publisher": "saviorisdead",
+	"license": "MIT",
 	"icon": "icon.png",
 	"homepage": "https://github.com/saviorisdead/RustyCode",
 	"repository": {
