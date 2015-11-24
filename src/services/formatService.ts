@@ -52,7 +52,7 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
                 currentFile = vscode.Uri.file(line.slice('Diff of '.length, -1));
             }
 
-            if(!currentFile) {
+            if (!currentFile) {
                 continue;
             }
 
@@ -86,13 +86,14 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
         let textEdits = patches.map(patch => {
             let startLine = patch.startLine - 1 + cummulativeOffset;
             let removedLines = patch.removedLines;
-            cummulativeOffset += (removedLines - patch.newLines.length);
             let rangeEndLine = removedLines == 0 ? startLine : startLine + removedLines - 1;
             let range = new vscode.Range(startLine, 0, rangeEndLine, Number.MAX_SAFE_INTEGER);
-            let patchLines = patch.newLines;
-            let lastLineIndex = patchLines.length - 1;
-            patchLines[lastLineIndex] = patchLines[lastLineIndex].replace("\n", "");
-            let edit = vscode.TextEdit.replace(range, patchLines.join(''));
+            let newLines = patch.newLines;
+            
+            cummulativeOffset += (removedLines - patch.newLines.length);
+            let lastLineIndex = newLines.length - 1;
+            newLines[lastLineIndex] = newLines[lastLineIndex].replace("\n", "");
+            let edit = vscode.TextEdit.replace(range, newLines.join(''));
             return edit;
         });
         return textEdits;
