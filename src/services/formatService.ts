@@ -5,6 +5,12 @@ import PathService from './pathService';
 
 const AnsiRegex = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
 
+interface RustFmtDiff {
+    startLine: number,
+    newLines: string[],
+    removedLines: number    
+}
+
 export default class FormatService implements vscode.DocumentFormattingEditProvider {
     private writeMode: string;
 
@@ -35,8 +41,8 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
     }
     
     private parseDiff(fileToProcess: vscode.Uri, diff: string): vscode.TextEdit[] {
-        let patches = [];
-        let currentPatch;
+        let patches: RustFmtDiff[] = [];
+        let currentPatch: RustFmtDiff;
         let currentFile: vscode.Uri;
 
         diff = this.stripColorCodes(diff);
@@ -89,7 +95,6 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
             let edit = vscode.TextEdit.replace(range, patchLines.join(''));
             return edit;
         });
-        console.log(textEdits);
         return textEdits;
     }
 
@@ -97,7 +102,6 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
         return new Promise((resolve, reject) => {
             let fileName = document.fileName;
             let command = this.formatCommand(fileName, writeMode);
-
             cp.exec(command, (err, stdout) => {
                 try {
                     if (err && (<any>err).code == 'ENOENT') {
