@@ -33,23 +33,6 @@
 					"extensions": [".rs"]
 				}
 			],
-			// "commands": [
-			// 	{
-			// 		"command": "rust.cargo.build",
-			// 		"title": "Cargo Build",
-			// 		"description": "Runs 'cargo build' on current project"
-			// 	},
-			// 	{
-			// 		"command": "rust.cargo.test",
-			// 		"title": "Cargo Test",
-			// 		"description": "Runs 'cargo test' on current project"
-			// 	},
-			// 	{
-			// 		"command": "rust.cargo.run",
-			// 		"title": "Cargo Run",
-			// 		"description": "Runs 'cargo run' on current project"
-			// 	}	
-			// ],
 			"configuration": {
 				"title": "Rusty Code configuration",
 				"type": "object",
