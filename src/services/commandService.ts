@@ -4,6 +4,7 @@ import * as cp from 'child_process';
 interface CargoOutput {
 	
 }
+
 export default class CommandService {
 	public static getCargoBuildHandler(diagnosticCollection: vscode.DiagnosticCollection): vscode.Disposable {
 		return vscode.commands.registerCommand('rust.cargo.build', () => {
