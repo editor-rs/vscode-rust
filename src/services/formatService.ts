@@ -81,8 +81,12 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
             let startLine = patch.startLine - 1 + cummulativeOffset;
             let removedLines = patch.removedLines;
             cummulativeOffset += (removedLines - patch.newLines.length);
-            let range = new vscode.Range(startLine, 0, startLine + removedLines, Number.MAX_SAFE_INTEGER);
-            let edit = vscode.TextEdit.replace(range, patch.newLines.join(''));
+            let rangeEndLine = removedLines == 0 ? startLine : startLine + removedLines - 1;
+            let range = new vscode.Range(startLine, 0, rangeEndLine, Number.MAX_SAFE_INTEGER);
+            let patchLines = patch.newLines;
+            let lastLineIndex = patchLines.length - 1;
+            patchLines[lastLineIndex] = patchLines[lastLineIndex].replace("\n", "");
+            let edit = vscode.TextEdit.replace(range, patchLines.join(''));
             return edit;
         });
         console.log(textEdits);
