@@ -1,46 +1,49 @@
 import * as vscode from 'vscode';
 import * as cp from 'child_process';
+import * as path from 'path';
 
-interface CargoOutput {
-	
-}
+const channelTabSize = 2;
+const channelTabName = 'Cargo';
+
 export default class CommandService {
-	public static getCargoBuildHandler(diagnosticCollection: vscode.DiagnosticCollection): vscode.Disposable {
-		return vscode.commands.registerCommand('rust.cargo.build', () => {
-			diagnosticCollection.clear();
-			CommandService.runCargoWith('build').then(() => {
-				vscode.window.showInformationMessage('Cargo Build Done');
-			});
-		})
-	}
-	
-	public static getCargoTestHandler(): vscode.Disposable {
-		return vscode.commands.registerCommand('rust.cargo.test', () => {
-			vscode.window.showInformationMessage('Cargo Test');
+	public static formatCommand(commandName: string, subCommand: string, args?: string): vscode.Disposable {
+		return vscode.commands.registerCommand(commandName, () => {
+			this.runCargo(subCommand, args);	
 		});
 	}
 	
-	public static getCargoRunHandler(): vscode.Disposable {
-		return vscode.commands.registerCommand('rust.cargo.run', () => {
-			vscode.window.showInformationMessage('Cargo Run');
+	private static runCargo(command: string, args?: string): void {
+		let channel = vscode.window.createOutputChannel(channelTabName);
+		let cwd = vscode.workspace.rootPath;
+		args = args || '';
+		
+		channel.clear();
+		channel.show(channelTabSize);
+		channel.appendLine(this.formTitle(command, args));
+		
+		let params: string[] = [command];
+		if (args.length > 0) {
+			params.push(args);
+		}
+		
+		let startTime = new Date().getMilliseconds();
+		let cargoProc = cp.spawn('cargo', params, { cwd, env: process.env });
+		cargoProc.stdout.on('data', data => {
+			channel.append(data.toString());
+		});
+		cargoProc.stderr.on('data', data => {
+			channel.append(data.toString());
+		});
+		cargoProc.on('exit', code => {
+			cargoProc.removeAllListeners();
+			let endTime = new Date().getMilliseconds();
+			channel.append(`\n"cargo ${command} ${args}" completed with code ${code}`);
+			channel.append(`\nIt took approximately ${(endTime - startTime) / 1000} seconds`);
 		});
 	}
 	
-	private static runCargoWith(subcommand: string): Thenable<CargoOutput[]> {
-		return new Promise((resolve, reject) => {
-			cp.exec('cargo build', {}, (error, stdout, stderr) => {
-				try {
-					if (error && (<any>error).code == "ENOENT") {
-						vscode.window.showInformationMessage("The 'cargo' command is not available.");
-						return resolve([]);
-					}
-					console.log(stdout);
-					console.error(error);
-					if (error) return reject(error);
-				} catch(e) {
-					reject(e);
-				}
-			})
-		});
+	private static formTitle(command: string, args: string): string {
+		if (args.length > 0) return `Running "cargo ${command} ${args}":\n`;
+		return `Running "cargo ${command}":\n`
 	}
 }

@@ -34,6 +34,53 @@
 					"extensions": [".rs"]
 				}
 			],
+			"commands": [
+				{
+					"command": "rust.cargo.build.debug",
+					"title": "Cargo Build [Debug]",
+					"description": "Compile the current project"
+				},
+				{
+					"command": "rust.cargo.build.release",
+					"title": "Cargo Build [Release]",
+					"description": "Compile the current project with \"--release\" flag"
+				},
+				{
+					"command": "rust.cargo.run.debug",
+					"title": "Cargo Run [Debug]",
+					"description": "Build and execute src/main.rs"
+				},
+				{
+					"command": "rust.cargo.run.release",
+					"title": "Cargo Run [Release]",
+					"description": "Build with \"--release\" flag and execute src/main.rs"
+				},
+				{
+					"command": "rust.cargo.doc",
+					"title": "Cargo Doc",
+					"description": "Build this project's and its dependencies' documentation"	
+				},
+				{
+					"command": "rust.cargo.test",
+					"title": "Cargo Test",
+					"description": "Run the tests"
+				},
+				{
+					"command": "rust.cargo.bench",
+					"title": "Cargo Bench",
+					"description": "Run the benchmarks"
+				},
+				{
+					"command": "rust.cargo.update",
+					"title": "Cargo Update",
+					"description": "Update dependencies listed in Cargo.lock"
+				},
+				{
+					"command": "rust.cargo.clean",
+					"title": "Cargo Clean",
+					"description": "Remove the target directory"
+				}
+			],
 			"configuration": {
 				"title": "Rusty Code configuration",
 				"type": "object",
