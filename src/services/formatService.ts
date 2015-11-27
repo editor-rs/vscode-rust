@@ -84,17 +84,19 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
 
         let cummulativeOffset = 0;
         let textEdits = patches.map(patch => {
-            let startLine = patch.startLine - 1 + cummulativeOffset;
-            let removedLines = patch.removedLines;
-            let rangeEndLine = removedLines == 0 ? startLine : startLine + removedLines - 1;
-            let range = new vscode.Range(startLine, 0, rangeEndLine, Number.MAX_SAFE_INTEGER);
             let newLines = patch.newLines;
+            let removedLines = patch.removedLines;
 
-            cummulativeOffset += (removedLines - patch.newLines.length);
+            let startLine = patch.startLine - 1 + cummulativeOffset;
+            let endLine = removedLines === 0 ? startLine : startLine + removedLines - 1;
+            let range = new vscode.Range(startLine, 0, endLine, Number.MAX_SAFE_INTEGER);
+
+            cummulativeOffset += (removedLines - newLines.length);
+
             let lastLineIndex = newLines.length - 1;
-            newLines[lastLineIndex] = newLines[lastLineIndex].replace("\n", "");
-            let edit = vscode.TextEdit.replace(range, newLines.join(''));
-            return edit;
+            newLines[lastLineIndex] = newLines[lastLineIndex].replace('\n', '');
+
+            return vscode.TextEdit.replace(range, newLines.join(''));
         });
         return textEdits;
     }
@@ -105,7 +107,7 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
             let command = this.formatCommand(fileName, writeMode);
             cp.exec(command, (err, stdout) => {
                 try {
-                    if (err && (<any>err).code == 'ENOENT') {
+                    if (err && (<any>err).code === 'ENOENT') {
                         vscode.window.showInformationMessage('The "rustfmt" command is not available. Make sure it is installed.');
                         return resolve(null);
                     }
