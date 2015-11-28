@@ -58,7 +58,7 @@
 				{
 					"command": "rust.cargo.doc",
 					"title": "Cargo Doc",
-					"description": "Build this project's and its dependencies' documentation"	
+					"description": "Build this project's and its dependencies' documentation"
 				},
 				{
 					"command": "rust.cargo.test",
@@ -79,6 +79,11 @@
 					"command": "rust.cargo.clean",
 					"title": "Cargo Clean",
 					"description": "Remove the target directory"
+				},
+				{
+					"command": "rust.cargo.check",
+					"title": "Cargo Check",
+					"description": "Check the project for warnings and errors"
 				}
 			],
 			"configuration": {
@@ -93,12 +98,12 @@
 					"rust.rustfmtPath": {
 						"type": "string",
 						"default": null,
-						"description": "Specifies path to Rustfmt binary if it's not in PATH"	
+						"description": "Specifies path to Rustfmt binary if it's not in PATH"
 					},
 					"rust.formatOnSave": {
 						"type": "boolean",
 						"default": false,
-						"description": "Turn on/off autoformatting file on save"	
+						"description": "Turn on/off autoformatting file on save"
 					},
 					"rust.rustLangSrcPath": {
 						"type": "string",
