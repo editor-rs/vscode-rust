@@ -96,6 +96,11 @@ export default class SuggestService {
         this.providers.forEach(disposable => disposable.dispose());
         this.providers = [];
 
+        if (error && error.code === 'ENOENT') {
+            vscode.window.showInformationMessage('The "racer" command is not available. Make sure it is installed.');
+            return;
+        }
+
         if (error === 0) {
             return;
         }
