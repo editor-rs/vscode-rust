@@ -50,7 +50,7 @@ First make sure you do not have the extension installed in `~/.vscode/extensions
 ```bash
 rm -rf ~/.vscode/extensions/RustyCode
 cd ~
-git clone https:://github.com/saviorisdead/RustyCode
+git clone https://github.com/saviorisdead/RustyCode
 cd RustyCode
 npm install
 npm run-script compile
