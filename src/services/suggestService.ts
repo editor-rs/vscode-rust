@@ -15,6 +15,8 @@ export default class SuggestService {
     private racerDaemon: cp.ChildProcess;
     private commandCallbacks: ((lines: string[]) => void)[];
     private linesBuffer: string[];
+    private errorBuffer: string;
+    private lastCommand: string;
     private tmpFile: string;
     private providers: vscode.Disposable[];
     private listeners: vscode.Disposable[];
@@ -50,6 +52,8 @@ export default class SuggestService {
     public start(): vscode.Disposable {
         this.commandCallbacks = [];
         this.linesBuffer = [];
+        this.errorBuffer = '';
+        this.lastCommand = '';
         this.providers = [];
 
         this.racerPath = PathService.getRacerPath();
@@ -59,6 +63,7 @@ export default class SuggestService {
         this.racerDaemon.on('close', this.stopDaemon.bind(this));
 
         this.racerDaemon.stdout.on('data', this.dataHandler.bind(this));
+        this.racerDaemon.stderr.on('data', (data) => this.errorBuffer += data.toString());
         this.hookCapabilities();
 
         this.listeners.push(vscode.workspace.onDidChangeConfiguration(() => {
@@ -72,7 +77,7 @@ export default class SuggestService {
     }
 
     public stop(): void {
-        this.stopDaemon();
+        this.stopDaemon(0);
         this.stopListeners();
     }
 
@@ -81,7 +86,7 @@ export default class SuggestService {
         this.start();
     }
 
-    private stopDaemon(): void {
+    private stopDaemon(error): void {
         if (this.racerDaemon == null) {
             return;
         }
@@ -90,12 +95,32 @@ export default class SuggestService {
         this.racerDaemon = null;
         this.providers.forEach(disposable => disposable.dispose());
         this.providers = [];
-        vscode.window.showInformationMessage('The racer process has stopped.');
+
+        if (error === 0) {
+            return;
+        }
+
+        vscode.window.showInformationMessage('The racer process has stopped.', 'View Error')
+            .then(button => {
+                if (button === 'View Error') {
+                    this.showErrorBuffer();
+                }
+
+                this.restart();
+            });
     }
 
-    private stopListeners() {
+    private stopListeners(): void {
         this.listeners.forEach(disposable => disposable.dispose());
         this.listeners = [];
+    }
+
+    private showErrorBuffer(): void {
+        let channel = vscode.window.createOutputChannel('Racer Error');
+        channel.clear();
+        channel.append(`Last command: \n${this.lastCommand}\n`);
+        channel.append(`Racer Error: \n${this.errorBuffer}`);
+        channel.show(2);
     }
 
     private updateTmpFile(document: vscode.TextDocument): void {
@@ -325,6 +350,7 @@ export default class SuggestService {
     }
 
     private runCommand(command: string): Promise<string[]> {
+        this.lastCommand = command;
         let promise = new Promise(resolve => {
             this.commandCallbacks.push(resolve);
         });
