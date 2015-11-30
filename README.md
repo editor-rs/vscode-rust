@@ -39,7 +39,7 @@ The following Visual Studio Code settings are available for the RustyCode extens
 }
 ```
 
-## Building and Debuggind the Extension
+## Building and Debugging the Extension
 
 [Repository](https://github.com/saviorisdead/RustyCode)
 
