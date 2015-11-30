@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.3
+- Added `cargoPath` option to extenstion options (@saviorisdead)
+
 ## 0.4.2
 - Clear diagnostic collection on cargo run (@saviorisdead)
 

@@ -1,4 +1,4 @@
-# Rust for Visual Studio Code (Latest: 0.4.2)
+# Rust for Visual Studio Code (Latest: 0.4.3)
 
 [Changelog](CHANGELOG.md)
 
@@ -35,6 +35,7 @@ The following Visual Studio Code settings are available for the RustyCode extens
 	"rust.racerPath": null, // Specifies path to Racer binary if it's not in PATH
 	"rust.rustLangSrcPath": null, // Specifies path to /src directory of local copy of Rust sources
 	"rust.rustfmtPath": null, // Specifies path to Rustfmt binary if it's not in PATH
+	"rust.cargoPath": null, // Specifies path to Cargo binary if it's not in PATH
 	"rust.formatOnSave": false, // Turn on/off autoformatting file on save (EXPERIMENTAL)
 }
 ```
