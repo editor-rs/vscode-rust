@@ -100,15 +100,20 @@
 						"default": null,
 						"description": "Specifies path to Rustfmt binary if it's not in PATH"
 					},
-					"rust.formatOnSave": {
-						"type": "boolean",
-						"default": false,
-						"description": "Turn on/off autoformatting file on save"
-					},
 					"rust.rustLangSrcPath": {
 						"type": "string",
 						"default": null,
 						"description": "Specifies path to /src directory of local copy of Rust sources"
+					},
+					"rust.cargoPath": {
+						"type": "string",
+						"default": null,
+						"description": "Specifies path to Cargo binary if it's not in PATH"
+					},
+					"rust.formatOnSave": {
+						"type": "boolean",
+						"default": false,
+						"description": "Turn on/off autoformatting file on save"
 					}
 				}
 			}

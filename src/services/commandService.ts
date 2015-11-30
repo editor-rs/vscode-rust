@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as path from 'path';
 
+import PathService from './pathService'; 
+
 const channelTabSize = 2;
 const channelTabName = 'Cargo';
 const errorRegex = /^(.*):(\d+):(\d+):\s+(\d+):(\d+)\s+(warning|error):\s+(.*)$/;
@@ -76,15 +78,17 @@ export default class CommandService {
 		this.diagnostics.clear();
 
 		let channel = vscode.window.createOutputChannel(channelTabName);
-		let cwd = vscode.workspace.rootPath;
+		const cwd = vscode.workspace.rootPath;
 
 		channel.clear();
 		channel.show(channelTabSize);
 		channel.appendLine(this.formTitle(args));
 
-		let startTime = Date.now();
-		let cargoProc = cp.spawn('cargo', args, { cwd, env: process.env });
+		const cargoPath = PathService.getCargoPath();
+		const startTime = Date.now();
 		let output = '';
+		let cargoProc = cp.spawn(cargoPath, args, { cwd, env: process.env });
+		
 		cargoProc.stdout.on('data', data => {
 			channel.append(data.toString());
 		});
@@ -94,7 +98,7 @@ export default class CommandService {
 		});
 		cargoProc.on('exit', code => {
 			cargoProc.removeAllListeners();
-			let endTime = Date.now();
+			const endTime = Date.now();
 			channel.append(`\n"cargo ${args.join(' ')}" completed with code ${code}`);
 			channel.append(`\nIt took approximately ${(endTime - startTime) / 1000} seconds`);
 			this.parseDiagnostics(output);

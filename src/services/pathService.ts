@@ -2,17 +2,22 @@ import vscode = require('vscode');
 
 export default class PathService {
 	public static getRacerPath(): string {
-		let racerPath = vscode.workspace.getConfiguration('rust')['racerPath'];
+		const racerPath = vscode.workspace.getConfiguration('rust')['racerPath'];
 		return racerPath || 'racer';
 	}
 
 	public static getRustfmtPath(): string {
-		let rusfmtPath = vscode.workspace.getConfiguration('rust')['rustfmtPath'];
+		const rusfmtPath = vscode.workspace.getConfiguration('rust')['rustfmtPath'];
 		return rusfmtPath || 'rustfmt';
 	}
 
 	public static getRustLangSrcPath(): string {
-		let rustSrcPath = vscode.workspace.getConfiguration('rust')['rustLangSrcPath'];
+		const rustSrcPath = vscode.workspace.getConfiguration('rust')['rustLangSrcPath'];
 		return rustSrcPath || '';
+	}
+	
+	public static getCargoPath(): string {
+		const cargoPath = vscode.workspace.getConfiguration('rust')['cargoPath'];
+		return cargoPath || 'cargo';
 	}
 }
