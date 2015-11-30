@@ -72,6 +72,8 @@ export default class CommandService {
 		if (!this.diagnostics) {
 			this.diagnostics = vscode.languages.createDiagnosticCollection('rust');
 		}
+		
+		this.diagnostics.clear();
 
 		let channel = vscode.window.createOutputChannel(channelTabName);
 		let cwd = vscode.workspace.rootPath;

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.2
+- Clear diagnostic collection on cargo run (@saviorisdead)
+
 ## 0.4.1
 - Spelling corrected (@skade, @CryZe, @crumblingstatue)
 - Added `cargo check` command and diagnostic handling to editor (@Draivin)
