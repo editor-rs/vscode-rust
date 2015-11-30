@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as path from 'path';
 
-import PathService from './pathService'; 
+import PathService from './pathService';
 
 const channelTabSize = 2;
 const channelTabName = 'Cargo';
@@ -74,7 +74,7 @@ export default class CommandService {
 		if (!this.diagnostics) {
 			this.diagnostics = vscode.languages.createDiagnosticCollection('rust');
 		}
-		
+
 		this.diagnostics.clear();
 
 		let channel = vscode.window.createOutputChannel(channelTabName);
@@ -88,13 +88,18 @@ export default class CommandService {
 		const startTime = Date.now();
 		let output = '';
 		let cargoProc = cp.spawn(cargoPath, args, { cwd, env: process.env });
-		
+
 		cargoProc.stdout.on('data', data => {
 			channel.append(data.toString());
 		});
 		cargoProc.stderr.on('data', data => {
 			output += data.toString();
 			channel.append(data.toString());
+		});
+		cargoProc.on('error', error => {
+			if (error.code === 'ENOENT') {
+				vscode.window.showInformationMessage('The "cargo" command is not available. Make sure it is installed.');
+			}
 		});
 		cargoProc.on('exit', code => {
 			cargoProc.removeAllListeners();
