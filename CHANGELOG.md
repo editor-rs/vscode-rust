@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.4
+- Added standard messaged for missing executables (@Draivin)
+
 ## 0.4.3
 - Added `cargoPath` option to extenstion options (@saviorisdead)
 

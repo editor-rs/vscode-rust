@@ -1,4 +1,4 @@
-# Rust for Visual Studio Code (Latest: 0.4.3)
+# Rust for Visual Studio Code (Latest: 0.4.4)
 
 [Changelog](CHANGELOG.md)
 
