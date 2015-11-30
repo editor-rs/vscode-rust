@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1
+- Spelling corrected (@skade, @CryZe, @crumblingstatue)
+- Added `cargo check` command and diagnostic handling to editor (@Draivin)
+- Added option to view full racer error and restart error automatically (@Draivin)  
+
 ## 0.4.0
 - Various fixes of rustfmt integration (@saviorisdead, @KalitaAlexey, @Draivin)
 - Cargo commands integration (@saviorisdead)
