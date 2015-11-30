@@ -26,7 +26,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
 	ctx.subscriptions.push(vscode.languages.registerDocumentFormattingEditProvider(FilterService.getRustModeFilter(), new FormatService()));
 
 	// Initialize status bar service
-	ctx.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(StatusBarService.toggleStatus));
+	ctx.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(StatusBarService.toggleStatus.bind(StatusBarService)));
 
 	// EXPERIMENTAL: formatting on save
 	let rustConfig = vscode.workspace.getConfiguration('rust');
@@ -43,7 +43,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
 		}
 		console.log(process.env);
 	}));
-	
+
 	// Commands
 	// Cargo build
 	ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.build.debug', 'build'));
@@ -61,4 +61,6 @@ export function activate(ctx: vscode.ExtensionContext): void {
 	ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.update', 'update'));
 	// Cargo clean
 	ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.clean', 'clean'));
+	// Cargo check
+	ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.check', 'rustc', '--', '-Zno-trans'));
 }
