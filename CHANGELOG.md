@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.0
+- Added `cargo terminate` command (@Draivin) 
+
 ## 0.4.4
 - Added standard messaged for missing executables (@Draivin)
 
