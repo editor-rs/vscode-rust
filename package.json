@@ -132,6 +132,7 @@
     "compile": "node ./node_modules/vscode/bin/compile -watch -p ./"
   },
   "devDependencies": {
+    "gulp": "^3.9.0",
     "gulp-shell": "^0.5.1",
     "gulp-tslint": "^4.1.0",
     "tslint": "^3.1.1",
