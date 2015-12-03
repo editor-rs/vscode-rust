@@ -3,12 +3,12 @@ import * as cp from 'child_process';
 
 import PathService from './pathService';
 
-const AnsiRegex = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
+const ansiRegex = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
 
 interface RustFmtDiff {
-    startLine: number,
-    newLines: string[],
-    removedLines: number
+    startLine: number;
+    newLines: string[];
+    removedLines: number;
 }
 
 export default class FormatService implements vscode.DocumentFormattingEditProvider {
@@ -37,7 +37,7 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
     }
 
     private stripColorCodes(input: string): string {
-        return input.replace(AnsiRegex, '');
+        return input.replace(ansiRegex, '');
     }
 
     private parseDiff(fileToProcess: vscode.Uri, diff: string): vscode.TextEdit[] {

@@ -9,12 +9,12 @@ This extension adds advanced language support for the Rust language to VS Code, 
 - Autocompletion (using `racer`)
 - Go To Definition (using `racer`)
 - Format (using `rustfmt`) *formatOnSave is experimental*
-- Cargo tasks (Open Command Pallete and they will be there) 
+- Cargo tasks (Open Command Pallete and they will be there)
 - [_not implemented yet_] Snippets
 
 
 ### IDE Features
-![IDE](ide_features.png)
+![IDE](images/ide_features.png)
 
 ## Using
 

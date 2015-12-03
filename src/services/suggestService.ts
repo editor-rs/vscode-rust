@@ -39,7 +39,7 @@ export default class SuggestService {
         'FnArg': vscode.CompletionItemKind.Property,
         'Trait': vscode.CompletionItemKind.Interface,
         'Const': vscode.CompletionItemKind.Variable,
-        'Static': vscode.CompletionItemKind.Variable,
+        'Static': vscode.CompletionItemKind.Variable
     };
 
     constructor() {
@@ -239,7 +239,7 @@ export default class SuggestService {
     private parseCall(name: string, line: string, definition: string, position: number): vscode.SignatureHelp {
         let nameEnd = definition.indexOf(name) + name.length;
         let [params, paramStart, paramEnd] = this.parseParameters(definition, nameEnd);
-        let [callParameters, , ] = this.parseParameters(line, line.indexOf(name) + name.length, position);
+        let [callParameters] = this.parseParameters(line, line.indexOf(name) + name.length, position);
         let currentParameter = callParameters.length - 1;
 
         let nameTemplate = definition.substring(0, paramStart);
