@@ -62,6 +62,6 @@ export function activate(ctx: vscode.ExtensionContext): void {
     // Cargo check
     ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.check', 'rustc', '--', '-Zno-trans'));
 
-    // Cargo Terminate
+    // Cargo terminate
     ctx.subscriptions.push(CommandService.stopCommand('rust.cargo.terminate'));
 }
