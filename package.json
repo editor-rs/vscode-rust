@@ -5,7 +5,7 @@
   "version": "0.5.0",
   "publisher": "saviorisdead",
   "license": "MIT",
-  "icon": "icon.png",
+  "icon": "images/icon.png",
   "homepage": "https://github.com/saviorisdead/RustyCode",
   "repository": {
     "type": "git",
@@ -132,7 +132,11 @@
     "compile": "node ./node_modules/vscode/bin/compile -watch -p ./"
   },
   "devDependencies": {
-    "typescript": "^1.6.2",
+    "gulp": "^3.9.0",
+    "gulp-shell": "^0.5.1",
+    "gulp-tslint": "^4.1.0",
+    "tslint": "^3.1.1",
+    "typescript": "^1.7.3",
     "vscode": "0.10.x"
   },
   "dependencies": {
