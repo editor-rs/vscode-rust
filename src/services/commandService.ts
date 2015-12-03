@@ -1,11 +1,10 @@
 import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as path from 'path';
+import kill = require('tree-kill');
 
 import PathService from './pathService';
 
-const channelTabSize = 2;
-const channelTabName = 'Cargo';
 const errorRegex = /^(.*):(\d+):(\d+):\s+(\d+):(\d+)\s+(warning|error):\s+(.*)$/;
 
 interface RustError {
@@ -18,16 +17,117 @@ interface RustError {
 	message: string;
 }
 
-export default class CommandService {
-	private static diagnostics: vscode.DiagnosticCollection;
+class ChannelWrapper {
+	private owner: CargoTask;
+	private channel: vscode.OutputChannel;
 
-	public static formatCommand(commandName: string, ...args: string[]): vscode.Disposable {
-		return vscode.commands.registerCommand(commandName, () => {
-			this.runCargo(args);
+	constructor(channel: vscode.OutputChannel) {
+		this.channel = channel;
+	}
+
+	public append(task: CargoTask, message: string): void {
+		if (task === this.owner) {
+			this.channel.append(message);
+		}
+	}
+
+	public clear(task: CargoTask): void {
+		if (task === this.owner) {
+			this.channel.clear();
+		}
+	}
+
+	public show(): void {
+		this.channel.show(2);
+	}
+
+	public setOwner(owner: CargoTask): void {
+		this.owner = owner;
+	}
+}
+
+class CargoTask {
+	private channel: ChannelWrapper;
+	private process: cp.ChildProcess;
+	private arguments: string[];
+	private interrupted: boolean;
+
+	constructor(args: string[], channel: ChannelWrapper) {
+		this.arguments = args;
+		this.channel = channel;
+		this.interrupted = false;
+	}
+
+	public execute(): Thenable<string> {
+		return new Promise((resolve, reject) => {
+			const cwd = vscode.workspace.rootPath;
+			const cargoPath = PathService.getCargoPath();
+			const startTime = Date.now();
+			const task = 'cargo ' + this.arguments.join(' ');
+			let output = '';
+
+			this.channel.clear(this);
+			this.channel.append(this, `Running "${task}":\n`);
+
+			this.process = cp.spawn(cargoPath, this.arguments, { cwd });
+
+			this.process.stdout.on('data', data => {
+				this.channel.append(this, data.toString());
+			});
+			this.process.stderr.on('data', data => {
+				output += data.toString();
+				this.channel.append(this, data.toString());
+			});
+			this.process.on('error', error => {
+				if (error.code === 'ENOENT') {
+					vscode.window.showInformationMessage('The "cargo" command is not available. Make sure it is installed.');
+				}
+			});
+			this.process.on('exit', code => {
+				this.process.removeAllListeners();
+				this.process = null;
+				const endTime = Date.now();
+				this.channel.append(this, `\n"${task}" completed with code ${code}`);
+				this.channel.append(this, `\nIt took approximately ${(endTime - startTime) / 1000} seconds`);
+				if (code === 0 || this.interrupted) {
+					resolve(this.interrupted ? '' : output);
+				} else {
+					reject(code);
+				}
+			});
 		});
 	}
 
-	private static parseDiagnostics(output: string) {
+	public kill(): Thenable<any> {
+		return new Promise(resolve => {
+			if (!this.interrupted && this.process) {
+				kill(this.process.pid, 'SIGINT', resolve);
+				this.interrupted = true;
+			}
+		});
+	}
+}
+
+export default class CommandService {
+	private static diagnostics: vscode.DiagnosticCollection = vscode.languages.createDiagnosticCollection('rust');
+	private static channel: ChannelWrapper = new ChannelWrapper(vscode.window.createOutputChannel('Cargo'));
+	private static currentTask: CargoTask;
+
+	public static formatCommand(commandName: string, ...args: string[]): vscode.Disposable {
+		return vscode.commands.registerCommand(commandName, () => {
+			this.runCargo(args, true, true);
+		});
+	}
+
+	public static stopCommand(commandName: string): vscode.Disposable {
+		return vscode.commands.registerCommand(commandName, () => {
+			if (this.currentTask) {
+				this.currentTask.kill();
+			}
+		});
+	}
+
+	private static parseDiagnostics(output: string): void {
 		let errors: { [filename: string]: RustError[] } = {};
 
 		for (let line of output.split('\n')) {
@@ -50,6 +150,11 @@ export default class CommandService {
 			}
 		}
 
+		if (!Object.keys(errors).length) {
+			return;
+		}
+
+		this.diagnostics.clear();
 		for (let filename of Object.keys(errors)) {
 			let fileErrors = errors[filename];
 			let diagnostics = fileErrors.map((error) => {
@@ -63,54 +168,37 @@ export default class CommandService {
 				}
 
 				return new vscode.Diagnostic(range, error.message, severity);
-			})
+			});
 
 			let uri = vscode.Uri.file(path.join(vscode.workspace.rootPath, filename));
 			this.diagnostics.set(uri, diagnostics);
 		}
 	}
 
-	private static runCargo(args: string[]): void {
-		if (!this.diagnostics) {
-			this.diagnostics = vscode.languages.createDiagnosticCollection('rust');
+	private static runCargo(args: string[], force = false, visible = false): void {
+		if (force && this.currentTask) {
+			this.channel.setOwner(null);
+			this.currentTask.kill().then(() => {
+				this.runCargo(args, force, visible);
+			});
+			return;
+		} else if (this.currentTask) {
+			return;
 		}
 
-		this.diagnostics.clear();
+		this.currentTask = new CargoTask(args, this.channel);
 
-		let channel = vscode.window.createOutputChannel(channelTabName);
-		const cwd = vscode.workspace.rootPath;
+		if (visible) {
+			this.channel.setOwner(this.currentTask);
+			this.channel.show();
+		}
 
-		channel.clear();
-		channel.show(channelTabSize);
-		channel.appendLine(this.formTitle(args));
-
-		const cargoPath = PathService.getCargoPath();
-		const startTime = Date.now();
-		let output = '';
-		let cargoProc = cp.spawn(cargoPath, args, { cwd, env: process.env });
-
-		cargoProc.stdout.on('data', data => {
-			channel.append(data.toString());
-		});
-		cargoProc.stderr.on('data', data => {
-			output += data.toString();
-			channel.append(data.toString());
-		});
-		cargoProc.on('error', error => {
-			if (error.code === 'ENOENT') {
-				vscode.window.showInformationMessage('The "cargo" command is not available. Make sure it is installed.');
-			}
-		});
-		cargoProc.on('exit', code => {
-			cargoProc.removeAllListeners();
-			const endTime = Date.now();
-			channel.append(`\n"cargo ${args.join(' ')}" completed with code ${code}`);
-			channel.append(`\nIt took approximately ${(endTime - startTime) / 1000} seconds`);
+		this.currentTask.execute().then(output => {
 			this.parseDiagnostics(output);
+		}, exitCode => {
+			vscode.window.showWarningMessage(`Cargo unexpectedly stopped with code ${exitCode}`);
+		}).then(() => {
+			this.currentTask = null;
 		});
-	}
-
-	private static formTitle(args: string[]): string {
-		return `Running "cargo ${args.join(' ')}":\n`;
 	}
 }

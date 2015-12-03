@@ -1,132 +1,142 @@
 {
-	"name": "RustyCode",
-	"displayName": "Rusty Code",
-	"description": "Rust language integration for VSCode",
-	"version": "0.4.4",
-	"publisher": "saviorisdead",
-	"license": "MIT",
-	"icon": "icon.png",
-	"homepage": "https://github.com/saviorisdead/RustyCode",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/saviorisdead/RustyCode"
-	},
-	"bugs": {
-		"url": "https://github.com/saviorisdead/RustyCode/issues",
-		"email": "saviorisdead@gmail.com"
-	},
-	"engines": {
-		"vscode": "^0.10.1"
-	},
-	"categories": [
-		"Languages",
-		"Linters"
-	],
-	"activationEvents": [
-		"onLanguage:rust"
-	],
-	"main": "./out/src/extension",
-	"contributes": {
-			"languages": [
-				{
-					"id": "rust",
-					"aliases": ["Rust"],
-					"extensions": [".rs"]
-				}
-			],
-			"commands": [
-				{
-					"command": "rust.cargo.build.debug",
-					"title": "Cargo Build [Debug]",
-					"description": "Compile the current project"
-				},
-				{
-					"command": "rust.cargo.build.release",
-					"title": "Cargo Build [Release]",
-					"description": "Compile the current project with \"--release\" flag"
-				},
-				{
-					"command": "rust.cargo.run.debug",
-					"title": "Cargo Run [Debug]",
-					"description": "Build and execute src/main.rs"
-				},
-				{
-					"command": "rust.cargo.run.release",
-					"title": "Cargo Run [Release]",
-					"description": "Build with \"--release\" flag and execute src/main.rs"
-				},
-				{
-					"command": "rust.cargo.doc",
-					"title": "Cargo Doc",
-					"description": "Build this project's and its dependencies' documentation"
-				},
-				{
-					"command": "rust.cargo.test",
-					"title": "Cargo Test",
-					"description": "Run the tests"
-				},
-				{
-					"command": "rust.cargo.bench",
-					"title": "Cargo Bench",
-					"description": "Run the benchmarks"
-				},
-				{
-					"command": "rust.cargo.update",
-					"title": "Cargo Update",
-					"description": "Update dependencies listed in Cargo.lock"
-				},
-				{
-					"command": "rust.cargo.clean",
-					"title": "Cargo Clean",
-					"description": "Remove the target directory"
-				},
-				{
-					"command": "rust.cargo.check",
-					"title": "Cargo Check",
-					"description": "Check the project for warnings and errors"
-				}
-			],
-			"configuration": {
-				"title": "Rusty Code configuration",
-				"type": "object",
-				"properties": {
-					"rust.racerPath": {
-						"type": "string",
-						"default": null,
-						"description": "Specifies path to Racer binary if it's not in PATH"
-					},
-					"rust.rustfmtPath": {
-						"type": "string",
-						"default": null,
-						"description": "Specifies path to Rustfmt binary if it's not in PATH"
-					},
-					"rust.rustLangSrcPath": {
-						"type": "string",
-						"default": null,
-						"description": "Specifies path to /src directory of local copy of Rust sources"
-					},
-					"rust.cargoPath": {
-						"type": "string",
-						"default": null,
-						"description": "Specifies path to Cargo binary if it's not in PATH"
-					},
-					"rust.formatOnSave": {
-						"type": "boolean",
-						"default": false,
-						"description": "Turn on/off autoformatting file on save"
-					}
-				}
-			}
-	},
-	"scripts": {
-		"vscode:prepublish": "node ./node_modules/vscode/bin/compile",
-		"compile": "node ./node_modules/vscode/bin/compile -watch -p ./"
-	},
-	"devDependencies": {
-		"typescript": "^1.6.2",
-		"vscode": "0.10.x"
-	},
-	"dependencies": {
-		"tmp": "*"
-	}
+  "name": "RustyCode",
+  "displayName": "Rusty Code",
+  "description": "Rust language integration for VSCode",
+  "version": "0.4.4",
+  "publisher": "saviorisdead",
+  "license": "MIT",
+  "icon": "icon.png",
+  "homepage": "https://github.com/saviorisdead/RustyCode",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/saviorisdead/RustyCode"
+  },
+  "bugs": {
+    "url": "https://github.com/saviorisdead/RustyCode/issues",
+    "email": "saviorisdead@gmail.com"
+  },
+  "engines": {
+    "vscode": "^0.10.1"
+  },
+  "categories": [
+    "Languages",
+    "Linters"
+  ],
+  "activationEvents": [
+    "onLanguage:rust"
+  ],
+  "main": "./out/src/extension",
+  "contributes": {
+    "languages": [
+      {
+        "id": "rust",
+        "aliases": [
+          "Rust"
+        ],
+        "extensions": [
+          ".rs"
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "rust.cargo.build.debug",
+        "title": "Cargo: Build Debug",
+        "description": "Compile the current project"
+      },
+      {
+        "command": "rust.cargo.build.release",
+        "title": "Cargo: Build Release",
+        "description": "Compile the current project with \"--release\" flag"
+      },
+      {
+        "command": "rust.cargo.run.debug",
+        "title": "Cargo: Run Debug",
+        "description": "Build and execute src/main.rs"
+      },
+      {
+        "command": "rust.cargo.run.release",
+        "title": "Cargo: Run Release",
+        "description": "Build with \"--release\" flag and execute src/main.rs"
+      },
+      {
+        "command": "rust.cargo.doc",
+        "title": "Cargo: Doc",
+        "description": "Build this project's and its dependencies' documentation"
+      },
+      {
+        "command": "rust.cargo.test",
+        "title": "Cargo: Test",
+        "description": "Run the tests"
+      },
+      {
+        "command": "rust.cargo.bench",
+        "title": "Cargo: Bench",
+        "description": "Run the benchmarks"
+      },
+      {
+        "command": "rust.cargo.update",
+        "title": "Cargo: Update",
+        "description": "Update dependencies listed in Cargo.lock"
+      },
+      {
+        "command": "rust.cargo.clean",
+        "title": "Cargo: Clean",
+        "description": "Remove the target directory"
+      },
+      {
+        "command": "rust.cargo.check",
+        "title": "Cargo: Check",
+        "description": "Check the project for warnings and errors"
+      },
+      {
+        "command": "rust.cargo.terminate",
+        "title": "Cargo: Terminate Running Task",
+        "description": "Terminate currently running cargo task"
+      }
+    ],
+    "configuration": {
+      "title": "Rusty Code configuration",
+      "type": "object",
+      "properties": {
+        "rust.racerPath": {
+          "type": "string",
+          "default": null,
+          "description": "Specifies path to Racer binary if it's not in PATH"
+        },
+        "rust.rustfmtPath": {
+          "type": "string",
+          "default": null,
+          "description": "Specifies path to Rustfmt binary if it's not in PATH"
+        },
+        "rust.rustLangSrcPath": {
+          "type": "string",
+          "default": null,
+          "description": "Specifies path to /src directory of local copy of Rust sources"
+        },
+        "rust.cargoPath": {
+          "type": "string",
+          "default": null,
+          "description": "Specifies path to Cargo binary if it's not in PATH"
+        },
+        "rust.formatOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Turn on/off autoformatting file on save"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "node ./node_modules/vscode/bin/compile",
+    "compile": "node ./node_modules/vscode/bin/compile -watch -p ./"
+  },
+  "devDependencies": {
+    "typescript": "^1.6.2",
+    "vscode": "0.10.x"
+  },
+  "dependencies": {
+    "tmp": "0.0.28",
+    "tree-kill": "^1.0.0"
+  }
 }

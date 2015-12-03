@@ -14,10 +14,6 @@ export function activate(ctx: vscode.ExtensionContext): void {
 		process.env['RUST_SRC_PATH'] = rustSrcPath;
 	}
 
-	// Utils
-	let diagnosticCollection = vscode.languages.createDiagnosticCollection('rust');
-	ctx.subscriptions.push(diagnosticCollection);
-
 	// Initialize suggestion service
 	let suggestService = new SuggestService().start();
 	ctx.subscriptions.push(suggestService);
@@ -32,7 +28,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
 	let rustConfig = vscode.workspace.getConfiguration('rust');
 	ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument(document => {
 		if (!rustConfig['formatOnSave']) return;
-		vscode.commands.executeCommand("editor.action.format");
+		vscode.commands.executeCommand('editor.action.format');
 	}));
 
 	// Watch for configuration changes for ENV
@@ -63,4 +59,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
 	ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.clean', 'clean'));
 	// Cargo check
 	ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.check', 'rustc', '--', '-Zno-trans'));
+
+	// Cargo Terminate
+	ctx.subscriptions.push(CommandService.stopCommand('rust.cargo.terminate'));
 }
