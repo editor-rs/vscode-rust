@@ -25,7 +25,7 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
     }
 
     private formatCommand(fileName: string, writeMode: string): string {
-        return PathService.getRustfmtPath() + ` --write-mode=${writeMode} "${fileName}"`;
+        return PathService.getRustfmtPath() + ' --write-mode=' + writeMode + ' ' + fileName;
     }
 
     private cleanDiffLine(line: string): string {
