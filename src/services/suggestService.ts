@@ -135,7 +135,7 @@ export default class SuggestService {
 
     private definitionProvider(document: vscode.TextDocument, position: vscode.Position): Thenable<vscode.Definition> {
         this.updateTmpFile(document);
-        let command = `find-definition ${position.line + 1} ${position.character} "${document.fileName}" "${this.tmpFile}"\n`;
+        let command = `find-definition ${position.line + 1} ${position.character} ${document.fileName} ${this.tmpFile}\n`;
         return this.runCommand(command).then(lines => {
             if (lines.length === 0) {
                 return null;
@@ -153,7 +153,7 @@ export default class SuggestService {
 
     private completionProvider(document: vscode.TextDocument, position: vscode.Position): Thenable<vscode.CompletionItem[]> {
         this.updateTmpFile(document);
-        let command = `complete-with-snippet ${position.line + 1} ${position.character} "${document.fileName}" "${this.tmpFile}"\n`;
+        let command = `complete-with-snippet ${position.line + 1} ${position.character} ${document.fileName} ${this.tmpFile}\n`;
         return this.runCommand(command).then(lines => {
             lines.shift();
 
@@ -307,7 +307,7 @@ export default class SuggestService {
         // Get the first dangling parenthesis, so we don't stop on a function call used as a previous parameter
         let callPosition = this.firstDanglingParen(line.text, position.character - 1);
 
-        let command = `complete-with-snippet ${position.line + 1} ${callPosition} "${document.fileName}" "${this.tmpFile}"\n`;
+        let command = `complete-with-snippet ${position.line + 1} ${callPosition} ${document.fileName} ${this.tmpFile}\n`;
         return this.runCommand(command).then((lines) => {
             lines = lines.map(l => l.trim()).join('').split('MATCH ').slice(1);
             if (lines.length === 0) {
