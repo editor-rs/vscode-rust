@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/saviorisdead/RustyCode.svg)](https://travis-ci.org/saviorisdead/RustyCode)
 
-# Rust for Visual Studio Code (Latest: 0.5.1)
+# Rust for Visual Studio Code (Latest: 0.5.3)
 
 [Changelog](CHANGELOG.md)
 
