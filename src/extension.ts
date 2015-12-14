@@ -46,6 +46,10 @@ export function activate(ctx: vscode.ExtensionContext): void {
     // Cargo build
     ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.build.debug', 'build'));
     ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.build.release', 'build', '--release'));
+    ctx.subscriptions.push(CommandService.buildExampleCommand('rust.cargo.build.example.debug', false));
+    ctx.subscriptions.push(CommandService.buildExampleCommand('rust.cargo.build.example.release', true));
+    ctx.subscriptions.push(CommandService.runExampleCommand('rust.cargo.run.example.debug', false));
+    ctx.subscriptions.push(CommandService.runExampleCommand('rust.cargo.run.example.release', true));
     // Cargo run
     ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.run.debug', 'run'));
     ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.run.release', 'run', '--release'));

@@ -119,12 +119,66 @@ export default class CommandService {
         });
     }
 
+    public static buildExampleCommand(commandName: string, release: boolean): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            this.buildExample(release);
+        });
+    }
+
+    public static runExampleCommand(commandName: string, release: boolean): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            this.runExample(release);
+        });
+    }
+
     public static stopCommand(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
             if (this.currentTask) {
                 this.currentTask.kill();
             }
         });
+    }
+
+    private static determineExampleName(): string {
+        let showDocumentIsNotExampleWarning = () => {
+            vscode.window.showWarningMessage("Current document is not an example");
+        };
+        let filePath = vscode.window.activeTextEditor.document.uri.fsPath;
+        let dir = path.basename(path.dirname(filePath));
+        if (dir !== "examples") {
+            showDocumentIsNotExampleWarning();
+            return "";
+        }
+        let filename = path.basename(filePath);
+        if (!filename.endsWith(".rs")) {
+            showDocumentIsNotExampleWarning();
+            return "";
+        }
+        return path.basename(filename, ".rs");
+    }
+
+    private static buildExample(release: boolean): void {
+        let exampleName = this.determineExampleName();
+        if (exampleName.length == 0) {
+            return;
+        }
+        var args = ["build", "--example", exampleName];
+        if (release) {
+            args.push("--release");
+        }
+        this.runCargo(args, true, true);
+    }
+
+    private static runExample(release: boolean): void {
+        let exampleName = this.determineExampleName();
+        if (exampleName.length == 0) {
+            return;
+        }
+        var args = ["run", "--example", exampleName];
+        if (release) {
+            args.push("--release");
+        }
+        this.runCargo(args, true, true);
     }
 
     private static parseDiagnostics(output: string): void {
