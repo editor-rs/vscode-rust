@@ -93,7 +93,9 @@ class CargoTask {
                 if (code === 0 || this.interrupted) {
                     resolve(this.interrupted ? '' : output);
                 } else {
-                    vscode.window.showWarningMessage(`Cargo unexpectedly stopped with code ${code}`);
+                    if (code !== 101) {
+                        vscode.window.showWarningMessage(`Cargo unexpectedly stopped with code ${code}`);
+                    }
                     reject(output);
                 }
             });
