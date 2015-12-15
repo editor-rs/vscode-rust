@@ -89,10 +89,12 @@ class CargoTask {
                 const endTime = Date.now();
                 this.channel.append(this, `\n"${task}" completed with code ${code}`);
                 this.channel.append(this, `\nIt took approximately ${(endTime - startTime) / 1000} seconds`);
+
                 if (code === 0 || this.interrupted) {
                     resolve(this.interrupted ? '' : output);
                 } else {
-                    reject(code);
+                    vscode.window.showWarningMessage(`Cargo unexpectedly stopped with code ${code}`);
+                    reject(output);
                 }
             });
         });
@@ -204,11 +206,11 @@ export default class CommandService {
             }
         }
 
+        this.diagnostics.clear();
         if (!Object.keys(errors).length) {
             return;
         }
 
-        this.diagnostics.clear();
         for (let filename of Object.keys(errors)) {
             let fileErrors = errors[filename];
             let diagnostics = fileErrors.map((error) => {
@@ -249,8 +251,8 @@ export default class CommandService {
 
         this.currentTask.execute().then(output => {
             this.parseDiagnostics(output);
-        }, exitCode => {
-            vscode.window.showWarningMessage(`Cargo unexpectedly stopped with code ${exitCode}`);
+        }, output => {
+            this.parseDiagnostics(output);
         }).then(() => {
             this.currentTask = null;
         });
