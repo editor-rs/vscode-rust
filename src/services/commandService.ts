@@ -141,42 +141,42 @@ export default class CommandService {
 
     private static determineExampleName(): string {
         let showDocumentIsNotExampleWarning = () => {
-            vscode.window.showWarningMessage("Current document is not an example");
+            vscode.window.showWarningMessage('Current document is not an example');
         };
         let filePath = vscode.window.activeTextEditor.document.uri.fsPath;
         let dir = path.basename(path.dirname(filePath));
-        if (dir !== "examples") {
+        if (dir !== 'examples') {
             showDocumentIsNotExampleWarning();
-            return "";
+            return '';
         }
         let filename = path.basename(filePath);
-        if (!filename.endsWith(".rs")) {
+        if (!filename.endsWith('.rs')) {
             showDocumentIsNotExampleWarning();
-            return "";
+            return '';
         }
-        return path.basename(filename, ".rs");
+        return path.basename(filename, '.rs');
     }
 
     private static buildExample(release: boolean): void {
         let exampleName = this.determineExampleName();
-        if (exampleName.length == 0) {
+        if (exampleName.length === 0) {
             return;
         }
-        var args = ["build", "--example", exampleName];
+        let args = ['build', '--example', exampleName];
         if (release) {
-            args.push("--release");
+            args.push('--release');
         }
         this.runCargo(args, true, true);
     }
 
     private static runExample(release: boolean): void {
         let exampleName = this.determineExampleName();
-        if (exampleName.length == 0) {
+        if (exampleName.length === 0) {
             return;
         }
-        var args = ["run", "--example", exampleName];
+        let args = ['run', '--example', exampleName];
         if (release) {
-            args.push("--release");
+            args.push('--release');
         }
         this.runCargo(args, true, true);
     }
