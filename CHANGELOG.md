@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.4
+- Show errors after failed `cargo build` (@henriiik)
+
 ## 0.5.0
 - Added `cargo terminate` command (@Draivin) 
 
