@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.6.0
+- Added cargo commands for examples (@KalitaAlexey)
+
 ## 0.5.5
 - Fixed issue with racer crashing on parentheses (@saviorisdead)
 
