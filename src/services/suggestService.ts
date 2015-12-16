@@ -192,11 +192,9 @@ export default class SuggestService {
         });
     }
 
-    private parseParameters(line: string, startingPosition: number, stopPosition?: number): [string[], number, number] {
-        if (!stopPosition) {
-            stopPosition = line.length;
-        }
+    private parseParameters(text: string, startingPosition: number): [string[], number, number] {
 
+        let stopPosition = text.length;
         let parameters = [];
         let currentParameter = '';
         let currentDepth = 0;
@@ -204,7 +202,7 @@ export default class SuggestService {
         let parameterEnd = -1;
 
         for (let i = startingPosition; i < stopPosition; i++) {
-            let char = line.charAt(i);
+            let char = text.charAt(i);
 
             if (char === '(') {
                 if (currentDepth === 0) {
@@ -247,7 +245,7 @@ export default class SuggestService {
         let nameTemplate = definition.substring(0, paramStart);
 
         // If function is used as a method, ignore the self parameter
-        if (args.length < params.length) {
+        if ((args ? args.length : 0) < params.length) {
             params = params.slice(1);
         }
 
