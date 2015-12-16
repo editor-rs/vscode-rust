@@ -24,9 +24,8 @@ export function activate(ctx: vscode.ExtensionContext): void {
     // Initialize status bar service
     ctx.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(StatusBarService.toggleStatus.bind(StatusBarService)));
 
-    // EXPERIMENTAL: formatting on save
-    let rustConfig = vscode.workspace.getConfiguration('rust');
     ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument(() => {
+        let rustConfig = vscode.workspace.getConfiguration('rust');
         if (!rustConfig['formatOnSave']) {
             return;
         }
