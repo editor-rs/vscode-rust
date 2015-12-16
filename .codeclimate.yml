@@ -1,5 +1,5 @@
 languages:
-	TypeScript: true
+   TypeScript: true
 exclude_paths:
 - out/**/*
 - .vscode/*
