@@ -315,16 +315,25 @@ export default class SuggestService {
             return null;
         }
 
+        let name = document.getText(document.getWordRangeAtPosition(startPos));
+
         let command = `complete-with-snippet ${startPos.line + 1} ${startPos.character - 1} ${document.fileName} ${this.tmpFile}\n`;
         return this.runCommand(command).then((lines) => {
             lines = lines.map(l => l.trim()).join('').split('MATCH ').slice(1);
-            if (lines.length === 0) {
+
+            let parts: string[] = [];
+            for (let line of lines) {
+                parts = line.split(';');
+                if (parts[0] === name) {
+                    break;
+                }
+            }
+
+            if (parts[0] !== name) {
                 return null;
             }
 
-            let parts = lines[0].split(';');
             let args = parts[1].match(/\${\d+:\w+}/g);
-            let name = parts[0];
             let type = parts[5];
             let definition = parts[6];
 
