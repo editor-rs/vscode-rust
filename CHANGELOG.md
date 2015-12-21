@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.7.0
+- Added support for multiline function call signature help (@henriiik)
+
 ## 0.6.0
 - Added cargo commands for examples (@KalitaAlexey)
 
