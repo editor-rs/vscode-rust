@@ -192,11 +192,9 @@ export default class SuggestService {
         });
     }
 
-    private parseParameters(line: string, startingPosition: number, stopPosition?: number): [string[], number, number] {
-        if (!stopPosition) {
-            stopPosition = line.length;
-        }
+    private parseParameters(text: string, startingPosition: number): [string[], number, number] {
 
+        let stopPosition = text.length;
         let parameters = [];
         let currentParameter = '';
         let currentDepth = 0;
@@ -204,7 +202,7 @@ export default class SuggestService {
         let parameterEnd = -1;
 
         for (let i = startingPosition; i < stopPosition; i++) {
-            let char = line.charAt(i);
+            let char = text.charAt(i);
 
             if (char === '(') {
                 if (currentDepth === 0) {
@@ -238,17 +236,16 @@ export default class SuggestService {
         return [parameters, parameterStart, parameterEnd];
     }
 
-    private parseCall(name: string, line: string, definition: string, position: number): vscode.SignatureHelp {
+    private parseCall(name: string, args: string[], definition: string, callText: string): vscode.SignatureHelp {
         let nameEnd = definition.indexOf(name) + name.length;
         let [params, paramStart, paramEnd] = this.parseParameters(definition, nameEnd);
-        let [callParameters] = this.parseParameters(line, line.indexOf(name) + name.length, position);
+        let [callParameters] = this.parseParameters(callText, 0);
         let currentParameter = callParameters.length - 1;
 
         let nameTemplate = definition.substring(0, paramStart);
 
         // If function is used as a method, ignore the self parameter
-        let isMethod = line.charAt(line.indexOf(name) - 1) === '.';
-        if (isMethod) {
+        if ((args ? args.length : 0) < params.length) {
             params = params.slice(1);
         }
 
@@ -283,35 +280,42 @@ export default class SuggestService {
         return result;
     }
 
-    private firstDanglingParen(line: string, position: number): number {
+    private firstDanglingParen(document: vscode.TextDocument, position: vscode.Position): vscode.Position {
+        let text = document.getText();
+        let offset = document.offsetAt(position) - 1;
         let currentDepth = 0;
-        for (let i = position; i >= 0; i--) {
-            let char = line.charAt(i);
+
+        while (offset > 0) {
+            let char = text.charAt(offset);
 
             if (char === ')') {
                 currentDepth += 1;
             } else if (char === '(') {
                 currentDepth -= 1;
+            } else if (char === '{') {
+                return null; // not inside function call
             }
 
             if (currentDepth === -1) {
-                return i;
+                return document.positionAt(offset);
             }
+
+            offset--;
         }
-        return -1;
+
+        return null;
     }
 
     private signatureHelpProvider(document: vscode.TextDocument, position: vscode.Position): Thenable<vscode.SignatureHelp> {
         this.updateTmpFile(document);
-        let line = document.lineAt(position.line);
 
         // Get the first dangling parenthesis, so we don't stop on a function call used as a previous parameter
-        let callPosition = this.firstDanglingParen(line.text, position.character - 1);
-        if (callPosition === -1) {
-            return;
+        let startPos = this.firstDanglingParen(document, position);
+        if (!startPos) {
+            return null;
         }
 
-        let command = `complete-with-snippet ${position.line + 1} ${callPosition} ${document.fileName} ${this.tmpFile}\n`;
+        let command = `complete-with-snippet ${startPos.line + 1} ${startPos.character - 1} ${document.fileName} ${this.tmpFile}\n`;
         return this.runCommand(command).then((lines) => {
             lines = lines.map(l => l.trim()).join('').split('MATCH ').slice(1);
             if (lines.length === 0) {
@@ -319,6 +323,7 @@ export default class SuggestService {
             }
 
             let parts = lines[0].split(';');
+            let args = parts[1].match(/\${\d+:\w+}/g);
             let name = parts[0];
             let type = parts[5];
             let definition = parts[6];
@@ -327,7 +332,8 @@ export default class SuggestService {
                 return null;
             }
 
-            return this.parseCall(name, line.text, definition, position.character);
+            let callText = document.getText(new vscode.Range(startPos, position));
+            return this.parseCall(name, args, definition, callText);
         });
     }
 
