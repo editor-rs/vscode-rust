@@ -1,6 +1,7 @@
 [![Build Status](https://travis-ci.org/saviorisdead/RustyCode.svg)](https://travis-ci.org/saviorisdead/RustyCode)
+[![Code Climate](https://codeclimate.com/github/saviorisdead/RustyCode/badges/gpa.svg)](https://codeclimate.com/github/saviorisdead/RustyCode)
 
-# Rust for Visual Studio Code (Latest: 0.6.0)
+# Rust for Visual Studio Code (Latest: 0.7.0)
 
 [Changelog](CHANGELOG.md)
 

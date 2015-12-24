@@ -1,0 +1,7 @@
+languages:
+   TypeScript: true
+exclude_paths:
+- out/**/*
+- .vscode/*
+- images/*
+- typings/**/*
