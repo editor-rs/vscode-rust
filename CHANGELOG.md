@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.7.1
+- Fixed bug with incorrect signature help (@henriiik)
+
 ## 0.7.0
 - Added support for multiline function call signature help (@henriiik)
 
