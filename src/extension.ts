@@ -26,19 +26,16 @@ export function activate(ctx: vscode.ExtensionContext): void {
 
     // EXPERIMENTAL: formatting on save
     let rustConfig = vscode.workspace.getConfiguration('rust');
-    ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument(() => {
-        if (!rustConfig['formatOnSave']) {
+    ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument((event) => {
+        if (event.languageId !== 'rust') {
             return;
         }
-        vscode.commands.executeCommand('editor.action.format');
-    }));
-
-    // EXPERIMENTAL: cargo check on save
-    ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument(() => {
-        if (!rustConfig['checkOnSave']) {
-            return;
+        if (rustConfig['formatOnSave']) {
+            vscode.commands.executeCommand('editor.action.format');
         }
-        vscode.commands.executeCommand('rust.cargo.check');
+        if (rustConfig['checkOnSave']) {
+            vscode.commands.executeCommand('rust.cargo.check');
+        }
     }));
 
     // Watch for configuration changes for ENV
