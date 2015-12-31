@@ -11,6 +11,7 @@ This extension adds advanced language support for the Rust language to VS Code, 
 - Autocompletion (using `racer`)
 - Go To Definition (using `racer`)
 - Format (using `rustfmt`) *formatOnSave is experimental*
+- Linter (using `cargo check`) *checkOnSave is experimental*
 - Cargo tasks (Open Command Pallete and they will be there)
 - [_not implemented yet_] Snippets
 
@@ -39,6 +40,7 @@ The following Visual Studio Code settings are available for the RustyCode extens
 	"rust.rustfmtPath": null, // Specifies path to Rustfmt binary if it's not in PATH
 	"rust.cargoPath": null, // Specifies path to Cargo binary if it's not in PATH
 	"rust.formatOnSave": false, // Turn on/off autoformatting file on save (EXPERIMENTAL)
+	"rust.checkOnSave": false // Turn on/off cargo check project on save (EXPERIMENTAL)
 }
 ```
 

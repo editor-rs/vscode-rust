@@ -32,6 +32,14 @@ export function activate(ctx: vscode.ExtensionContext): void {
         }
         vscode.commands.executeCommand('editor.action.format');
     }));
+    
+    // EXPERIMENTAL: cargo check on save
+    ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument(() => {
+        if (!rustConfig['checkOnSave']) {
+            return;
+        }
+        vscode.commands.executeCommand('rust.cargo.check');
+    }));
 
     // Watch for configuration changes for ENV
     ctx.subscriptions.push(vscode.workspace.onDidChangeConfiguration(() => {
