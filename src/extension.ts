@@ -32,7 +32,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
         }
         vscode.commands.executeCommand('editor.action.format');
     }));
-    
+
     // EXPERIMENTAL: cargo check on save
     ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument(() => {
         if (!rustConfig['checkOnSave']) {
