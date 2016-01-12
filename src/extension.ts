@@ -24,12 +24,17 @@ export function activate(ctx: vscode.ExtensionContext): void {
     // Initialize status bar service
     ctx.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(StatusBarService.toggleStatus.bind(StatusBarService)));
 
-    ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument(() => {
-        let rustConfig = vscode.workspace.getConfiguration('rust');
-        if (!rustConfig['formatOnSave']) {
+    ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument((event) => {
+        if (event.languageId !== 'rust') {
             return;
         }
-        vscode.commands.executeCommand('editor.action.format');
+        let rustConfig = vscode.workspace.getConfiguration('rust');
+        if (rustConfig['formatOnSave']) {
+            vscode.commands.executeCommand('editor.action.format');
+        }
+        if (rustConfig['checkOnSave']) {
+            vscode.commands.executeCommand('rust.cargo.check');
+        }
     }));
 
     // Watch for configuration changes for ENV

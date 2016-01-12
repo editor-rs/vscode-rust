@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0
+- Added linting on save support (@White-Oak)
+
+## 0.7.1
+- Fixed bug with incorrect signature help (@henriiik)
+
 ## 0.7.0
 - Added support for multiline function call signature help (@henriiik)
 
