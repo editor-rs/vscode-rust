@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.0
+- Removed unnecessary warnings (@KalitaAlexey)
+- Added some default key-bindings (@KalitaAlaexey)
+
 ## 0.8.0
 - Added linting on save support (@White-Oak)
 
