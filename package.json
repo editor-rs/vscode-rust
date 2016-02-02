@@ -85,9 +85,14 @@
                 "description": "Build this project's and its dependencies' documentation"
             },
             {
-                "command": "rust.cargo.test",
-                "title": "Cargo: Test",
+                "command": "rust.cargo.test.debug",
+                "title": "Cargo: Test Debug",
                 "description": "Run the tests"
+            },
+            {
+                "command": "rust.cargo.test.release",
+                "title": "Cargo: Test Release",
+                "description": "Run the tests with --release"
             },
             {
                 "command": "rust.cargo.bench",
