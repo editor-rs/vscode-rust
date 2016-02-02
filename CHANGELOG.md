@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.9.1
+- Fixed bug with missing commands (@KalitaAlexey)
+
 ## 0.9.0
 - Removed unnecessary warnings (@KalitaAlexey)
 - Added some default key-bindings (@KalitaAlaexey)
