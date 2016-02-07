@@ -58,7 +58,7 @@ export default class SuggestService {
 
         this.racerPath = PathService.getRacerPath();
 
-        this.racerDaemon = cp.spawn(PathService.getRacerPath(), ['daemon'], { stdio: 'pipe' });
+        this.racerDaemon = cp.spawn(PathService.getRacerPath(), ['--interface=tab-text', 'daemon'], { stdio: 'pipe' });
         this.racerDaemon.on('error', this.stopDaemon.bind(this));
         this.racerDaemon.on('close', this.stopDaemon.bind(this));
 
@@ -129,41 +129,34 @@ export default class SuggestService {
         channel.show(2);
     }
 
-    private updateTmpFile(document: vscode.TextDocument): void {
-        fs.writeFileSync(this.tmpFile, document.getText());
-    }
-
     private definitionProvider(document: vscode.TextDocument, position: vscode.Position): Thenable<vscode.Definition> {
-        this.updateTmpFile(document);
-        let command = `find-definition ${position.line + 1} ${position.character} ${document.fileName} ${this.tmpFile}\n`;
-        return this.runCommand(command).then(lines => {
+        let commandArgs = [position.line + 1, position.character, document.fileName, this.tmpFile];
+        return this.runCommand(document, 'find-definition', commandArgs).then(lines => {
             if (lines.length === 0) {
                 return null;
             }
 
             let result = lines[0];
-            let parts = result.split(',');
-            let line = Number(parts[1]) - 1;
-            let character = Number(parts[2]);
-            let uri = vscode.Uri.file(parts[3]);
+            let parts = result.split('\t');
+            let line = Number(parts[2]) - 1;
+            let character = Number(parts[3]);
+            let uri = vscode.Uri.file(parts[4]);
 
             return new vscode.Location(uri, new vscode.Position(line, character));
         });
     }
 
     private completionProvider(document: vscode.TextDocument, position: vscode.Position): Thenable<vscode.CompletionItem[]> {
-        this.updateTmpFile(document);
-
-        let command = `complete-with-snippet ${position.line + 1} ${position.character} ${document.fileName} ${this.tmpFile}\n`;
-        return this.runCommand(command).then(lines => {
+        let commandArgs = [position.line + 1, position.character, document.fileName, this.tmpFile];
+        return this.runCommand(document, 'complete-with-snippet', commandArgs).then(lines => {
             lines.shift();
 
             // Split on MATCH, as a definition can span more than one line
-            lines = lines.map(l => l.trim()).join('').split('MATCH ').slice(1);
+            lines = lines.map(l => l.trim()).join('').split('MATCH\t').slice(1);
 
             let completions = [];
             for (let line of lines) {
-                let parts = line.split(';');
+                let parts = line.split('\t');
                 let label = parts[0];
                 let type = parts[5];
                 let detail = parts[6];
@@ -307,8 +300,6 @@ export default class SuggestService {
     }
 
     private signatureHelpProvider(document: vscode.TextDocument, position: vscode.Position): Thenable<vscode.SignatureHelp> {
-        this.updateTmpFile(document);
-
         // Get the first dangling parenthesis, so we don't stop on a function call used as a previous parameter
         let startPos = this.firstDanglingParen(document, position);
         if (!startPos) {
@@ -317,13 +308,13 @@ export default class SuggestService {
 
         let name = document.getText(document.getWordRangeAtPosition(startPos));
 
-        let command = `complete-with-snippet ${startPos.line + 1} ${startPos.character - 1} ${document.fileName} ${this.tmpFile}\n`;
-        return this.runCommand(command).then((lines) => {
-            lines = lines.map(l => l.trim()).join('').split('MATCH ').slice(1);
+        let commandArgs = [startPos.line + 1, startPos.character - 1, document.fileName, this.tmpFile];
+        return this.runCommand(document, 'complete-with-snippet', commandArgs).then((lines) => {
+            lines = lines.map(l => l.trim()).join('').split('MATCH\t').slice(1);
 
             let parts: string[] = [];
             for (let line of lines) {
-                parts = line.split(';');
+                parts = line.split('\t');
                 if (parts[0] === name) {
                     break;
                 }
@@ -374,12 +365,21 @@ export default class SuggestService {
         }
     }
 
-    private runCommand(command: string): Promise<string[]> {
-        this.lastCommand = command;
+    private updateTmpFile(document: vscode.TextDocument): void {
+        fs.writeFileSync(this.tmpFile, document.getText());
+    }
+
+    private runCommand(document: vscode.TextDocument, command: string, args: any[]): Promise<string[]> {
+        this.updateTmpFile(document);
+
+        let queryString = [command, ...args].join('\t') + '\n';
+
+        this.lastCommand = queryString;
         let promise = new Promise(resolve => {
             this.commandCallbacks.push(resolve);
         });
-        this.racerDaemon.stdin.write(command);
+
+        this.racerDaemon.stdin.write(queryString);
         return promise;
     }
 }
