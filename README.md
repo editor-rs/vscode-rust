@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/saviorisdead/RustyCode.svg)](https://travis-ci.org/saviorisdead/RustyCode)
 
-# Rust for Visual Studio Code (Latest: 0.9.1)
+# Rust for Visual Studio Code (Latest: 0.10.0)
 
 [Changelog](CHANGELOG.md)
 
@@ -23,7 +23,7 @@ This extension adds advanced language support for the Rust language to VS Code, 
 
 First, you will need to install Visual Studio Code `0.10` or newer. In the command pallete (`cmd-shift-p`) select `Install Extension` and choose `RustyCode`.
 
-Then, you need to install Racer (instructions and source code [here](https://github.com/phildawes/racer)).
+Then, you need to install Racer (instructions and source code [here](https://github.com/phildawes/racer)). Please, note that we only suuport latest versions of `Racer`.
 
 Also, you need to install Rustfmt (instructions and source code [here](https://github.com/rust-lang-nursery/rustfmt))
 

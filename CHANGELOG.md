@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.0
+- Added support for racer `tabbed text` mode.
+
 ## 0.9.1
 - Fixed bug with missing commands (@KalitaAlexey)
 
