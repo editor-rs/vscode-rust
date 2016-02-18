@@ -33,7 +33,11 @@ export function activate(ctx: vscode.ExtensionContext): void {
             vscode.commands.executeCommand('editor.action.format');
         }
         if (rustConfig['checkOnSave']) {
-            vscode.commands.executeCommand('rust.cargo.check');
+            if (rustConfig['checkWithClippy']) {
+                vscode.commands.executeCommand('rust.cargo.clippy');
+            } else {
+                vscode.commands.executeCommand('rust.cargo.check');
+            }
         }
     }));
 
@@ -70,6 +74,8 @@ export function activate(ctx: vscode.ExtensionContext): void {
     ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.clean', 'clean'));
     // Cargo check
     ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.check', 'rustc', '--', '-Zno-trans'));
+    // Cargo clippy
+    ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.clippy', 'clippy'));
 
     // Cargo terminate
     ctx.subscriptions.push(CommandService.stopCommand('rust.cargo.terminate'));

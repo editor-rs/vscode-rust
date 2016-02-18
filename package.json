@@ -148,6 +148,16 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Turn on/off autoformatting file on save"
+                },
+                "rust.checkOnSave": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Turn on/off autochecking file on save using cargo check"
+                },
+                "rust.checkWithClippy": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Use cargo clippy to lint instead of cargo check"
                 }
             }
         },
