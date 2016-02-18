@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/saviorisdead/RustyCode.svg)](https://travis-ci.org/saviorisdead/RustyCode)
 
-# Rust for Visual Studio Code (Latest: 0.10.0)
+# Rust for Visual Studio Code (Latest: 0.11.0)
 
 [Changelog](CHANGELOG.md)
 
@@ -12,7 +12,7 @@ This extension adds advanced language support for the Rust language to VS Code, 
 - Go To Definition (using `racer`)
 - Format (using `rustfmt`) *formatOnSave is experimental*
 - Linter (using `cargo check`) *checkOnSave is experimental*
-	- Linting can be done via `cargo clippy` if `cargo-clippy` is installed *checkWithClippy is experimental*
+- Linting can be done via `cargo clippy` if `cargo-clippy` is installed *checkWithClippy is experimental*
 - Cargo tasks (Open Command Pallete and they will be there)
 - [_not implemented yet_] Snippets
 

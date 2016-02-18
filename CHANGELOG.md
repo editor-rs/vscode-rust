@@ -1,6 +1,9 @@
 # Changelog
 
 ## 0.10.0
+- Added support for linting via `clippy` (@White-Oak)
+
+## 0.10.0
 - Added support for racer `tabbed text` mode.
 
 ## 0.9.1
