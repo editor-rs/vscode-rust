@@ -60,7 +60,7 @@ class CargoTask {
 
     public execute(): Thenable<string> {
         return new Promise((resolve, reject) => {
-            const cwd = vscode.workspace.rootPath;
+            const cwd = CargoTask.cwd();
             const cargoPath = PathService.getCargoPath();
             const startTime = Date.now();
             const task = 'cargo ' + this.arguments.join(' ');
@@ -109,6 +109,14 @@ class CargoTask {
                 this.interrupted = true;
             }
         });
+    }
+
+    private static cwd(): string {
+        if (vscode.window.activeTextEditor === null) {
+            return vscode.workspace.rootPath;
+        } else {
+            return path.dirname(vscode.window.activeTextEditor.document.fileName);
+        }
     }
 }
 
