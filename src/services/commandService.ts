@@ -58,9 +58,8 @@ class CargoTask {
         this.interrupted = false;
     }
 
-    public execute(): Thenable<string> {
+    public execute(cwd: string): Thenable<string> {
         return new Promise((resolve, reject) => {
-            const cwd = CargoTask.cwd();
             const cargoPath = PathService.getCargoPath();
             const startTime = Date.now();
             const task = 'cargo ' + this.arguments.join(' ');
@@ -109,14 +108,6 @@ class CargoTask {
                 this.interrupted = true;
             }
         });
-    }
-
-    private static cwd(): string {
-        if (vscode.window.activeTextEditor === null) {
-            return vscode.workspace.rootPath;
-        } else {
-            return path.dirname(vscode.window.activeTextEditor.document.fileName);
-        }
     }
 }
 
@@ -193,7 +184,7 @@ export default class CommandService {
         this.runCargo(args, true, true);
     }
 
-    private static parseDiagnostics(output: string): void {
+    private static parseDiagnostics(cwd: string, output: string): void {
         let errors: { [filename: string]: RustError[] } = {};
 
         for (let line of output.split('\n')) {
@@ -236,7 +227,7 @@ export default class CommandService {
                 return new vscode.Diagnostic(range, error.message, severity);
             });
 
-            let uri = vscode.Uri.file(path.join(vscode.workspace.rootPath, filename));
+            let uri = vscode.Uri.file(path.join(cwd, filename));
             this.diagnostics.set(uri, diagnostics);
         }
     }
@@ -259,12 +250,22 @@ export default class CommandService {
             this.channel.show();
         }
 
-        this.currentTask.execute().then(output => {
-            this.parseDiagnostics(output);
+        const cwd = CommandService.cwd();
+        this.currentTask.execute(cwd).then(output => {
+            this.parseDiagnostics(cwd, output);
         }, output => {
-            this.parseDiagnostics(output);
+            this.parseDiagnostics(cwd, output);
         }).then(() => {
             this.currentTask = null;
         });
+    }
+
+    private static cwd(): string {
+        if (vscode.window.activeTextEditor === null) {
+            return vscode.workspace.rootPath;
+        } else {
+            const srcPath = path.dirname(vscode.window.activeTextEditor.document.fileName);
+            return path.dirname(srcPath);
+        }
     }
 }
