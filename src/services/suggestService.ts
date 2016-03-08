@@ -146,6 +146,48 @@ export default class SuggestService {
         });
     }
 
+    private hoverProvider(document: vscode.TextDocument, position: vscode.Position): Thenable<vscode.Hover> {
+        let commandArgs = [position.line + 1, position.character, document.fileName, this.tmpFile];
+        return this.runCommand(document, 'find-definition', commandArgs).then(lines => {
+            if (lines.length === 0) {
+                return null;
+            }
+
+            let result = lines[0];
+            let parts = result.split('\t');
+            let line = Number(parts[2]) - 1;
+            let uri = vscode.Uri.file(parts[4]);
+
+            let docRegex = /^\/\/\/(.*)/;
+            let annotRegex = /^#\[(.*?)]/;
+            return vscode.workspace.openTextDocument(uri).then(defDocument => {
+                let text = defDocument.getText().split('\n');
+                let docs: string[] = [];
+                while (true) {
+                    --line;
+                    let docLine = text[line];
+                    if (docLine == null) {
+                        break;
+                    }
+
+                    docLine = docLine.trim();
+
+                    let annotMatches = docLine.match(annotRegex);
+                    let docMatches = docLine.match(docRegex);
+                    if (annotMatches !== null) {
+                        // nothing for now, maybe do something with annotations later
+                    } else if (docMatches !== null) {
+                        docs.push(docMatches[1]);
+                    } else {
+                        break;
+                    }
+                }
+                docs.reverse();
+                return new vscode.Hover([docs.join('\n'), parts[6]]);
+            });
+        });
+    }
+
     private completionProvider(document: vscode.TextDocument, position: vscode.Position): Thenable<vscode.CompletionItem[]> {
         let commandArgs = [position.line + 1, position.character, document.fileName, this.tmpFile];
         return this.runCommand(document, 'complete-with-snippet', commandArgs).then(lines => {
@@ -348,6 +390,9 @@ export default class SuggestService {
         let signatureProvider = { provideSignatureHelp: this.signatureHelpProvider.bind(this) };
         this.providers.push(vscode.languages.registerSignatureHelpProvider(FilterService.getRustModeFilter(),
                                                                            signatureProvider, ...['(', ',']));
+
+        let hoverProvider = { provideHover: this.hoverProvider.bind(this) };
+        this.providers.push(vscode.languages.registerHoverProvider(FilterService.getRustModeFilter(), hoverProvider));
     }
 
     private dataHandler(data: Buffer): void {
