@@ -5,7 +5,7 @@ import kill = require('tree-kill');
 
 import PathService from './pathService';
 
-const errorRegex = /^(.*):(\d+):(\d+):\s+(\d+):(\d+)\s+(warning|error):\s+(.*)$/;
+const errorRegex = /^(.*):(\d+):(\d+):\s+(\d+):(\d+)\s+(warning|error|note|help):\s+(.*)$/;
 
 interface RustError {
     filename: string;
@@ -223,6 +223,10 @@ export default class CommandService {
                     severity = vscode.DiagnosticSeverity.Warning;
                 } else if (error.severity === 'error') {
                     severity = vscode.DiagnosticSeverity.Error;
+                } else if (error.severity === 'note') {
+                    severity = vscode.DiagnosticSeverity.Information;
+                } else if (error.severity === 'help') {
+                    severity = vscode.DiagnosticSeverity.Hint;
                 }
 
                 return new vscode.Diagnostic(range, error.message, severity);
