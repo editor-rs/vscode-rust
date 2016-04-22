@@ -1,6 +1,12 @@
 # Changelog
 
-## 0.10.0
+## 0.12.0
+- Added ability to load and work on multiple crates in one workspace (@KalitaAlexey)
+- Added ability to display doc-comments in hover popup (@Soaa)
+- Added `help` and `note` modes to diagnostic detection (@swgillespie)
+- Various bug fixes and small improvements (@KalitaAlexey, @Soaa, ) 
+
+## 0.11.0
 - Added support for linting via `clippy` (@White-Oak)
 
 ## 0.10.0
