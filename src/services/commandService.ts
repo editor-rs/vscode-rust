@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as path from 'path';
 import kill = require('tree-kill');
-
+import findUp = require('find-up');
 import PathService from './pathService';
 
 const errorRegex = /^(.*):(\d+):(\d+):\s+(\d+):(\d+)\s+(warning|error):\s+(.*)$/;
@@ -16,7 +16,6 @@ interface RustError {
     severity: string;
     message: string;
 }
-
 class ChannelWrapper {
     private owner: CargoTask;
     private channel: vscode.OutputChannel;
@@ -58,9 +57,8 @@ class CargoTask {
         this.interrupted = false;
     }
 
-    public execute(): Thenable<string> {
+    public execute(cwd: string): Thenable<string> {
         return new Promise((resolve, reject) => {
-            const cwd = vscode.workspace.rootPath;
             const cargoPath = PathService.getCargoPath();
             const startTime = Date.now();
             const task = 'cargo ' + this.arguments.join(' ');
@@ -185,7 +183,7 @@ export default class CommandService {
         this.runCargo(args, true, true);
     }
 
-    private static parseDiagnostics(output: string): void {
+    private static parseDiagnostics(cwd: string, output: string): void {
         let errors: { [filename: string]: RustError[] } = {};
 
         for (let line of output.split('\n')) {
@@ -228,7 +226,7 @@ export default class CommandService {
                 return new vscode.Diagnostic(range, error.message, severity);
             });
 
-            let uri = vscode.Uri.file(path.join(vscode.workspace.rootPath, filename));
+            let uri = vscode.Uri.file(path.join(cwd, filename));
             this.diagnostics.set(uri, diagnostics);
         }
     }
@@ -251,12 +249,36 @@ export default class CommandService {
             this.channel.show();
         }
 
-        this.currentTask.execute().then(output => {
-            this.parseDiagnostics(output);
-        }, output => {
-            this.parseDiagnostics(output);
-        }).then(() => {
-            this.currentTask = null;
+        CommandService.cwd().then((value: string | Error) => {
+            if (typeof value === 'string') {
+                this.currentTask.execute(value).then(output => {
+                    this.parseDiagnostics(value, output);
+                }, output => {
+                    this.parseDiagnostics(value, output);
+                }).then(() => {
+                    this.currentTask = null;
+                });
+            } else {
+                vscode.window.showErrorMessage(value.message);
+            }
         });
+    }
+
+    private static cwd(): Promise<string|Error> {
+        if (vscode.window.activeTextEditor === null) {
+            return Promise.resolve(new Error('No active document'));
+        } else {
+            const fileName = vscode.window.activeTextEditor.document.fileName;
+            if (!fileName.startsWith(vscode.workspace.rootPath)) {
+                return Promise.resolve(new Error('Current document not in the workspace'));
+            }
+            return findUp('Cargo.toml', {cwd: path.dirname(fileName)}).then((value: string) => {
+                if (value === null) {
+                    return new Error('There is no Cargo.toml near active document');
+                } else {
+                    return path.dirname(value);
+                }
+            });
+        }
     }
 }
