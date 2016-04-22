@@ -1,5 +1,5 @@
 {
-    "name": "rusty-code",
+    "name": "RustyCode",
     "displayName": "Rusty Code",
     "description": "Rust language integration for VSCode",
     "version": "0.12.0",
