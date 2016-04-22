@@ -79,6 +79,7 @@ export default class SuggestService {
     public stop(): void {
         this.stopDaemon(0);
         this.stopListeners();
+        this.clearCommandCallbacks();
     }
 
     public restart(): void {
@@ -118,6 +119,10 @@ export default class SuggestService {
     private stopListeners(): void {
         this.listeners.forEach(disposable => disposable.dispose());
         this.listeners = [];
+    }
+
+    private clearCommandCallbacks(): void {
+        this.commandCallbacks.forEach(callback => callback([]));
     }
 
     private showErrorBuffer(): void {
