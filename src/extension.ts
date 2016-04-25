@@ -34,10 +34,10 @@ export function activate(ctx: vscode.ExtensionContext): void {
         }
         if (rustConfig['checkOnSave']) {
             switch (rustConfig['checkWith']) {
-            case "clippy":
+            case 'clippy':
                 vscode.commands.executeCommand('rust.cargo.clippy');
                 break;
-            case "build":
+            case 'build':
                 vscode.commands.executeCommand('rust.cargo.build.debug');
                 break;
             default:
