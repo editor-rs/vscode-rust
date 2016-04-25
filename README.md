@@ -13,7 +13,7 @@ This extension adds advanced language support for the Rust language to VS Code, 
 - Format (using `rustfmt`) *formatOnSave is experimental*
 - Linter *checkOnSave is experimental*
 - Linting can be done via  *checkWith is experimental*
-	- `check` if `cargo-check` is installed
+	- `check` if `cargo-check` is installed. This is the default.
 	- `clippy` if `cargo-clippy` is installed
 	- `build`
 - Cargo tasks (Open Command Pallete and they will be there)
@@ -45,7 +45,7 @@ The following Visual Studio Code settings are available for the RustyCode extens
 	"rust.cargoPath": null, // Specifies path to Cargo binary if it's not in PATH
 	"rust.formatOnSave": false, // Turn on/off autoformatting file on save (EXPERIMENTAL)
 	"rust.checkOnSave": false, // Turn on/off `cargo check` project on save (EXPERIMENTAL)
-	"rust.checkWithClippy": false // Turn on/off `cargo clippy` project on save (EXPERIMENTAL) (cargo-clippy should be installed)
+	"rust.checkWith": "build" // Specifies the linter to use. (EXPERIMENTAL)
 }
 ```
 
