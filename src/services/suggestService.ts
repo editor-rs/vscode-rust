@@ -11,6 +11,44 @@ import * as tmp from 'tmp';
 import PathService from './pathService';
 import FilterService from './filterService';
 
+class StatusBarItem {
+    private statusBarItem: vscode.StatusBarItem;
+
+    constructor() {
+        this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
+    }
+
+    public showTurnedOn(): void {
+        this.setText('On');
+        this.statusBarItem.command = null;
+        this.statusBarItem.show();
+    }
+
+    public showTurnedOff(): void {
+        this.setText('Off');
+        this.statusBarItem.command = null;
+        this.statusBarItem.show();
+    }
+
+    public showNotFound(): void {
+        this.setText('Not found');
+        this.statusBarItem.tooltip = 'The "racer" command is not available. Make sure it is installed.';
+        this.statusBarItem.command = null;
+        this.statusBarItem.show();
+    }
+
+    public showCrashed(): void {
+        this.setText('Crashed');
+        this.statusBarItem.tooltip = 'The racer process has stopped. Click to view error';
+        this.statusBarItem.command = 'rust.racer.showerror';
+        this.statusBarItem.show();
+    }
+
+    private setText(text: string): void {
+        this.statusBarItem.text = `Racer: ${text}`;
+    }
+}
+
 export default class SuggestService {
     private racerDaemon: cp.ChildProcess;
     private commandCallbacks: ((lines: string[]) => void)[];
@@ -41,12 +79,19 @@ export default class SuggestService {
         'Const': vscode.CompletionItemKind.Variable,
         'Static': vscode.CompletionItemKind.Variable
     };
+    private statusBarItem: StatusBarItem;
 
     constructor() {
         this.listeners = [];
-
+        this.statusBarItem = new StatusBarItem();
         let tmpFile = tmp.fileSync();
         this.tmpFile = tmpFile.name;
+    }
+
+    public racerCrashErrorCommand(command: string): vscode.Disposable {
+        return vscode.commands.registerCommand(command, () => {
+            this.showErrorBuffer();
+        });
     }
 
     public start(): vscode.Disposable {
@@ -57,7 +102,7 @@ export default class SuggestService {
         this.providers = [];
 
         this.racerPath = PathService.getRacerPath();
-
+        this.statusBarItem.showTurnedOn();
         this.racerDaemon = cp.spawn(PathService.getRacerPath(), ['--interface=tab-text', 'daemon'], { stdio: 'pipe' });
         this.racerDaemon.on('error', this.stopDaemon.bind(this));
         this.racerDaemon.on('close', this.stopDaemon.bind(this));
@@ -91,29 +136,20 @@ export default class SuggestService {
         if (this.racerDaemon == null) {
             return;
         }
-
         this.racerDaemon.kill();
         this.racerDaemon = null;
         this.providers.forEach(disposable => disposable.dispose());
         this.providers = [];
-
-        if (error && error.code === 'ENOENT') {
-            vscode.window.showInformationMessage('The "racer" command is not available. Make sure it is installed.');
+        if (!error) {
+            this.statusBarItem.showTurnedOff();
             return;
         }
-
-        if (error === 0) {
-            return;
+        if (error.code === 'ENOENT') {
+            this.statusBarItem.showNotFound();
+        } else {
+            this.statusBarItem.showCrashed();
+            setTimeout(this.restart.bind(this), 1000);
         }
-
-        vscode.window.showInformationMessage('The racer process has stopped.', 'View Error')
-            .then(button => {
-                if (button === 'View Error') {
-                    this.showErrorBuffer();
-                }
-
-                this.restart();
-            });
     }
 
     private stopListeners(): void {
