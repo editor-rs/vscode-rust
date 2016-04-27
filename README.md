@@ -13,7 +13,7 @@ This extension adds advanced language support for the Rust language to VS Code, 
 - Format (using `rustfmt`) *formatOnSave is experimental*
 - Linter *checkOnSave is experimental*
 - Linting can be done via  *checkWith is experimental*
-	- `check` if `cargo-check` is installed. This is the default.
+	- `check`. This is the default.
 	- `clippy` if `cargo-clippy` is installed
 	- `build`
 - Cargo tasks (Open Command Pallete and they will be there)
