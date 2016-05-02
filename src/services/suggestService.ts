@@ -148,7 +148,7 @@ export default class SuggestService {
             this.statusBarItem.showNotFound();
         } else {
             this.statusBarItem.showCrashed();
-            setTimeout(this.restart.bind(this), 1000);
+            setTimeout(this.restart.bind(this), 3000);
         }
     }
 
