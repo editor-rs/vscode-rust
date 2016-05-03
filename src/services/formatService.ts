@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as cp from 'child_process';
+import * as fs from 'fs';
 
 import PathService from './pathService';
 
@@ -12,20 +13,8 @@ interface RustFmtDiff {
 }
 
 export default class FormatService implements vscode.DocumentFormattingEditProvider {
-    private writeMode: string;
-
-    constructor() {
-        this.writeMode = 'diff';
-    }
-
-    public provideDocumentFormattingEdits(document: vscode.TextDocument): Thenable<vscode.TextEdit[]> {
-        return document.save().then(() => {
-            return this.performFormatFile(document, this.writeMode);
-        });
-    }
-
     private formatCommand(fileName: string, writeMode: string): string {
-        return PathService.getRustfmtPath() + ' --write-mode=' + writeMode + ' ' + fileName;
+        return PathService.getRustfmtPath() + ' --skip-children --write-mode=' + writeMode + ' ' + fileName;
     }
 
     private cleanDiffLine(line: string): string {
@@ -56,7 +45,7 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
                 continue;
             }
 
-            if (currentFile.toString() === fileToProcess.toString()) {
+            if (currentFile.toString() === fileToProcess.toString() + '.fmt') {
                 if (line.startsWith('Diff at line')) {
                     if (currentPatch != null) {
                         patches.push(currentPatch);
@@ -101,10 +90,13 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
         return textEdits;
     }
 
-    private performFormatFile(document: vscode.TextDocument, writeMode: string): Promise<vscode.TextEdit[]> {
+    public provideDocumentFormattingEdits(document: vscode.TextDocument): Thenable<vscode.TextEdit[]> {
         return new Promise((resolve, reject) => {
-            let fileName = document.fileName;
-            let command = this.formatCommand(fileName, writeMode);
+            let fileName = document.fileName + '.fmt';
+            console.log(fileName);
+            fs.writeFileSync(fileName, document.getText());
+
+            let command = this.formatCommand(fileName, 'diff');
             cp.exec(command, (err, stdout) => {
                 try {
                     if (err && (<any>err).code === 'ENOENT') {
@@ -118,6 +110,8 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
                     return resolve(this.parseDiff(document.uri, stdout.toString()));
                 } catch (e) {
                     reject(e);
+                } finally {
+                    fs.unlinkSync(fileName);
                 }
             });
         });

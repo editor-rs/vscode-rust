@@ -19,29 +19,48 @@ export function activate(ctx: vscode.ExtensionContext): void {
     ctx.subscriptions.push(suggestService.start());
 
     // Initialize format service
-    ctx.subscriptions.push(vscode.languages.registerDocumentFormattingEditProvider(FilterService.getRustModeFilter(), new FormatService()));
+    let formatService = new FormatService();
+    ctx.subscriptions.push(vscode.languages.registerDocumentFormattingEditProvider(FilterService.getRustModeFilter(), formatService));
 
     // Initialize status bar service
     ctx.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(StatusBarService.toggleStatus.bind(StatusBarService)));
 
-    ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument((event) => {
-        if (event.languageId !== 'rust') {
+    let alreadyAppliedFormatting = new WeakSet<vscode.TextDocument>();
+
+    ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument((document) => {
+        if (document.languageId !== 'rust') {
             return;
         }
+
         let rustConfig = vscode.workspace.getConfiguration('rust');
-        if (rustConfig['formatOnSave']) {
-            vscode.commands.executeCommand('editor.action.format');
-        }
-        if (rustConfig['checkOnSave']) {
-            switch (rustConfig['checkWith']) {
-            case 'clippy':
-                vscode.commands.executeCommand('rust.cargo.clippy');
-                break;
-            case 'build':
-                vscode.commands.executeCommand('rust.cargo.build.debug');
-                break;
-            default:
-                vscode.commands.executeCommand('rust.cargo.check');
+
+        // Incredibly ugly hack to work around no presave event
+        // based on https://github.com/Microsoft/vscode-go/pull/115/files
+        if (rustConfig['formatOnSave'] && !alreadyAppliedFormatting.has(document)) {
+            let textEditor = vscode.window.activeTextEditor;
+
+            formatService.provideDocumentFormattingEdits(document).then(edits => {
+                return textEditor.edit(editBuilder => {
+                    edits.forEach(edit => editBuilder.replace(edit.range, edit.newText));
+                });
+            }).then(() => {
+                alreadyAppliedFormatting.add(document);
+                return document.save();
+            });
+        } else {
+            alreadyAppliedFormatting.delete(document);
+
+            if (rustConfig['checkOnSave']) {
+                switch (rustConfig['checkWith']) {
+                    case 'clippy':
+                        vscode.commands.executeCommand('rust.cargo.clippy');
+                        break;
+                    case 'build':
+                        vscode.commands.executeCommand('rust.cargo.build.debug');
+                        break;
+                    default:
+                        vscode.commands.executeCommand('rust.cargo.check');
+                }
             }
         }
     }));
