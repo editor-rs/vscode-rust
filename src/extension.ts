@@ -15,8 +15,8 @@ export function activate(ctx: vscode.ExtensionContext): void {
     }
 
     // Initialize suggestion service
-    let suggestService = new SuggestService().start();
-    ctx.subscriptions.push(suggestService);
+    let suggestService = new SuggestService();
+    ctx.subscriptions.push(suggestService.start());
 
     // Initialize format service
     ctx.subscriptions.push(vscode.languages.registerDocumentFormattingEditProvider(FilterService.getRustModeFilter(), new FormatService()));
@@ -81,6 +81,8 @@ export function activate(ctx: vscode.ExtensionContext): void {
     ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.check', 'rustc', '--', '-Zno-trans'));
     // Cargo clippy
     ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.clippy', 'clippy'));
+    // Racer crash error
+    ctx.subscriptions.push(suggestService.racerCrashErrorCommand('rust.racer.showerror'));
 
     // Cargo terminate
     ctx.subscriptions.push(CommandService.stopCommand('rust.cargo.terminate'));
