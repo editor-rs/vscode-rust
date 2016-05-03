@@ -1,215 +1,216 @@
 {
-    "name": "RustyCode",
-    "displayName": "Rusty Code",
-    "description": "Rust language integration for VSCode",
-    "version": "0.13.1",
-    "publisher": "saviorisdead",
-    "license": "MIT",
-    "icon": "images/icon.png",
-    "homepage": "https://github.com/saviorisdead/RustyCode",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/saviorisdead/RustyCode"
-    },
-    "bugs": {
-        "url": "https://github.com/saviorisdead/RustyCode/issues",
-        "email": "saviorisdead@gmail.com"
-    },
-    "engines": {
-        "vscode": "^0.10.1"
-    },
-    "categories": [
-        "Languages",
-        "Linters"
-    ],
-    "activationEvents": [
-        "onLanguage:rust"
-    ],
-    "main": "./out/src/extension",
-    "contributes": {
-        "languages": [
-            {
-                "id": "rust",
-                "aliases": [
-                    "Rust"
-                ],
-                "extensions": [
-                    ".toml",
-                    ".rs"
-                ]
-            }
+  "name": "RustyCode",
+  "displayName": "Rusty Code",
+  "description": "Rust language integration for VSCode",
+  "version": "0.13.1",
+  "publisher": "saviorisdead",
+  "license": "MIT",
+  "icon": "images/icon.png",
+  "homepage": "https://github.com/saviorisdead/RustyCode",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/saviorisdead/RustyCode"
+  },
+  "bugs": {
+    "url": "https://github.com/saviorisdead/RustyCode/issues",
+    "email": "saviorisdead@gmail.com"
+  },
+  "engines": {
+    "vscode": "^1.0.0"
+  },
+  "categories": [
+    "Languages",
+    "Linters"
+  ],
+  "activationEvents": [
+    "onLanguage:rust"
+  ],
+  "main": "./out/src/extension",
+  "contributes": {
+    "languages": [
+      {
+        "id": "rust",
+        "aliases": [
+          "Rust"
         ],
-        "commands": [
-            {
-                "command": "rust.cargo.build.example.debug",
-                "title": "Cargo: Build example, Debug",
-                "description": "Compile the current example"
-            },
-            {
-                "command": "rust.cargo.build.example.release",
-                "title": "Cargo: Build example, Release",
-                "description": "Compile the current example with \"--release\" flag"
-            },
-            {
-                "command": "rust.cargo.run.example.debug",
-                "title": "Cargo: Run example, Debug",
-                "description": "Compile the current example and execute it"
-            },
-            {
-                "command": "rust.cargo.run.example.release",
-                "title": "Cargo: Run example, Release",
-                "description": "Compile the current example with \"--release\" flag and execute it"
-            },
-            {
-                "command": "rust.cargo.build.debug",
-                "title": "Cargo: Build Debug",
-                "description": "Compile the current project"
-            },
-            {
-                "command": "rust.cargo.build.release",
-                "title": "Cargo: Build Release",
-                "description": "Compile the current project with \"--release\" flag"
-            },
-            {
-                "command": "rust.cargo.run.debug",
-                "title": "Cargo: Run Debug",
-                "description": "Build and execute src/main.rs"
-            },
-            {
-                "command": "rust.cargo.run.release",
-                "title": "Cargo: Run Release",
-                "description": "Build with \"--release\" flag and execute src/main.rs"
-            },
-            {
-                "command": "rust.cargo.doc",
-                "title": "Cargo: Doc",
-                "description": "Build this project's and its dependencies' documentation"
-            },
-            {
-                "command": "rust.cargo.test.debug",
-                "title": "Cargo: Test Debug",
-                "description": "Run the tests"
-            },
-            {
-                "command": "rust.cargo.test.release",
-                "title": "Cargo: Test Release",
-                "description": "Run the tests with --release"
-            },
-            {
-                "command": "rust.cargo.bench",
-                "title": "Cargo: Bench",
-                "description": "Run the benchmarks"
-            },
-            {
-                "command": "rust.cargo.update",
-                "title": "Cargo: Update",
-                "description": "Update dependencies listed in Cargo.lock"
-            },
-            {
-                "command": "rust.cargo.clean",
-                "title": "Cargo: Clean",
-                "description": "Remove the target directory"
-            },
-            {
-                "command": "rust.cargo.check",
-                "title": "Cargo: Check",
-                "description": "Check the project for warnings and errors"
-            },
-            {
-                "command": "rust.cargo.terminate",
-                "title": "Cargo: Terminate Running Task",
-                "description": "Terminate currently running cargo task"
-            }
-        ],
-        "configuration": {
-            "title": "Rusty Code configuration",
-            "type": "object",
-            "properties": {
-                "rust.racerPath": {
-                    "type": "string",
-                    "default": null,
-                    "description": "Specifies path to Racer binary if it's not in PATH"
-                },
-                "rust.rustfmtPath": {
-                    "type": "string",
-                    "default": null,
-                    "description": "Specifies path to Rustfmt binary if it's not in PATH"
-                },
-                "rust.rustLangSrcPath": {
-                    "type": "string",
-                    "default": null,
-                    "description": "Specifies path to /src directory of local copy of Rust sources"
-                },
-                "rust.cargoPath": {
-                    "type": "string",
-                    "default": null,
-                    "description": "Specifies path to Cargo binary if it's not in PATH"
-                },
-                "rust.formatOnSave": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Turn on/off autoformatting file on save"
-                },
-                "rust.checkOnSave": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Turn on/off autochecking file on save using cargo check"
-                },
-                "rust.checkWith": {
-                    "type": "string",
-                    "default": "check",
-                    "description": "Choose between check, clippy and build to lint"
-                }
-            }
-        },
-        "keybindings": [
-            {
-                "key": "ctrl+shift+b",
-                "command": "rust.cargo.build.debug",
-                "when": "editorLangId == 'rust'"
-            },
-            {
-                "key": "ctrl+shift+t",
-                "command": "rust.cargo.test.debug",
-                "when": "editorLangId == 'rust'"
-            },
-            {
-                "key": "ctrl+shift+r",
-                "command": "rust.cargo.run.debug",
-                "when": "editorLangId == 'rust'"
-            },
-            {
-                "key": "ctrl+shift+alt+b",
-                "command": "rust.cargo.build.release",
-                "when": "editorLangId == 'rust'"
-            },
-            {
-                "key": "ctrl+shift+alt+t",
-                "command": "rust.cargo.test.release",
-                "when": "editorLangId == 'rust'"
-            },
-            {
-                "key": "ctrl+shift+alt+r",
-                "command": "rust.cargo.run.release",
-                "when": "editorLangId == 'rust'"
-            }
+        "extensions": [
+          ".toml",
+          ".rs"
         ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "rust.cargo.build.example.debug",
+        "title": "Cargo: Build example, Debug",
+        "description": "Compile the current example"
+      },
+      {
+        "command": "rust.cargo.build.example.release",
+        "title": "Cargo: Build example, Release",
+        "description": "Compile the current example with \"--release\" flag"
+      },
+      {
+        "command": "rust.cargo.run.example.debug",
+        "title": "Cargo: Run example, Debug",
+        "description": "Compile the current example and execute it"
+      },
+      {
+        "command": "rust.cargo.run.example.release",
+        "title": "Cargo: Run example, Release",
+        "description": "Compile the current example with \"--release\" flag and execute it"
+      },
+      {
+        "command": "rust.cargo.build.debug",
+        "title": "Cargo: Build Debug",
+        "description": "Compile the current project"
+      },
+      {
+        "command": "rust.cargo.build.release",
+        "title": "Cargo: Build Release",
+        "description": "Compile the current project with \"--release\" flag"
+      },
+      {
+        "command": "rust.cargo.run.debug",
+        "title": "Cargo: Run Debug",
+        "description": "Build and execute src/main.rs"
+      },
+      {
+        "command": "rust.cargo.run.release",
+        "title": "Cargo: Run Release",
+        "description": "Build with \"--release\" flag and execute src/main.rs"
+      },
+      {
+        "command": "rust.cargo.doc",
+        "title": "Cargo: Doc",
+        "description": "Build this project's and its dependencies' documentation"
+      },
+      {
+        "command": "rust.cargo.test.debug",
+        "title": "Cargo: Test Debug",
+        "description": "Run the tests"
+      },
+      {
+        "command": "rust.cargo.test.release",
+        "title": "Cargo: Test Release",
+        "description": "Run the tests with --release"
+      },
+      {
+        "command": "rust.cargo.bench",
+        "title": "Cargo: Bench",
+        "description": "Run the benchmarks"
+      },
+      {
+        "command": "rust.cargo.update",
+        "title": "Cargo: Update",
+        "description": "Update dependencies listed in Cargo.lock"
+      },
+      {
+        "command": "rust.cargo.clean",
+        "title": "Cargo: Clean",
+        "description": "Remove the target directory"
+      },
+      {
+        "command": "rust.cargo.check",
+        "title": "Cargo: Check",
+        "description": "Check the project for warnings and errors"
+      },
+      {
+        "command": "rust.cargo.terminate",
+        "title": "Cargo: Terminate Running Task",
+        "description": "Terminate currently running cargo task"
+      }
+    ],
+    "configuration": {
+      "title": "Rusty Code configuration",
+      "type": "object",
+      "properties": {
+        "rust.racerPath": {
+          "type": "string",
+          "default": null,
+          "description": "Specifies path to Racer binary if it's not in PATH"
+        },
+        "rust.rustfmtPath": {
+          "type": "string",
+          "default": null,
+          "description": "Specifies path to Rustfmt binary if it's not in PATH"
+        },
+        "rust.rustLangSrcPath": {
+          "type": "string",
+          "default": null,
+          "description": "Specifies path to /src directory of local copy of Rust sources"
+        },
+        "rust.cargoPath": {
+          "type": "string",
+          "default": null,
+          "description": "Specifies path to Cargo binary if it's not in PATH"
+        },
+        "rust.formatOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Turn on/off autoformatting file on save"
+        },
+        "rust.checkOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Turn on/off autochecking file on save using cargo check"
+        },
+        "rust.checkWith": {
+          "type": "string",
+          "default": "check",
+          "description": "Choose between check, clippy and build to lint"
+        }
+      }
     },
-    "scripts": {
-        "vscode:prepublish": "node ./node_modules/vscode/bin/compile",
-        "compile": "node ./node_modules/vscode/bin/compile -watch -p ./"
-    },
-    "devDependencies": {
-        "gulp": "^3.9.0",
-        "gulp-shell": "^0.5.1",
-        "gulp-tslint": "^4.1.0",
-        "tslint": "^3.1.1",
-        "typescript": "^1.7.3",
-        "vscode": "0.10.x"
-    },
-    "dependencies": {
-        "tmp": "0.0.28",
-        "tree-kill": "^1.0.0",
-        "find-up": "^1.1.2"
-    }
+    "keybindings": [
+      {
+        "key": "ctrl+shift+b",
+        "command": "rust.cargo.build.debug",
+        "when": "editorLangId == 'rust'"
+      },
+      {
+        "key": "ctrl+shift+t",
+        "command": "rust.cargo.test.debug",
+        "when": "editorLangId == 'rust'"
+      },
+      {
+        "key": "ctrl+shift+r",
+        "command": "rust.cargo.run.debug",
+        "when": "editorLangId == 'rust'"
+      },
+      {
+        "key": "ctrl+shift+alt+b",
+        "command": "rust.cargo.build.release",
+        "when": "editorLangId == 'rust'"
+      },
+      {
+        "key": "ctrl+shift+alt+t",
+        "command": "rust.cargo.test.release",
+        "when": "editorLangId == 'rust'"
+      },
+      {
+        "key": "ctrl+shift+alt+r",
+        "command": "rust.cargo.run.release",
+        "when": "editorLangId == 'rust'"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "node ./node_modules/vscode/bin/compile",
+    "compile": "node ./node_modules/vscode/bin/compile -watch -p ./",
+    "postinstall": "node ./node_modules/vscode/bin/install"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.0",
+    "gulp-shell": "^0.5.1",
+    "gulp-tslint": "^4.1.0",
+    "tslint": "^3.1.1",
+    "typescript": "^1.7.3",
+    "vscode": "^0.11.12"
+  },
+  "dependencies": {
+    "tmp": "0.0.28",
+    "tree-kill": "^1.0.0",
+    "find-up": "^1.1.2"
+  }
 }
