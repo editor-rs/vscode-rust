@@ -1,10 +1,14 @@
 # Changelog
 
+## 0.13.0
+- Now it's possible to check Rust code with `cargo build` (@JohanSLA)
+- Moved indication for racer to status bar (@KalitaAlexey)
+
 ## 0.12.0
 - Added ability to load and work on multiple crates in one workspace (@KalitaAlexey)
 - Added ability to display doc-comments in hover popup (@Soaa)
 - Added `help` and `note` modes to diagnostic detection (@swgillespie)
-- Various bug fixes and small improvements (@KalitaAlexey, @Soaa, ) 
+- Various bug fixes and small improvements (@KalitaAlexey, @Soaa, )
 
 ## 0.11.0
 - Added support for linting via `clippy` (@White-Oak)
@@ -38,7 +42,7 @@
 - Show errors after failed `cargo build` (@henriiik)
 
 ## 0.5.0
-- Added `cargo terminate` command (@Draivin) 
+- Added `cargo terminate` command (@Draivin)
 
 ## 0.4.4
 - Added standard messaged for missing executables (@Draivin)
@@ -52,7 +56,7 @@
 ## 0.4.1
 - Spelling corrected (@skade, @CryZe, @crumblingstatue)
 - Added `cargo check` command and diagnostic handling to editor (@Draivin)
-- Added option to view full racer error and restart error automatically (@Draivin)  
+- Added option to view full racer error and restart error automatically (@Draivin)
 
 ## 0.4.0
 - Various fixes of rustfmt integration (@saviorisdead, @KalitaAlexey, @Draivin)
