@@ -198,6 +198,14 @@ export default class SuggestService {
             let parts = result.split('\t');
             let line = Number(parts[2]) - 1;
             let uri = vscode.Uri.file(parts[4]);
+            let type = parts[5];
+            let definition = parts[6];
+
+            // Module definitions are just their path, so there is no need
+            // to try processing it
+            if (type === 'Module') {
+                return new vscode.Hover(definition);
+            }
 
             let docRegex = /^\/\/\/(.*)/;
             let annotRegex = /^#\[(.*?)]/;
@@ -223,8 +231,53 @@ export default class SuggestService {
                         break;
                     }
                 }
+
+                if (docs.length > 0 && !docs[0].trim().startsWith('#')) {
+                    docs.push('# Description');
+                }
+
+                let bracketIndex = definition.indexOf('{');
+                if (bracketIndex !== -1) {
+                    definition = definition.substring(0, bracketIndex);
+                }
+
+                docs.push('```', definition.trim(), '```');
                 docs.reverse();
-                return new vscode.Hover([docs.join('\n'), parts[6]]);
+
+                let processedDocs = [];
+                let codeBlock = false;
+                let extraIndent = 0;
+
+                for (let i = 0; i < docs.length; i++) {
+                    if (i >= 15 && docs.length !== 16 && !codeBlock) {
+                        processedDocs.push('...');
+                        break;
+                    }
+
+                    let docLine = docs[i];
+
+                    if (docLine.trim().startsWith('```')) {
+                        codeBlock = !codeBlock;
+                        extraIndent = docLine.indexOf('```');
+                        processedDocs.push(docLine);
+                        continue;
+                    }
+
+                    if (codeBlock) {
+                        processedDocs.push(docLine.slice(extraIndent));
+                        continue;
+                    }
+
+                    // Make headers smaller
+                    if (docLine.trim().startsWith('#')) {
+                        processedDocs.push('##' + docLine.trim());
+                        continue;
+                    }
+
+                    processedDocs.push(docLine);
+                }
+
+                return new vscode.Hover(processedDocs.join('\n'));
             });
         });
     }
