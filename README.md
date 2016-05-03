@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/saviorisdead/RustyCode.svg)](https://travis-ci.org/saviorisdead/RustyCode)
 
-# Rust for Visual Studio Code (Latest: 0.13.1)
+# Rust for Visual Studio Code (Latest: 0.14.0)
 
 [Changelog](CHANGELOG.md)
 
@@ -43,6 +43,7 @@ The following Visual Studio Code settings are available for the RustyCode extens
 	"rust.rustLangSrcPath": null, // Specifies path to /src directory of local copy of Rust sources
 	"rust.rustfmtPath": null, // Specifies path to Rustfmt binary if it's not in PATH
 	"rust.cargoPath": null, // Specifies path to Cargo binary if it's not in PATH
+	"rust.cargoHomePath": null, // Path to Cargo home directory, mostly needed for racer
 	"rust.formatOnSave": false, // Turn on/off autoformatting file on save (EXPERIMENTAL)
 	"rust.checkOnSave": false, // Turn on/off `cargo check` project on save (EXPERIMENTAL)
 	"rust.checkWith": "build" // Specifies the linter to use. (EXPERIMENTAL)

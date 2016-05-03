@@ -106,7 +106,7 @@ export default class SuggestService {
 
         const cargoHomePath = PathService.getCargoHomePath();
         const racerSpawnOptions: cp.SpawnOptions = { stdio: 'pipe' };
-        if (cargoHomePath != '') {
+        if (cargoHomePath !== '') {
             const racerEnv = Object.assign(process.env, {'CARGO_HOME': cargoHomePath});
             racerSpawnOptions.env = racerEnv;
         }
