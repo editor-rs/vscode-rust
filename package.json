@@ -155,10 +155,10 @@
                     "default": false,
                     "description": "Turn on/off autochecking file on save using cargo check"
                 },
-                "rust.checkWithClippy": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Use cargo clippy to lint instead of cargo check"
+                "rust.checkWith": {
+                    "type": "string",
+                    "default": "check",
+                    "description": "Choose between check, clippy and build to lint"
                 }
             }
         },
