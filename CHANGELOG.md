@@ -1,5 +1,10 @@
 # Changelog
 
+# 0.14.0
+- Stabilized `rustfmt` functionality (@Draivin)
+- Bumped version of `vscode` engine (@Draivin)
+- Added option to specify `CARGO_HOME` via settings (@saviorisdead)
+
 ## 0.13.1
 - Improved visual style of hover tooltips (@Draivin)
 
