@@ -37,7 +37,7 @@ class ChannelWrapper {
     }
 
     public show(): void {
-        this.channel.show(2);
+        this.channel.show(true);
     }
 
     public setOwner(owner: CargoTask): void {
