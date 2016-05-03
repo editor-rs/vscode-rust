@@ -145,6 +145,11 @@
           "default": null,
           "description": "Specifies path to Cargo binary if it's not in PATH"
         },
+        "rust.cargoHomePath": {
+          "type": "string",
+          "default": null,
+          "description": "Specifies path to home directory of Cargo. Mostly needed for working woth custom installations of Rust via rustup or multirust."
+        },
         "rust.formatOnSave": {
           "type": "boolean",
           "default": false,

@@ -103,7 +103,15 @@ export default class SuggestService {
 
         this.racerPath = PathService.getRacerPath();
         this.statusBarItem.showTurnedOn();
-        this.racerDaemon = cp.spawn(PathService.getRacerPath(), ['--interface=tab-text', 'daemon'], { stdio: 'pipe' });
+
+        const cargoHomePath = PathService.getCargoHomePath();
+        const racerSpawnOptions: cp.SpawnOptions = { stdio: 'pipe' };
+        if (cargoHomePath != '') {
+            const racerEnv = Object.assign(process.env, {'CARGO_HOME': cargoHomePath});
+            racerSpawnOptions.env = racerEnv;
+        }
+
+        this.racerDaemon = cp.spawn(PathService.getRacerPath(), ['--interface=tab-text', 'daemon'], racerSpawnOptions);
         this.racerDaemon.on('error', this.stopDaemon.bind(this));
         this.racerDaemon.on('close', this.stopDaemon.bind(this));
 

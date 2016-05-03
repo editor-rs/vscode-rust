@@ -20,4 +20,9 @@ export default class PathService {
         const cargoPath = vscode.workspace.getConfiguration('rust')['cargoPath'];
         return cargoPath || 'cargo';
     }
+
+    public static getCargoHomePath() :string {
+        const cargoHomePath = vscode.workspace.getConfiguration('rust')['cargoHomePath'];
+        return cargoHomePath || process.env['CARGO_HOME'];
+    }
 }
