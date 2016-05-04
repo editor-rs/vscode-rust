@@ -92,17 +92,18 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
             fs.writeFileSync(fileName, document.getText());
 
             let args = ['--skip-children', '--write-mode=diff', fileName];
-            cp.execFile(PathService.getRustfmtPath(), args, (err, stdout) => {
+            cp.execFile(PathService.getRustfmtPath(), args, (err, stdout, stderr) => {
                 try {
                     if (err && (<any>err).code === 'ENOENT') {
                         vscode.window.showInformationMessage('The "rustfmt" command is not available. Make sure it is installed.');
-                        return resolve(null);
+                        return resolve([]);
                     }
-                    if (err) {
-                        return reject('Cannot format due to syntax errors');
+                    if (err || stderr.length) {
+                        vscode.window.showWarningMessage('Cannot format due to syntax errors');
+                        return resolve([]);
                     }
 
-                    return resolve(this.parseDiff(document.uri, stdout.toString()));
+                    return resolve(this.parseDiff(document.uri, stdout));
                 } catch (e) {
                     reject(e);
                 } finally {
