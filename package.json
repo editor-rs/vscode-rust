@@ -126,27 +126,27 @@
       "type": "object",
       "properties": {
         "rust.racerPath": {
-          "type": "string",
+          "type": ["string", "null"],
           "default": null,
           "description": "Specifies path to Racer binary if it's not in PATH"
         },
         "rust.rustfmtPath": {
-          "type": "string",
+          "type": ["string", "null"],
           "default": null,
           "description": "Specifies path to Rustfmt binary if it's not in PATH"
         },
         "rust.rustLangSrcPath": {
-          "type": "string",
+          "type": ["string", "null"],
           "default": null,
           "description": "Specifies path to /src directory of local copy of Rust sources"
         },
         "rust.cargoPath": {
-          "type": "string",
+          "type": ["string", "null"],
           "default": null,
           "description": "Specifies path to Cargo binary if it's not in PATH"
         },
         "rust.cargoHomePath": {
-          "type": "string",
+          "type": ["string", "null"],
           "default": null,
           "description": "Specifies path to home directory of Cargo. Mostly needed for working woth custom installations of Rust via rustup or multirust."
         },
