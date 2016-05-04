@@ -13,10 +13,6 @@ interface RustFmtDiff {
 }
 
 export default class FormatService implements vscode.DocumentFormattingEditProvider {
-    private formatCommand(fileName: string, writeMode: string): string {
-        return PathService.getRustfmtPath() + ' --skip-children --write-mode=' + writeMode + ' ' + fileName;
-    }
-
     private cleanDiffLine(line: string): string {
         if (line.endsWith('\u23CE')) {
             return line.slice(1, -1) + '\n';
@@ -93,11 +89,10 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
     public provideDocumentFormattingEdits(document: vscode.TextDocument): Thenable<vscode.TextEdit[]> {
         return new Promise((resolve, reject) => {
             let fileName = document.fileName + '.fmt';
-            console.log(fileName);
             fs.writeFileSync(fileName, document.getText());
 
-            let command = this.formatCommand(fileName, 'diff');
-            cp.exec(command, (err, stdout) => {
+            let args = ['--skip-children', '--write-mode=diff', fileName];
+            cp.execFile(PathService.getRustfmtPath(), args, (err, stdout) => {
                 try {
                     if (err && (<any>err).code === 'ENOENT') {
                         vscode.window.showInformationMessage('The "rustfmt" command is not available. Make sure it is installed.');
