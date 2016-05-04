@@ -1,5 +1,9 @@
 # Changelog
 
+# 0.14.2
+- Fixed some issues with `rustfmt` (@Draivin)
+- Change extension options format (@fulmicoton)
+
 # 0.14.1
 - Preserve focus when opening `racer error` channel (@KalitaAlexey)
 
