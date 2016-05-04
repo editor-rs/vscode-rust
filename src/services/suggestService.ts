@@ -175,7 +175,7 @@ export default class SuggestService {
         channel.append(`Last command: \n${this.lastCommand}\n`);
         channel.append(`Racer Output: \n${this.linesBuffer.join('\n')}\n`);
         channel.append(`Racer Error: \n${this.errorBuffer}`);
-        channel.show(2);
+        channel.show(true);
     }
 
     private definitionProvider(document: vscode.TextDocument, position: vscode.Position): Thenable<vscode.Definition> {
