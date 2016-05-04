@@ -1,5 +1,8 @@
 # Changelog
 
+# 0.14.1
+- Preserve focus when opening `racer error` channel (@KalitaAlexey)
+
 # 0.14.0
 - Stabilized `rustfmt` functionality (@Draivin)
 - Bumped version of `vscode` engine (@Draivin)
