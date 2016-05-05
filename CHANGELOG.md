@@ -1,5 +1,8 @@
 # Changelog
 
+# 0.14.3
+- Small fixes for `cargoHomePath` setting (@saviorisdead)
+
 # 0.14.2
 - Fixed some issues with `rustfmt` (@Draivin)
 - Change extension options format (@fulmicoton)
