@@ -23,6 +23,6 @@ export default class PathService {
 
     public static getCargoHomePath(): string {
         const cargoHomePath = vscode.workspace.getConfiguration('rust')['cargoHomePath'];
-        return cargoHomePath || process.env['CARGO_HOME'];
+        return cargoHomePath || process.env['CARGO_HOME'] || '';
     }
 }
