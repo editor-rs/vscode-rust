@@ -1,5 +1,8 @@
 # Changelog
 
+# 0.14.4
+- Fixes for `rustfmt` integration (@junjieliang)
+
 # 0.14.3
 - Small fixes for `cargoHomePath` setting (@saviorisdead)
 
