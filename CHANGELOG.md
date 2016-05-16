@@ -19,7 +19,7 @@
 - Improved visual style of hover tooltips (@Draivin)
 
 ## 0.13.0
-- Now it's possible to check Rust code with `cargo build` (@JohanSLA)
+- Now it's possible to check Rust code with `cargo build` (@JohanSJA)
 - Moved indication for racer to status bar (@KalitaAlexey)
 
 ## 0.12.0
