@@ -92,7 +92,7 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
             fs.writeFileSync(fileName, document.getText());
 
             let args = ['--skip-children', '--write-mode=diff', fileName];
-            let env = { TERM: process.env.TERM || 'xterm' };
+            let env = Object.assign({ TERM: 'xterm' }, process.env);
             cp.execFile(PathService.getRustfmtPath(), args, {env: env}, (err, stdout, stderr) => {
                 try {
                     if (err && (<any>err).code === 'ENOENT') {
