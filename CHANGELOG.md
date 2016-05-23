@@ -1,5 +1,8 @@
 # Changelog
 
+# 0.14.6
+- Fix for `rustfmt` integration (@nlordell)
+
 # 0.14.5
 - Small typo fix for settings description (@juanfra684)
 
