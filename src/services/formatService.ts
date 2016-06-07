@@ -99,7 +99,7 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
                         vscode.window.showInformationMessage('The "rustfmt" command is not available. Make sure it is installed.');
                         return resolve([]);
                     }
-                    if (err || stderr.length) {
+                    if ((err || stderr.length) && (<any>err).code !== 3) {
                         vscode.window.showWarningMessage('Cannot format due to syntax errors');
                         return resolve([]);
                     }
