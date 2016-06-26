@@ -1,5 +1,8 @@
 # Changelog
 
+# 0.14.7
+- Fix for issue when returned by `rustfmt` error code `3` brokes formatting functionality integration (@trixnz)
+
 # 0.14.6
 - Fix for `rustfmt` integration (@nlordell)
 
