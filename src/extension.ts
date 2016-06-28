@@ -7,6 +7,8 @@ import SuggestService from './services/suggestService';
 import PathService from './services/pathService';
 import CommandService from './services/commandService';
 
+const rustRegex = /\.r(s|lib)$/g;
+
 export function activate(ctx: vscode.ExtensionContext): void {
     // Set path to Rust language sources
     let rustSrcPath = PathService.getRustLangSrcPath();
@@ -28,7 +30,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
     let alreadyAppliedFormatting = new WeakSet<vscode.TextDocument>();
 
     ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument((document) => {
-        if (document.languageId !== 'rust') {
+        if (document.languageId !== 'rust' || rustRegex.exec(document.fileName).length === 0) {
             return;
         }
 
