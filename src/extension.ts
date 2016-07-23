@@ -6,6 +6,8 @@ import StatusBarService from './services/statusBarService';
 import SuggestService from './services/suggestService';
 import PathService from './services/pathService';
 import CommandService from './services/commandService';
+import WorkspaceSymbolService from './services/workspaceSymbolService';
+import DocumentSymbolService from './services/documentSymbolService';
 
 export function activate(ctx: vscode.ExtensionContext): void {
     // Set path to Rust language sources
@@ -21,6 +23,10 @@ export function activate(ctx: vscode.ExtensionContext): void {
     // Initialize format service
     let formatService = new FormatService();
     ctx.subscriptions.push(vscode.languages.registerDocumentFormattingEditProvider(FilterService.getRustModeFilter(), formatService));
+
+    // Initialize symbol provider services
+    ctx.subscriptions.push(vscode.languages.registerWorkspaceSymbolProvider(new WorkspaceSymbolService()));
+    ctx.subscriptions.push(vscode.languages.registerDocumentSymbolProvider(FilterService.getRustModeFilter(), new DocumentSymbolService()));
 
     // Initialize status bar service
     ctx.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(StatusBarService.toggleStatus.bind(StatusBarService)));

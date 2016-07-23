@@ -135,6 +135,11 @@
           "default": null,
           "description": "Specifies path to Rustfmt binary if it's not in PATH"
         },
+        "rust.rustsymPath": {
+          "type": ["string", "null"],
+          "default": null,
+          "description": "Specifies path to Rustsym binary if it's not in PATH"
+        },
         "rust.rustLangSrcPath": {
           "type": ["string", "null"],
           "default": null,
