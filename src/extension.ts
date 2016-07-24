@@ -36,29 +36,35 @@ export function activate(ctx: vscode.ExtensionContext): void {
     let alreadyAppliedFormatting = new WeakSet<vscode.TextDocument>();
 
     ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument((document) => {
-        if (document.languageId !== 'rust' || rustRegex.exec(document.fileName).length === 0) {
+        if (document.languageId !== 'rust' || rustRegex.exec(document.fileName).length === 0 || alreadyAppliedFormatting.has(document)) {
             return;
         }
 
         let rustConfig = vscode.workspace.getConfiguration('rust');
+        let textEditor = vscode.window.activeTextEditor;
+
+        let formatPromise: PromiseLike<void> = Promise.resolve();
 
         // Incredibly ugly hack to work around no presave event
         // based on https://github.com/Microsoft/vscode-go/pull/115/files
-        if (rustConfig['formatOnSave'] && !alreadyAppliedFormatting.has(document)) {
-            let textEditor = vscode.window.activeTextEditor;
-
-            formatService.provideDocumentFormattingEdits(document).then(edits => {
+        if (rustConfig['formatOnSave'] && textEditor.document === document) {
+            formatPromise = formatService.provideDocumentFormattingEdits(document).then(edits => {
                 return textEditor.edit(editBuilder => {
                     edits.forEach(edit => editBuilder.replace(edit.range, edit.newText));
                 });
             }).then(() => {
                 alreadyAppliedFormatting.add(document);
                 return document.save();
+            }).then(() => {
+                alreadyAppliedFormatting.delete(document);
+            }, () => {
+				// Catch any errors and ignore so that we still trigger 
+				// the file save.
             });
-        } else {
-            alreadyAppliedFormatting.delete(document);
+        }
 
-            if (rustConfig['checkOnSave']) {
+        if (rustConfig['checkOnSave']) {
+            formatPromise.then(() => {
                 switch (rustConfig['checkWith']) {
                     case 'clippy':
                         vscode.commands.executeCommand('rust.cargo.clippy');
@@ -69,7 +75,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
                     default:
                         vscode.commands.executeCommand('rust.cargo.check');
                 }
-            }
+            });
         }
     }));
 
