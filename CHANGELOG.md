@@ -1,5 +1,8 @@
 # Changelog
 
+# 0.15.1
+- Fixed a bug with check on save not working if formatting failed (@trixnz)
+
 # 0.15.0
 - Prevent the formatter from running on non-rust code files (@mooman219)
 - Support for `rustsym` (@trixnz)
