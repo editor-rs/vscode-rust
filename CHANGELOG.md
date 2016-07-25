@@ -1,5 +1,9 @@
 # Changelog
 
+# 0.16.0
+- Snippets! (@trixnz)
+- Fix for `rustsym` intergration
+
 # 0.15.1
 - Fixed a bug with check on save not working if formatting failed (@trixnz)
 
