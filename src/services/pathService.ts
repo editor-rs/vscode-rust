@@ -1,4 +1,6 @@
 import vscode = require('vscode');
+import findUp = require('find-up');
+import * as path from 'path';
 
 export default class PathService {
     public static getRacerPath(): string {
@@ -30,5 +32,23 @@ export default class PathService {
     public static getCargoHomePath(): string {
         const cargoHomePath = vscode.workspace.getConfiguration('rust')['cargoHomePath'];
         return cargoHomePath || process.env['CARGO_HOME'] || '';
+    }
+
+    public static cwd(): Promise<string|Error> {
+        if (vscode.window.activeTextEditor === null) {
+            return Promise.resolve(new Error('No active document'));
+        } else {
+            const fileName = vscode.window.activeTextEditor.document.fileName;
+            if (!fileName.startsWith(vscode.workspace.rootPath)) {
+                return Promise.resolve(new Error('Current document not in the workspace'));
+            }
+            return findUp('Cargo.toml', {cwd: path.dirname(fileName)}).then((value: string) => {
+                if (value === null) {
+                    return new Error('There is no Cargo.toml near active document');
+                } else {
+                    return path.dirname(value);
+                }
+            });
+        }
     }
 }
