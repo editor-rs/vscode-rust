@@ -1,5 +1,9 @@
 # Changelog
 
+# 0.15.0
+- Prevent the formatter from running on non-rust code files (@mooman219)
+- Support for `rustsym` (@trixnz)
+
 # 0.14.7
 - Fix for issue when returned by `rustfmt` error code `3` brokes formatting functionality integration (@trixnz)
 
