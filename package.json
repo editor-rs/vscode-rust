@@ -20,7 +20,8 @@
   },
   "categories": [
     "Languages",
-    "Linters"
+    "Linters",
+    "Snippets"
   ],
   "activationEvents": [
     "onLanguage:rust"
@@ -37,6 +38,12 @@
           ".toml",
           ".rs"
         ]
+      }
+    ],
+    "snippets": [
+      {
+        "language": "rust",
+        "path": "./snippets/rust.json"
       }
     ],
     "commands": [
