@@ -11,6 +11,12 @@ export default class PathService {
         return rusfmtPath || 'rustfmt';
     }
 
+    public static getRustsymPath(): string {
+        const rustsymPath = vscode.workspace.getConfiguration('rust')['rustsymPath'];
+
+        return rustsymPath || 'rustsym';
+    }
+
     public static getRustLangSrcPath(): string {
         const rustSrcPath = vscode.workspace.getConfiguration('rust')['rustLangSrcPath'];
         return rustSrcPath || '';
