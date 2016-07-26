@@ -18,7 +18,7 @@ This extension adds advanced language support for the Rust language to VS Code, 
 	- `clippy` if `cargo-clippy` is installed
 	- `build`
 - Cargo tasks (Open Command Pallete and they will be there)
-- [_not implemented yet_] Snippets
+- Snippets
 
 
 ### IDE Features
