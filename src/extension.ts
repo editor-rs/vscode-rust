@@ -9,8 +9,6 @@ import CommandService from './services/commandService';
 import WorkspaceSymbolService from './services/workspaceSymbolService';
 import DocumentSymbolService from './services/documentSymbolService';
 
-const rustRegex = /\.r(s|lib)$/g;
-
 export function activate(ctx: vscode.ExtensionContext): void {
     // Set path to Rust language sources
     let rustSrcPath = PathService.getRustLangSrcPath();
@@ -36,7 +34,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
     let alreadyAppliedFormatting = new WeakSet<vscode.TextDocument>();
 
     ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument((document) => {
-        if (document.languageId !== 'rust' || document.fileName.match(rustRegex).length === 0 || alreadyAppliedFormatting.has(document)) {
+        if (document.languageId !== 'rust' || !document.fileName.endsWith('.rs') || alreadyAppliedFormatting.has(document)) {
             return;
         }
 
