@@ -36,7 +36,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
     let alreadyAppliedFormatting = new WeakSet<vscode.TextDocument>();
 
     ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument((document) => {
-        if (document.languageId !== 'rust' || rustRegex.exec(document.fileName).length === 0 || alreadyAppliedFormatting.has(document)) {
+        if (document.languageId !== 'rust' || document.fileName.match(rustRegex).length === 0 || alreadyAppliedFormatting.has(document)) {
             return;
         }
 
