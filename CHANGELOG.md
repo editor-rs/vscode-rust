@@ -1,5 +1,8 @@
 # Changelog
 
+# 0.16.1
+- Fixed bug with filter for formatting (@trixnz)
+
 # 0.16.0
 - Snippets! (@trixnz)
 - Fix for `rustsym` intergration
