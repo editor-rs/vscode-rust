@@ -56,8 +56,8 @@ export function activate(ctx: vscode.ExtensionContext): void {
             }).then(() => {
                 alreadyAppliedFormatting.delete(document);
             }, () => {
-				// Catch any errors and ignore so that we still trigger 
-				// the file save.
+                // Catch any errors and ignore so that we still trigger 
+                // the file save.
             });
         }
 

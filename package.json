@@ -176,6 +176,11 @@
           "type": "string",
           "default": "check",
           "description": "Choose between check, clippy and build to lint"
+        },
+        "rust.useJsonErrors": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable the use of JSON errors (requires Rust 1.7+). Note: This is an unstable feature of Rust and is still in the process of being stablised"
         }
       }
     },
