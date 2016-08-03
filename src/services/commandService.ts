@@ -305,17 +305,21 @@ export default class CommandService {
         }
 
         for (let span of errorJson.spans) {
-            let error: RustError = {
-                filename: span.file_name,
-                startLine: span.line_start,
-                startCharacter: span.column_start,
-                endLine: span.line_end,
-                endCharacter: span.column_end,
-                severity: errorJson.level,
-                message: errorJson.message
-            };
+            // Only add the primary span, as VSCode orders the problem window by the 
+            // error's range, which causes a lot of confusion if there are duplicate messages.
+            if (span.is_primary) {
+                let error: RustError = {
+                    filename: span.file_name,
+                    startLine: span.line_start,
+                    startCharacter: span.column_start,
+                    endLine: span.line_end,
+                    endCharacter: span.column_end,
+                    severity: errorJson.level,
+                    message: errorJson.message
+                };
 
-            errors.push(error);
+                errors.push(error);
+            }
         }
 
         return true;
