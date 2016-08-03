@@ -15,6 +15,13 @@ interface RustError {
     severity: string;
     message: string;
 }
+
+export enum ErrorFormat {
+    OldStyle,
+    NewStyle,
+    JSON
+}
+
 class ChannelWrapper {
     private owner: CargoTask;
     private channel: vscode.OutputChannel;
@@ -61,7 +68,7 @@ class CargoTask {
             const cargoPath = PathService.getCargoPath();
             const startTime = Date.now();
             const task = 'cargo ' + this.arguments.join(' ');
-            const useJson = vscode.workspace.getConfiguration('rust')['useJsonErrors'];
+            const errorFormat = CommandService.errorFormat;
 
             let output = '';
 
@@ -69,8 +76,10 @@ class CargoTask {
             this.channel.append(this, `Running "${task}":\n`);
 
             let newEnv = Object.assign({}, process.env);
-            if (useJson === true) {
+            if (errorFormat === ErrorFormat.JSON) {
                 newEnv['RUSTFLAGS'] = '-Zunstable-options --error-format=json';
+            } else if (errorFormat === ErrorFormat.NewStyle) {
+                newEnv['RUST_NEW_ERROR_FORMAT'] = 'true';
             }
 
             this.process = cp.spawn(cargoPath, this.arguments, { cwd, env: newEnv });
@@ -81,9 +90,10 @@ class CargoTask {
             this.process.stderr.on('data', data => {
                 output += data.toString();
 
-                // If the user has selected JSON errors, defer the output to process exit
-                // to allow us to parse the errors into something human readable
-                if (useJson === false) {
+                // If the user has selected JSON errors, we defer the output to process exit
+                // to allow us to parse the errors into something human readable.
+                // Otherwise we just emit the output as-is.
+                if (errorFormat !== ErrorFormat.JSON) {
                     this.channel.append(this, data.toString());
                 }
             });
@@ -98,7 +108,7 @@ class CargoTask {
 
                 // If the user has selected JSON errors, we need to parse and print them into something human readable
                 // It might not match Rust 1-to-1, but its better than JSON
-                if (useJson === true) {
+                if (errorFormat === ErrorFormat.JSON) {
                     for (const line of output.split('\n')) {
                         // Catch any JSON lines
                         if (line.startsWith('{')) {
@@ -150,10 +160,11 @@ class CargoTask {
     }
 }
 
-export default class CommandService {
+export class CommandService {
     private static diagnostics: vscode.DiagnosticCollection = vscode.languages.createDiagnosticCollection('rust');
     private static channel: ChannelWrapper = new ChannelWrapper(vscode.window.createOutputChannel('Cargo'));
     private static currentTask: CargoTask;
+    public static errorFormat: ErrorFormat;
 
     public static formatCommand(commandName: string, ...args: string[]): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
@@ -179,6 +190,17 @@ export default class CommandService {
                 this.currentTask.kill();
             }
         });
+    }
+
+    public static updateErrorFormat(): void {
+        const config = vscode.workspace.getConfiguration('rust');
+        if (config['useJsonErrors'] === true) {
+            this.errorFormat = ErrorFormat.JSON;
+        } else if (config['useNewErrorFormat'] === true) {
+            this.errorFormat = ErrorFormat.NewStyle;
+        } else {
+            this.errorFormat = ErrorFormat.OldStyle;
+        }
     }
 
     private static determineExampleName(): string {
@@ -224,14 +246,19 @@ export default class CommandService {
     }
 
     private static parseDiagnostics(cwd: string, output: string): void {
-        let useJson = vscode.workspace.getConfiguration('rust')['useJsonErrors'];
-
         let errors: RustError[] = [];
-        for (let line of output.split('\n')) {
-            if (useJson && line.startsWith('{')) {
-                this.parseJsonLine(errors, line);
-            } else {
-                this.parseHumanReadable(errors, line);
+        // The new Rust error format is a little more complex and is spread out over
+        // multiple lines. For this case, we'll just use a global regex to get our matches
+        if (this.errorFormat === ErrorFormat.NewStyle) {
+            this.parseNewHumanReadable(errors, output);
+        } else {
+            // Otherwise, parse out the errors line by line.
+            for (let line of output.split('\n')) {
+                if (this.errorFormat === ErrorFormat.JSON && line.startsWith('{')) {
+                    this.parseJsonLine(errors, line);
+                } else {
+                    this.parseOldHumanReadable(errors, line);
+                }
             }
         }
 
@@ -273,7 +300,7 @@ export default class CommandService {
         });
     }
 
-    private static parseHumanReadable(errors: RustError[], line: string): void {
+    private static parseOldHumanReadable(errors: RustError[], line: string): void {
         let match = line.match(errorRegex);
         if (match) {
             let filename = match[1];
@@ -292,6 +319,35 @@ export default class CommandService {
             });
         }
     }
+
+    private static parseNewHumanReadable(errors: RustError[], output: string): void {
+        let newErrorRegex = /(warning|error|note|help)(?:\[(.*)\])?\: (.*)\n\s+-->\s+(.*):(\d+):(\d+)/g;
+
+        while (true) {
+            const match = newErrorRegex.exec(output);
+            if (match == null) {
+                break;
+            }
+
+            let filename = match[4];
+            if (!errors[filename]) {
+                errors[filename] = [];
+            }
+
+            let startLine = Number(match[5]);
+            let startCharacter = Number(match[6]);
+
+            errors.push({
+                filename: filename,
+                startLine: startLine,
+                startCharacter: startCharacter,
+                endLine: startLine,
+                endCharacter: startCharacter,
+                severity: match[1],
+                message: match[3]
+            });
+        }
+    };
 
     public static parseJsonLine(errors: RustError[], line: string): boolean {
         let errorJson = JSON.parse(line);
