@@ -9,7 +9,9 @@ const rustKindToCodeKind: { [key: string]: vscode.SymbolKind } = {
     'function': vscode.SymbolKind.Function,
     'constant': vscode.SymbolKind.Constant,
     'static': vscode.SymbolKind.Constant,
-    'enum': vscode.SymbolKind.Enum
+    'enum': vscode.SymbolKind.Enum,
+    // Don't really like this, but this was the best alternative given the absense of vscode.SymbolKind.Macro
+    'macro': vscode.SymbolKind.Function
 };
 
 function getSymbolKind(kind: string): vscode.SymbolKind {
