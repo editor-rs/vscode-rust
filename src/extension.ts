@@ -5,7 +5,7 @@ import FilterService from './services/filterService';
 import StatusBarService from './services/statusBarService';
 import SuggestService from './services/suggestService';
 import PathService from './services/pathService';
-import CommandService from './services/commandService';
+import {CommandService, ErrorFormat} from './services/commandService';
 import WorkspaceSymbolService from './services/workspaceSymbolService';
 import DocumentSymbolService from './services/documentSymbolService';
 
@@ -56,8 +56,8 @@ export function activate(ctx: vscode.ExtensionContext): void {
             }).then(() => {
                 alreadyAppliedFormatting.delete(document);
             }, () => {
-				// Catch any errors and ignore so that we still trigger 
-				// the file save.
+                // Catch any errors and ignore so that we still trigger 
+                // the file save.
             });
         }
 
@@ -77,14 +77,46 @@ export function activate(ctx: vscode.ExtensionContext): void {
         }
     }));
 
+    // Make sure we end up at one error format. If multiple are set, then prompt the user on how they want to proceed.
+    // Fix (Change their settings) or Ignore (Use JSON as it comes first in the settings)
+    // This should run both on activation and when the config changes to ensure we stay in sync with their preference.
+    const updateErrorFormatFlags = () => {
+        const rustConfig = vscode.workspace.getConfiguration('rust');
+
+        if (rustConfig['useJsonErrors'] === true && rustConfig['useNewErrorFormat'] === true) {
+            let ignoreOption = <vscode.MessageItem>{ title: 'Ignore (Use JSON)' };
+            let updateSettingsOption = <vscode.MessageItem>{ title: 'Update Settings' };
+
+            vscode.window.showWarningMessage(
+                'Note: rust.useJsonErrors and rust.useNewErrorFormat are mutually exclusive with each other. Which would you like to do?',
+                ignoreOption, updateSettingsOption).then((option) => {
+                    // Nothing selected
+                    if (option == null) {
+                        return;
+                    }
+
+                    if (option === ignoreOption) {
+                        CommandService.errorFormat = ErrorFormat.JSON;
+                    } else if (updateSettingsOption) {
+                        vscode.commands.executeCommand('workbench.action.openGlobalSettings');
+                    }
+                });
+        } else {
+            CommandService.updateErrorFormat();
+        }
+    };
+
     // Watch for configuration changes for ENV
     ctx.subscriptions.push(vscode.workspace.onDidChangeConfiguration(() => {
+        updateErrorFormatFlags();
+
         let rustLangPath = PathService.getRustLangSrcPath();
         if (process.env['RUST_SRC_PATH'] !== rustLangPath) {
             process.env['RUST_SRC_PATH'] = rustLangPath;
         }
-        console.log(process.env);
     }));
+
+    updateErrorFormatFlags();
 
     // Commands
     // Cargo build

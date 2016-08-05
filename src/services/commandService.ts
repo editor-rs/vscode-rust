@@ -15,6 +15,13 @@ interface RustError {
     severity: string;
     message: string;
 }
+
+export enum ErrorFormat {
+    OldStyle,
+    NewStyle,
+    JSON
+}
+
 class ChannelWrapper {
     private owner: CargoTask;
     private channel: vscode.OutputChannel;
@@ -61,19 +68,34 @@ class CargoTask {
             const cargoPath = PathService.getCargoPath();
             const startTime = Date.now();
             const task = 'cargo ' + this.arguments.join(' ');
+            const errorFormat = CommandService.errorFormat;
+
             let output = '';
 
             this.channel.clear(this);
             this.channel.append(this, `Running "${task}":\n`);
 
-            this.process = cp.spawn(cargoPath, this.arguments, { cwd });
+            let newEnv = Object.assign({}, process.env);
+            if (errorFormat === ErrorFormat.JSON) {
+                newEnv['RUSTFLAGS'] = '-Zunstable-options --error-format=json';
+            } else if (errorFormat === ErrorFormat.NewStyle) {
+                newEnv['RUST_NEW_ERROR_FORMAT'] = 'true';
+            }
+
+            this.process = cp.spawn(cargoPath, this.arguments, { cwd, env: newEnv });
 
             this.process.stdout.on('data', data => {
                 this.channel.append(this, data.toString());
             });
             this.process.stderr.on('data', data => {
                 output += data.toString();
-                this.channel.append(this, data.toString());
+
+                // If the user has selected JSON errors, we defer the output to process exit
+                // to allow us to parse the errors into something human readable.
+                // Otherwise we just emit the output as-is.
+                if (errorFormat !== ErrorFormat.JSON) {
+                    this.channel.append(this, data.toString());
+                }
             });
             this.process.on('error', error => {
                 if (error.code === 'ENOENT') {
@@ -83,6 +105,35 @@ class CargoTask {
             this.process.on('exit', code => {
                 this.process.removeAllListeners();
                 this.process = null;
+
+                // If the user has selected JSON errors, we need to parse and print them into something human readable
+                // It might not match Rust 1-to-1, but its better than JSON
+                if (errorFormat === ErrorFormat.JSON) {
+                    for (const line of output.split('\n')) {
+                        // Catch any JSON lines
+                        if (line.startsWith('{')) {
+                            let errors: RustError[] = [];
+                            if (CommandService.parseJsonLine(errors, line)) {
+                                /* tslint:disable:max-line-length */
+                                // Print any errors as best we can match to Rust's format.
+                                // TODO: Add support for child errors/text highlights.
+                                // TODO: The following line will currently be printed fine, but the two lines after will not.
+                                // src\main.rs:5:5: 5:8 error: expected one of `!`, `.`, `::`, `;`, `?`, `{`, `}`, or an operator, found `let`
+                                // src\main.rs:5     let mut a = 4;
+                                //                   ^~~
+                                /* tslint:enable:max-line-length */
+                                for (const error of errors) {
+                                    this.channel.append(this, `${error.filename}:${error.startLine}:${error.startCharacter}:` +
+                                        ` ${error.endLine}:${error.endCharacter} ${error.severity}: ${error.message}\n`);
+                                }
+                            }
+                        } else {
+                            // Catch any non-JSON lines like "Compiling <project> (<path>)"
+                            this.channel.append(this, `${line}\n`);
+                        }
+                    }
+                }
+
                 const endTime = Date.now();
                 this.channel.append(this, `\n"${task}" completed with code ${code}`);
                 this.channel.append(this, `\nIt took approximately ${(endTime - startTime) / 1000} seconds`);
@@ -109,10 +160,11 @@ class CargoTask {
     }
 }
 
-export default class CommandService {
+export class CommandService {
     private static diagnostics: vscode.DiagnosticCollection = vscode.languages.createDiagnosticCollection('rust');
     private static channel: ChannelWrapper = new ChannelWrapper(vscode.window.createOutputChannel('Cargo'));
     private static currentTask: CargoTask;
+    public static errorFormat: ErrorFormat;
 
     public static formatCommand(commandName: string, ...args: string[]): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
@@ -138,6 +190,17 @@ export default class CommandService {
                 this.currentTask.kill();
             }
         });
+    }
+
+    public static updateErrorFormat(): void {
+        const config = vscode.workspace.getConfiguration('rust');
+        if (config['useJsonErrors'] === true) {
+            this.errorFormat = ErrorFormat.JSON;
+        } else if (config['useNewErrorFormat'] === true) {
+            this.errorFormat = ErrorFormat.NewStyle;
+        } else {
+            this.errorFormat = ErrorFormat.OldStyle;
+        }
     }
 
     private static determineExampleName(): string {
@@ -183,55 +246,139 @@ export default class CommandService {
     }
 
     private static parseDiagnostics(cwd: string, output: string): void {
-        let errors: { [filename: string]: RustError[] } = {};
-
-        for (let line of output.split('\n')) {
-            let match = line.match(errorRegex);
-            if (match) {
-                let filename = match[1];
-                if (!errors[filename]) {
-                    errors[filename] = [];
+        let errors: RustError[] = [];
+        // The new Rust error format is a little more complex and is spread out over
+        // multiple lines. For this case, we'll just use a global regex to get our matches
+        if (this.errorFormat === ErrorFormat.NewStyle) {
+            this.parseNewHumanReadable(errors, output);
+        } else {
+            // Otherwise, parse out the errors line by line.
+            for (let line of output.split('\n')) {
+                if (this.errorFormat === ErrorFormat.JSON && line.startsWith('{')) {
+                    this.parseJsonLine(errors, line);
+                } else {
+                    this.parseOldHumanReadable(errors, line);
                 }
-
-                errors[filename].push({
-                    filename: filename,
-                    startLine: Number(match[2]) - 1,
-                    startCharacter: Number(match[3]) - 1,
-                    endLine: Number(match[4]) - 1,
-                    endCharacter: Number(match[5]) - 1,
-                    severity: match[6],
-                    message: match[7]
-                });
             }
         }
 
+        let mapSeverityToVsCode = (severity) => {
+            if (severity === 'warning') {
+                return vscode.DiagnosticSeverity.Warning;
+            } else if (severity === 'error') {
+                return vscode.DiagnosticSeverity.Error;
+            } else if (severity === 'note') {
+                return vscode.DiagnosticSeverity.Information;
+            } else if (severity === 'help') {
+                return vscode.DiagnosticSeverity.Hint;
+            } else {
+                return vscode.DiagnosticSeverity.Error;
+            }
+        };
+
         this.diagnostics.clear();
-        if (!Object.keys(errors).length) {
-            return;
-        }
 
-        for (let filename of Object.keys(errors)) {
-            let fileErrors = errors[filename];
-            let diagnostics = fileErrors.map((error) => {
-                let range = new vscode.Range(error.startLine, error.startCharacter, error.endLine, error.endCharacter);
-                let severity: vscode.DiagnosticSeverity;
+        let diagnosticMap: Map<string, vscode.Diagnostic[]> = new Map();
+        errors.forEach(error => {
+            let filePath = path.join(cwd, error.filename);
+            // VSCode starts its lines and columns at 0, so subtract 1 off 
+            let range = new vscode.Range(error.startLine - 1, error.startCharacter - 1, error.endLine - 1, error.endCharacter - 1);
+            let severity = mapSeverityToVsCode(error.severity);
 
-                if (error.severity === 'warning') {
-                    severity = vscode.DiagnosticSeverity.Warning;
-                } else if (error.severity === 'error') {
-                    severity = vscode.DiagnosticSeverity.Error;
-                } else if (error.severity === 'note') {
-                    severity = vscode.DiagnosticSeverity.Information;
-                } else if (error.severity === 'help') {
-                    severity = vscode.DiagnosticSeverity.Hint;
-                }
+            let diagnostic = new vscode.Diagnostic(range, error.message, severity);
+            let diagnostics = diagnosticMap.get(filePath);
+            if (!diagnostics) {
+                diagnostics = [];
+            }
+            diagnostics.push(diagnostic);
 
-                return new vscode.Diagnostic(range, error.message, severity);
+            diagnosticMap.set(filePath, diagnostics);
+        });
+
+        diagnosticMap.forEach((diags, uri) => {
+            this.diagnostics.set(vscode.Uri.file(uri), diags);
+        });
+    }
+
+    private static parseOldHumanReadable(errors: RustError[], line: string): void {
+        let match = line.match(errorRegex);
+        if (match) {
+            let filename = match[1];
+            if (!errors[filename]) {
+                errors[filename] = [];
+            }
+
+            errors.push({
+                filename: filename,
+                startLine: Number(match[2]),
+                startCharacter: Number(match[3]),
+                endLine: Number(match[4]),
+                endCharacter: Number(match[5]),
+                severity: match[6],
+                message: match[7]
             });
-
-            let uri = vscode.Uri.file(path.join(cwd, filename));
-            this.diagnostics.set(uri, diagnostics);
         }
+    }
+
+    private static parseNewHumanReadable(errors: RustError[], output: string): void {
+        let newErrorRegex = /(warning|error|note|help)(?:\[(.*)\])?\: (.*)\n\s+-->\s+(.*):(\d+):(\d+)/g;
+
+        while (true) {
+            const match = newErrorRegex.exec(output);
+            if (match == null) {
+                break;
+            }
+
+            let filename = match[4];
+            if (!errors[filename]) {
+                errors[filename] = [];
+            }
+
+            let startLine = Number(match[5]);
+            let startCharacter = Number(match[6]);
+
+            errors.push({
+                filename: filename,
+                startLine: startLine,
+                startCharacter: startCharacter,
+                endLine: startLine,
+                endCharacter: startCharacter,
+                severity: match[1],
+                message: match[3]
+            });
+        }
+    };
+
+    public static parseJsonLine(errors: RustError[], line: string): boolean {
+        let errorJson = JSON.parse(line);
+        return this.parseJson(errors, errorJson);
+    }
+
+    private static parseJson(errors: RustError[], errorJson: any): boolean {
+        let spans = errorJson.spans;
+        if (spans.length === 0) {
+            return false;
+        }
+
+        for (let span of errorJson.spans) {
+            // Only add the primary span, as VSCode orders the problem window by the 
+            // error's range, which causes a lot of confusion if there are duplicate messages.
+            if (span.is_primary) {
+                let error: RustError = {
+                    filename: span.file_name,
+                    startLine: span.line_start,
+                    startCharacter: span.column_start,
+                    endLine: span.line_end,
+                    endCharacter: span.column_end,
+                    severity: errorJson.level,
+                    message: errorJson.message
+                };
+
+                errors.push(error);
+            }
+        }
+
+        return true;
     }
 
     private static runCargo(args: string[], force = false, visible = false): void {
