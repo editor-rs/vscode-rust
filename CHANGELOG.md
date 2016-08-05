@@ -1,5 +1,9 @@
 # Changelog
 
+# 0.17.0
+- Added support for `rustsym` version 0.3.0 which enables searching for macros  (@trixnz)
+- Added support for JSON error format and new (RUST_NEW_ERROR_FORMAT=true) error style (@trixnz)
+
 # 0.16.1
 - Fixed bug with filter for formatting (@trixnz)
 

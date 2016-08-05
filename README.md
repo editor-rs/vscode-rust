@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/saviorisdead/RustyCode.svg)](https://travis-ci.org/saviorisdead/RustyCode)
 
-# Rust for Visual Studio Code (Latest: 0.16.1)
+# Rust for Visual Studio Code (Latest: 0.17.0)
 
 [Changelog](CHANGELOG.md)
 
@@ -38,7 +38,7 @@ And last step is downloading Rust language source files from [here](https://gith
 
 The following Visual Studio Code settings are available for the RustyCode extension. These can be set in user preferences or workspace settings (`.vscode/settings.json`)
 
-```javascript
+```json
 {
 	"rust.racerPath": null, // Specifies path to Racer binary if it's not in PATH
 	"rust.rustLangSrcPath": null, // Specifies path to /src directory of local copy of Rust sources
@@ -48,7 +48,9 @@ The following Visual Studio Code settings are available for the RustyCode extens
 	"rust.cargoHomePath": null, // Path to Cargo home directory, mostly needed for racer. Needed only if using custom rust installation.
 	"rust.formatOnSave": false, // Turn on/off autoformatting file on save (EXPERIMENTAL)
 	"rust.checkOnSave": false, // Turn on/off `cargo check` project on save (EXPERIMENTAL)
-	"rust.checkWith": "build" // Specifies the linter to use. (EXPERIMENTAL)
+	"rust.checkWith": "build", // Specifies the linter to use. (EXPERIMENTAL)
+	"rust.useJsonErrors": false, // Enable the use of JSON errors (requires Rust 1.7+). Note: This is an unstable feature of Rust and is still in the process of being stablised
+	"rust.useNewErrorFormat": false, // "Use the new Rust error format (RUST_NEW_ERROR_FORMAT=true). Note: This flag is mutually exclusive with `useJsonErrors`.
 }
 ```
 
