@@ -123,6 +123,11 @@
         "description": "Check the project for warnings and errors"
       },
       {
+        "command": "rust.cargo.check.lib",
+        "title": "Cargo: Check Library",
+        "description": "Check the main library of the project for warnings and errors"
+      },
+      {
         "command": "rust.cargo.terminate",
         "title": "Cargo: Terminate Running Task",
         "description": "Terminate currently running cargo task"
@@ -175,7 +180,7 @@
         "rust.checkWith": {
           "type": "string",
           "default": "check",
-          "description": "Choose between check, clippy and build to lint"
+          "description": "Choose between check, check-lib, clippy and build to lint"
         },
         "rust.useJsonErrors": {
           "type": "boolean",
