@@ -1,5 +1,9 @@
 # Changelog
 
+# 0.18.0
+- Added support for separate check command for libraries (@vhbit)
+- Added support for exit code 4 when using diff mode in recent(master) versions of rustfmt (@trixnz)
+
 # 0.17.0
 - Added support for `rustsym` version 0.3.0 which enables searching for macros  (@trixnz)
 - Added support for JSON error format and new (RUST_NEW_ERROR_FORMAT=true) error style (@trixnz)
