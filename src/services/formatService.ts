@@ -101,13 +101,15 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
                     }
 
                     // rustfmt will return with exit code 3 when it encounters code that could not
-                    // be automatically resolved. However, it will continue to format the rest of the file.
-                    let hasFatalError = (err && (err as any).code !== 3);
+                    // be automatically formatted. However, it will continue to format the rest of the file.
+                    // New releases will return exit code 4 when the write mode is diff and a valid diff is provided.
+                    // For these reasons, if the exit code is 1 or 2, then it should be treated as an error.
+                    let hasFatalError = (err && (err as any).code < 3);
 
                     // If an error is encountered with any other exit code, inform the user of the error.
                     if ((err || stderr.length) && hasFatalError) {
-                        vscode.window.showWarningMessage('Cannot format due to syntax errors');
-                        return resolve([]);
+                        vscode.window.setStatusBarMessage('$(alert) Cannot format due to syntax errors', 5000);
+                        return reject();
                     }
 
                     return resolve(this.parseDiff(document.uri, stdout));
