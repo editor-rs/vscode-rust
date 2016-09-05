@@ -56,7 +56,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
             }).then(() => {
                 alreadyAppliedFormatting.delete(document);
             }, () => {
-                // Catch any errors and ignore so that we still trigger 
+                // Catch any errors and ignore so that we still trigger
                 // the file save.
             });
         }
@@ -69,6 +69,9 @@ export function activate(ctx: vscode.ExtensionContext): void {
                         break;
                     case 'build':
                         vscode.commands.executeCommand('rust.cargo.build.debug');
+                        break;
+                    case 'check-lib':
+                        vscode.commands.executeCommand('rust.cargo.check.lib');
                         break;
                     default:
                         vscode.commands.executeCommand('rust.cargo.check');
@@ -142,6 +145,8 @@ export function activate(ctx: vscode.ExtensionContext): void {
     ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.clean', 'clean'));
     // Cargo check
     ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.check', 'rustc', '--', '-Zno-trans'));
+    // Cargo check lib
+    ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.check.lib', 'rustc', '--lib', '--', '-Zno-trans'));
     // Cargo clippy
     ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.clippy', 'clippy'));
     // Racer crash error
