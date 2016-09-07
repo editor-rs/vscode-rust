@@ -39,7 +39,7 @@ And last step is downloading Rust language source files from [here](https://gith
 
 The following Visual Studio Code settings are available for the RustyCode extension. These can be set in user preferences or workspace settings (`.vscode/settings.json`)
 
-```json
+```javascript
 {
 	"rust.racerPath": null, // Specifies path to Racer binary if it's not in PATH
 	"rust.rustLangSrcPath": null, // Specifies path to /src directory of local copy of Rust sources
