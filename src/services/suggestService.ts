@@ -53,6 +53,7 @@ export default class SuggestService {
     private racerDaemon: cp.ChildProcess;
     private commandCallbacks: ((lines: string[]) => void)[];
     private linesBuffer: string[];
+    private dataBuffer: string;
     private errorBuffer: string;
     private lastCommand: string;
     private tmpFile: string;
@@ -97,6 +98,7 @@ export default class SuggestService {
     public start(): vscode.Disposable {
         this.commandCallbacks = [];
         this.linesBuffer = [];
+        this.dataBuffer = '';
         this.errorBuffer = '';
         this.lastCommand = '';
         this.providers = [];
@@ -196,97 +198,116 @@ export default class SuggestService {
     }
 
     private hoverProvider(document: vscode.TextDocument, position: vscode.Position): Thenable<vscode.Hover> {
-        let commandArgs = [position.line + 1, position.character, document.fileName, this.tmpFile];
-        return this.runCommand(document, 'find-definition', commandArgs).then(lines => {
-            if (lines.length === 0) {
+        // Could potentially use `document.getWordRangeAtPosition`.
+        let line = document.lineAt(position.line);
+        let wordStartIndex = line.text.slice(0, position.character).search(/[a-z0-9_]+$/i);
+        let wordEndIndex = line.text.slice(position.character).search(/[^a-z0-9_]/i) + position.character;
+
+        let word = line.text.slice(wordStartIndex, wordEndIndex);
+        if (!word) {
+            return null;
+        }
+
+        // We are using `complete-with-snippet` instead of `find-definition` because it contains
+        // extra information that is not contained in the `find`definition` command, such as documentation.
+        let commandArgs = [position.line + 1, wordEndIndex, document.fileName, this.tmpFile];
+        return this.runCommand(document, 'complete-with-snippet', commandArgs).then(lines => {
+            if (lines.length <= 1) {
                 return null;
             }
 
-            let result = lines[0];
+            let result = lines[1];
             let parts = result.split('\t');
-            let line = Number(parts[2]) - 1;
-            let uri = vscode.Uri.file(parts[4]);
-            let type = parts[5];
-            let definition = parts[6];
+            let match = parts[1];
+            let type = parts[6];
+            let definition = parts[7];
+            let docs = JSON.parse(parts[8].replace(/\\'/g, "'")).split('\n');
 
-            // Module definitions are just their path, so there is no need
-            // to try processing it
-            if (type === 'Module') {
-                return new vscode.Hover(definition);
+            // We actually found a completion instead of a definition, so we won't show the returned info.
+            if (match !== word) {
+                return null;
             }
 
-            let docRegex = /^\/\/\/(.*)/;
-            let annotRegex = /^#\[(.*?)]/;
-            return vscode.workspace.openTextDocument(uri).then(defDocument => {
-                let text = defDocument.getText().split('\n');
-                let docs: string[] = [];
-                while (true) {
-                    --line;
-                    let docLine = text[line];
-                    if (docLine == null) {
-                        break;
-                    }
+            // Module definitions are just their path, so there is no need
+            // to render it.
+            if (type === 'Module') {
+                return null;
+            }
 
-                    docLine = docLine.trim();
+            let bracketIndex = definition.indexOf('{');
+            if (bracketIndex !== -1) {
+                definition = definition.substring(0, bracketIndex);
+            }
 
-                    let annotMatches = docLine.match(annotRegex);
-                    let docMatches = docLine.match(docRegex);
-                    if (annotMatches !== null) {
-                        // nothing for now, maybe do something with annotations later
-                    } else if (docMatches !== null) {
-                        docs.push(docMatches[1]);
-                    } else {
-                        break;
-                    }
+            let processedDocs: vscode.MarkedString[] = [{
+                language: 'rust',
+                value: definition.trim()
+            }];
+
+            let currentBlock: string[] = [];
+            let codeBlock = false;
+            let extraIndent = 0;
+
+            // The logic to push a block to the processed blocks is a little
+            // contrived, depending on if we are inside a language block or not,
+            // as the logic has to be repeated at the end of the for block, I
+            // preferred to extract it to an inline function.
+            function pushBlock(): void {
+                if (codeBlock) {
+                    processedDocs.push({
+                        language: 'rust',
+                        value: currentBlock.join('\n')
+                    });
+                } else {
+                    processedDocs.push(currentBlock.join('\n'));
+                }
+            }
+
+            for (let i = 0; i < docs.length; i++) {
+                if (i >= 15 && docs.length !== 16 && !codeBlock) {
+                    currentBlock.push('...');
+                    break;
                 }
 
-                if (docs.length > 0 && !docs[0].trim().startsWith('#')) {
-                    docs.push('# Description');
+                let docLine = docs[i];
+
+                if (docLine.trim().startsWith('```')) {
+                    if (currentBlock.length) {
+                        pushBlock();
+                        currentBlock = [];
+                    }
+                    codeBlock = !codeBlock;
+                    extraIndent = docLine.indexOf('```');
+                    continue;
                 }
 
-                let bracketIndex = definition.indexOf('{');
-                if (bracketIndex !== -1) {
-                    definition = definition.substring(0, bracketIndex);
+                if (codeBlock) {
+                    currentBlock.push(docLine.slice(extraIndent));
+                    continue;
                 }
 
-                docs.push('```', definition.trim(), '```');
-                docs.reverse();
+                // When this was implemented (vscode 1.5.1), the markdown headers
+                // were a little buggy, with a large margin-botton that pushes the
+                // next line far down. As an alternative, I replaced the headers
+                // with links (that lead to nowhere), just so there is some highlight.
+                //
+                // The preferred alternative would be to just make the headers a little
+                // smaller and otherwise draw them as is.
+                if (docLine.trim().startsWith('#')) {
+                    let headerMarkupEnd = docLine.trim().search(/[^# ]/);
+                    currentBlock.push('[' + docLine.trim().slice(headerMarkupEnd) + ']()');
 
-                let processedDocs = [];
-                let codeBlock = false;
-                let extraIndent = 0;
-
-                for (let i = 0; i < docs.length; i++) {
-                    if (i >= 15 && docs.length !== 16 && !codeBlock) {
-                        processedDocs.push('...');
-                        break;
-                    }
-
-                    let docLine = docs[i];
-
-                    if (docLine.trim().startsWith('```')) {
-                        codeBlock = !codeBlock;
-                        extraIndent = docLine.indexOf('```');
-                        processedDocs.push(docLine);
-                        continue;
-                    }
-
-                    if (codeBlock) {
-                        processedDocs.push(docLine.slice(extraIndent));
-                        continue;
-                    }
-
-                    // Make headers smaller
-                    if (docLine.trim().startsWith('#')) {
-                        processedDocs.push('##' + docLine.trim());
-                        continue;
-                    }
-
-                    processedDocs.push(docLine);
+                    continue;
                 }
 
-                return new vscode.Hover(processedDocs.join('\n'));
-            });
+                currentBlock.push(docLine);
+            }
+
+            if (currentBlock.length) {
+                pushBlock();
+            }
+
+            return new vscode.Hover(processedDocs);
         });
     }
 
@@ -498,7 +519,20 @@ export default class SuggestService {
     }
 
     private dataHandler(data: Buffer): void {
-        let lines = data.toString().split(/\r?\n/);
+        // Ensure we only start parsing when the whole line has been flushed.
+        // It can happen that when a line goes over a certain length, racer will
+        // flush it one part at a time, if we don't wait for the whole line to
+        // be flushed, we will consider each part of the original line a separate
+        // line.
+        let dataStr = data.toString();
+        if (!/\r?\n$/.test(dataStr)) {
+            this.dataBuffer += dataStr;
+            return;
+        }
+
+        let lines = (this.dataBuffer + dataStr).split(/\r?\n/);
+        this.dataBuffer = '';
+
         for (let line of lines) {
             if (line.length === 0) {
                 continue;
