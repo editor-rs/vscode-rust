@@ -1,5 +1,13 @@
 # Changelog
 
+# 0.19.0
+- Added ability to specify custom ENV variables via `rust.cargoEnv` configuration key (@alessandrod)
+- Added option to specify features for Cargo (@W4RH4WK)
+- Support test in checkOnSave (@W4RH4WK)
+- Improvements for highlighting and formatting (@Draivin)
+- Added support for new `rustfmt` diff output (@trixnz)
+- Added a button for the user to install the required tools we depend on for extended functionality (@trixnz)
+
 # 0.18.0
 - Added support for separate check command for libraries (@vhbit)
 - Added support for exit code 4 when using diff mode in recent(master) versions of rustfmt (@trixnz)
