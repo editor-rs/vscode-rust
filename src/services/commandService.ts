@@ -392,7 +392,26 @@ export class CommandService {
             return;
         }
 
-        this.currentTask = new CargoTask(args, this.channel);
+        // collect feature flags
+        const rustConfig = vscode.workspace.getConfiguration('rust');
+        let features: any = [];
+        if (rustConfig['features'].length > 0) {
+            features.push('--features');
+            features.push(rustConfig['features'].join(' '));
+        }
+
+        // replace args with new instance containing feature flags, features
+        // must be placed before doubledash `--`
+        let doubledash = args.indexOf('--');
+        let argsWithFatures: string[];
+        if (doubledash >= 0) {
+            argsWithFatures = args.concat();
+            argsWithFatures.splice.apply(argsWithFatures, [doubledash, 0].concat(features));
+        } else {
+            argsWithFatures = args.concat(features);
+        }
+
+        this.currentTask = new CargoTask(argsWithFatures, this.channel);
 
         if (visible) {
             this.channel.setOwner(this.currentTask);

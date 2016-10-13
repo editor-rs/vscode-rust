@@ -182,6 +182,11 @@
           "default": "check",
           "description": "Choose between check, check-lib, clippy, build and test to lint"
         },
+        "rust.features": {
+          "type": "array",
+          "default": [],
+          "description": "List of feature flags passed to cargo"
+        },
         "rust.useJsonErrors": {
           "type": "boolean",
           "default": false,
