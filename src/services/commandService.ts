@@ -76,6 +76,12 @@ class CargoTask {
             this.channel.append(this, `Running "${task}":\n`);
 
             let newEnv = Object.assign({}, process.env);
+
+            let customEnv = vscode.workspace.getConfiguration('rust')['cargoEnv'];
+            if (customEnv) {
+                newEnv = Object.assign(newEnv, customEnv);
+            }
+
             if (errorFormat === ErrorFormat.JSON) {
                 newEnv['RUSTFLAGS'] = '-Zunstable-options --error-format=json';
             } else if (errorFormat === ErrorFormat.NewStyle) {

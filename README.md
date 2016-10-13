@@ -47,6 +47,7 @@ The following Visual Studio Code settings are available for the RustyCode extens
 	"rust.rustsymPath": null, // Specifies path to Rustsym binary if it's not in PATH
 	"rust.cargoPath": null, // Specifies path to Cargo binary if it's not in PATH
 	"rust.cargoHomePath": null, // Path to Cargo home directory, mostly needed for racer. Needed only if using custom rust installation.
+	"rust.cargoEnv": null, // Specifies custom variables to set when running cargo. Useful for crates which use env vars in their build.rs (like openssl-sys).
 	"rust.formatOnSave": false, // Turn on/off autoformatting file on save (EXPERIMENTAL)
 	"rust.checkOnSave": false, // Turn on/off `cargo check` project on save (EXPERIMENTAL)
 	"rust.checkWith": "build", // Specifies the linter to use. (EXPERIMENTAL)

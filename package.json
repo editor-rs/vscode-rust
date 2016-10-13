@@ -167,6 +167,11 @@
           "default": null,
           "description": "Specifies path to home directory of Cargo. Mostly needed for working with custom installations of Rust via rustup or multirust."
         },
+        "rust.cargoEnv": {
+          "type": ["object", "null"],
+          "default": null,
+          "description": "Specifies custom variables to set when running cargo. Useful for crates which use env vars in their build.rs (like openssl-sys)."
+        },
         "rust.formatOnSave": {
           "type": "boolean",
           "default": false,
