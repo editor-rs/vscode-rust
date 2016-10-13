@@ -13,6 +13,8 @@ interface RustFmtDiff {
 }
 
 export default class FormatService implements vscode.DocumentFormattingEditProvider {
+    private static newFormatRegex: RegExp = /^Diff in (.*) at line (\d+):$/;
+
     private cleanDiffLine(line: string): string {
         if (line.endsWith('\u23CE')) {
             return line.slice(1, -1) + '\n';
@@ -25,12 +27,10 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
         return input.replace(ansiRegex, '');
     }
 
-    private parseDiff(fileToProcess: vscode.Uri, diff: string): vscode.TextEdit[] {
+    private parseDiffOldFormat(fileToProcess: vscode.Uri, diff: string): RustFmtDiff[] {
         let patches: RustFmtDiff[] = [];
         let currentPatch: RustFmtDiff;
         let currentFile: vscode.Uri;
-
-        diff = this.stripColorCodes(diff);
 
         for (let line of diff.split(/\n/)) {
             if (line.startsWith('Diff of')) {
@@ -65,6 +65,72 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
 
         if (currentPatch) {
             patches.push(currentPatch);
+        }
+
+        return patches;
+    }
+
+    private parseDiffNewFormat(fileToProcess: vscode.Uri, diff: string): RustFmtDiff[] {
+        let patches: RustFmtDiff[] = [];
+        let currentPatch: RustFmtDiff = null;
+        let currentFile: vscode.Uri = null;
+
+        for (let line of diff.split(/\n/)) {
+            if (line.startsWith('Diff in')) {
+                const matches = FormatService.newFormatRegex.exec(line);
+                // Filter out malformed lines
+                if (matches.length !== 3) {
+                    continue;
+                }
+
+                // If we begin a new diff while already building one, push it as its now complete
+                if (currentPatch !== null) {
+                    patches.push(currentPatch);
+                }
+
+                currentFile = vscode.Uri.file(matches[1]);
+                currentPatch = {
+                    startLine: parseInt(matches[2], 10),
+                    newLines: [],
+                    removedLines: 0
+                };
+            }
+
+            // We haven't managed to figure out what file we're diffing yet, this shouldn't happen. 
+            // Probably a malformed diff.
+            if (!currentFile) {
+                continue;
+            }
+
+            if (currentFile.toString() === fileToProcess.toString() + '.fmt') {
+                if (line.startsWith('+')) {
+                    currentPatch.newLines.push(this.cleanDiffLine(line));
+                } else if (line.startsWith('-')) {
+                    currentPatch.removedLines += 1;
+                } else if (line.startsWith(' ')) {
+                    currentPatch.newLines.push(this.cleanDiffLine(line));
+                    currentPatch.removedLines += 1;
+                }
+            }
+        }
+
+        // We've reached the end of the data, push the current patch if we were building one
+        if (currentPatch) {
+            patches.push(currentPatch);
+        }
+
+        return patches;
+    }
+
+    private parseDiff(fileToProcess: vscode.Uri, diff: string): vscode.TextEdit[] {
+        diff = this.stripColorCodes(diff);
+
+        let patches: RustFmtDiff[] = [];
+        const oldFormat = diff.startsWith('Diff of');
+        if (oldFormat) {
+            patches = this.parseDiffOldFormat(fileToProcess, diff);
+        } else {
+            patches = this.parseDiffNewFormat(fileToProcess, diff);
         }
 
         let cummulativeOffset = 0;
