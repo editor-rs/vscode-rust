@@ -180,7 +180,7 @@
         "rust.checkWith": {
           "type": "string",
           "default": "check",
-          "description": "Choose between check, check-lib, clippy and build to lint"
+          "description": "Choose between check, check-lib, clippy, build and test to lint"
         },
         "rust.useJsonErrors": {
           "type": "boolean",

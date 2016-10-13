@@ -74,6 +74,9 @@ export function activate(ctx: vscode.ExtensionContext): void {
                     case 'check-lib':
                         vscode.commands.executeCommand('rust.cargo.check.lib');
                         break;
+                    case 'test':
+                        vscode.commands.executeCommand('rust.cargo.test.debug');
+                        break;
                     default:
                         vscode.commands.executeCommand('rust.cargo.check');
                 }
