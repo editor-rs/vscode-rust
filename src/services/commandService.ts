@@ -327,10 +327,13 @@ export class CommandService {
     }
 
     private static parseNewHumanReadable(errors: RustError[], output: string): void {
-        let newErrorRegex = /(warning|error|note|help)(?:\[(.*)\])?\: (.*)\n\s+-->\s+(.*):(\d+):(\d+)/g;
+        let newErrorRegex = new RegExp('(warning|error|note|help)(?:\\[(.*)\\])?\\: (.*)\\s+--> '
+            + '(.*):(\\d+):(\\d+)\\n(?:((?:.+\\n)+)\\.+)?(?:[\\d\\s]+\\|.*)*\\n((?:\\s+=.*)+)?', 'g');
+        let newErrorRange = /\s+\|\s+(\^+)/g;
 
         while (true) {
             const match = newErrorRegex.exec(output);
+            const range = newErrorRange.exec(output);
             if (match == null) {
                 break;
             }
@@ -343,14 +346,28 @@ export class CommandService {
             let startLine = Number(match[5]);
             let startCharacter = Number(match[6]);
 
+            let msg = match[3];
+            if (match[7]) {
+                msg += '\n';
+                let thisMsg = match[7];
+                while (/\d+ \|\s{2}/g.test(thisMsg)) {
+                    thisMsg = thisMsg.replace(/\|\s{2}/g, '| ');
+                }
+                msg += thisMsg.substring(0, thisMsg.length - 1);
+            }
+
+            if (match[8]) {
+                msg += '\n' + match[8];
+            }
+
             errors.push({
                 filename: filename,
                 startLine: startLine,
                 startCharacter: startCharacter,
                 endLine: startLine,
-                endCharacter: startCharacter,
+                endCharacter: startCharacter + range[1].length,
                 severity: match[1],
-                message: match[3]
+                message: msg
             });
         }
     };
