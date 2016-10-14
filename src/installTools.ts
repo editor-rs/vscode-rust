@@ -19,11 +19,9 @@ function getMissingTools(): Promise<string[]> {
     const promises = keys.map(tool => {
         // Check if the path exists as-is.
         let userPath = tools[tool];
-        fs.exists(userPath, exists => {
-            if (exists) {
-                return Promise.resolve(null);
-            }
-        });
+        if (fs.existsSync(userPath)) {
+            return Promise.resolve(null);
+        }
 
         // If the extension is running on Windows and no extension was 
         // specified (likely because the user didn't configure a custom path), 
