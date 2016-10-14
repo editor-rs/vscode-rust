@@ -1,5 +1,9 @@
 # Changelog
 
+# 0.19.1
+- Adjustments for rustc's new error format (@Frederick888)
+- Fixed issue where tool paths specified by the user were always being reported as not existing (@trixnz)
+
 # 0.19.0
 - Added ability to specify custom ENV variables via `rust.cargoEnv` configuration key (@alessandrod)
 - Added option to specify features for Cargo (@W4RH4WK)
