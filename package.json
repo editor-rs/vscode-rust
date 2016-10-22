@@ -259,6 +259,7 @@
   "dependencies": {
     "tmp": "0.0.28",
     "tree-kill": "^1.0.0",
-    "find-up": "^1.1.2"
+    "find-up": "^1.1.2",
+    "elegant-spinner": "^1.0.1"
   }
 }
