@@ -417,23 +417,34 @@ export class CommandService {
             return false;
         }
 
-        for (let span of errorJson.spans) {
-            // Only add the primary span, as VSCode orders the problem window by the 
-            // error's range, which causes a lot of confusion if there are duplicate messages.
-            if (span.is_primary) {
-                let error: RustError = {
-                    filename: span.file_name,
-                    startLine: span.line_start,
-                    startCharacter: span.column_start,
-                    endLine: span.line_end,
-                    endCharacter: span.column_end,
-                    severity: errorJson.level,
-                    message: errorJson.message
-                };
-
-                errors.push(error);
-            }
+        // Only add the primary span, as VSCode orders the problem window by the
+        // error's range, which causes a lot of confusion if there are duplicate messages.
+        let primarySpan = spans.find(span => span.is_primary);
+        if (!primarySpan) {
+            return false;
         }
+        // Following macro expansion to get correct file name and range.
+        while (primarySpan.expansion && primarySpan.expansion.span) {
+            primarySpan = primarySpan.expansion.span;
+        }
+
+        let error: RustError = {
+            filename: primarySpan.file_name,
+            startLine: primarySpan.line_start,
+            startCharacter: primarySpan.column_start,
+            endLine: primarySpan.line_end,
+            endCharacter: primarySpan.column_end,
+            severity: errorJson.level,
+            message: errorJson.message
+        };
+
+        if (errorJson.code) {
+            error.message = `${errorJson.code.code}: ${error.message}`;
+        }
+
+
+        error.message = addNotesToMessage(error.message, errorJson.children, 1);
+        errors.push(error);
 
         return true;
     }
@@ -649,4 +660,26 @@ export class CommandService {
             return args.concat(featuresArgs);
         }
     }
+}
+
+function addNotesToMessage(msg: string, children: any[], level: number): string {
+    const ident = '   '.repeat(level);
+    for (let child of children) {
+        msg += `\n${ident}${child.message}`;
+        if (child.spans && child.spans.length > 0) {
+            msg += ': ';
+            let lines = [];
+            for (let span of child.spans) {
+                if (!span.file_name || !span.line_start) {
+                    continue;
+                }
+                lines.push(`${span.file_name}(${span.line_start})`);
+            }
+            msg += lines.join(', ');
+        }
+        if (child.children) {
+            msg = addNotesToMessage(msg, child.children, level + 1);
+        }
+    }
+    return msg;
 }
