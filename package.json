@@ -24,9 +24,26 @@
     "Snippets"
   ],
   "activationEvents": [
+    "onLanguage:rust",
     "onCommand:rust.cargo.new.bin",
     "onCommand:rust.cargo.new.lib",
-    "onLanguage:rust"
+    "onCommand:rust.cargo.build.example.debug",
+    "onCommand:rust.cargo.build.example.release",
+    "onCommand:rust.cargo.run.example.debug",
+    "onCommand:rust.cargo.run.example.release",
+    "onCommand:rust.cargo.build.debug",
+    "onCommand:rust.cargo.build.release",
+    "onCommand:rust.cargo.run.debug",
+    "onCommand:rust.cargo.run.release",
+    "onCommand:rust.cargo.doc",
+    "onCommand:rust.cargo.test.debug",
+    "onCommand:rust.cargo.test.release",
+    "onCommand:rust.cargo.bench",
+    "onCommand:rust.cargo.update",
+    "onCommand:rust.cargo.clean",
+    "onCommand:rust.cargo.check",
+    "onCommand:rust.cargo.check.lib",
+    "onCommand:rust.cargo.terminate"
   ],
   "main": "./out/src/extension",
   "contributes": {
