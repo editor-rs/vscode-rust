@@ -2,8 +2,11 @@ import vscode = require('vscode');
 import findUp = require('find-up');
 import * as cp from 'child_process';
 import * as path from 'path';
+import * as fs from 'fs';
 
 export default class PathService {
+    private static lastCwd: string;
+
     public static getRustcSysroot(): Thenable<string> {
         const options: cp.SpawnOptions = { cwd: process.cwd() };
         const spawnedProcess = cp.spawn('rustc', ['--print', 'sysroot'], options);
@@ -50,21 +53,158 @@ export default class PathService {
         return cargoHomePath || process.env['CARGO_HOME'] || '';
     }
 
-    public static cwd(): Promise<string|Error> {
-        if (vscode.window.activeTextEditor === null) {
-            return Promise.resolve(new Error('No active document'));
+    /**
+     * Determines currently opened Rust project root directory. It is assumed that a Rust project
+     * should have Cargo.toml file.
+     *
+     * Used by Cargo commands and by symbol service to determine the context in which they should
+     * work.
+     *
+     * Some details:
+     *
+     * This procedure is complicated by the fact, that the currently opened VSCode workspace may
+     * not be exact Rust project directory, or may even contain several Rust projects.
+     *
+     * Let's say we have a workspace opened, and it has a directory structure that looks like this:
+     * - BigSolution/
+     *   - RustProject1/
+     *     - Cargo.toml
+     *     - main.rs
+     *   - RustProject2/
+     *     - Cargo.toml
+     *     - src/
+     *       - someotherfile.sql
+     *       - somesource.rs
+     *   - TODO.txt
+     *
+     * If currently active editor is BigSolution/RustProject1/main.rs this function should return
+     * BigSolution/RustProject1/
+     *
+     * If currently active editor is BigSolution/RustProject2/src/someotherfile.sql this function
+     * should return BigSolution/RustProject2/
+     *
+     * If currently active editor is BigSolution/TODO.txt, or there is no currently active editor
+     * (window has no editors opened at all), then it is ambiguous which project should be the
+     * context of the invoked command. In this case, we return first from the following sequence:
+     *
+     * 1. Workspace root directory, if it contains Cargo.toml file.
+     *
+     * 2. Last project directory user has worked with (value that was returned by the last cwd()
+     *    call), if there was one, if it still exists and if it still has Cargo.toml file.
+     *
+     * 3. First directory in the workspace that has a Cargo.toml file (found by recursive search).
+     *
+     * 4. Error.
+     */
+    public static cwd(): Promise<string> {
+        return tryResolveCwdFromEditor()
+            .catch(() => { return tryWorkspaceRootProject(); })
+            .catch(() => { return tryLastCwd(PathService.lastCwd); })
+            .catch(() => { return tryFindAnyProject(); })
+            .then((result) => {
+                PathService.lastCwd = result;
+                return result;
+            });
+    }
+}
+
+function tryResolveCwdFromEditor(): Promise<string> {
+    if (!vscode.window.activeTextEditor) {
+        return Promise.reject(new Error('No active editor.'));
+    }
+    const fileName = vscode.window.activeTextEditor.document.fileName;
+    if (!fileName.startsWith(vscode.workspace.rootPath)) {
+        return Promise.reject(new Error('Currently active editor is not in the workspace.'));
+    }
+    return findUp('Cargo.toml', {cwd: path.dirname(fileName)}).then((value: string) => {
+        if (value) {
+            return path.dirname(value);
         } else {
-            const fileName = vscode.window.activeTextEditor.document.fileName;
-            if (!fileName.startsWith(vscode.workspace.rootPath)) {
-                return Promise.resolve(new Error('Current document not in the workspace'));
+            throw new Error('No Cargo.toml in any parent directory of the currently active editor.');
+        }
+    });
+}
+
+function tryWorkspaceRootProject(): Promise<string> {
+    const rootWSDir = vscode.workspace.rootPath;
+    const rootCargo = path.join(rootWSDir, 'Cargo.toml');
+    return pathExists(rootCargo).then(rootCargoExists => {
+        if (rootCargoExists) {
+            return rootWSDir;
+        } else {
+            throw new Error('No Cargo.toml in workspace root directory.');
+        }
+    });
+}
+
+function tryLastCwd(cwd: string): Promise<string> {
+    if (!cwd) {
+        throw new Error('No last working directory registered.');
+    }
+    const lastCwdCargo = path.join(cwd, 'Cargo.toml');
+    return pathExists(lastCwdCargo).then(lastCwdCargoExists => {
+        if (lastCwdCargoExists) {
+            return cwd;
+        } else {
+            throw new Error('No Cargo.toml in last working directory.');
+        }
+    });
+}
+
+function tryFindAnyProject(): Promise<string> {
+    const rootWSDir = vscode.workspace.rootPath;
+    if (!rootWSDir) {
+        throw new Error('No workspace opened.');
+    }
+    return new Promise((resolve, reject) => {
+        recursiveFindFirstFile(rootWSDir, 'Cargo.toml', (result) => {
+            if (result) {
+                resolve(path.dirname(result));
+            } else {
+                reject(new Error('No Cargo.toml file in workspace.'));
             }
-            return findUp('Cargo.toml', {cwd: path.dirname(fileName)}).then((value: string) => {
-                if (value === null) {
-                    return new Error('There is no Cargo.toml near active document');
+        });
+    });
+}
+
+function pathExists(fp: string): Promise<boolean> {
+    return new Promise(resolve => {
+        fs.access(fp, err => {
+            resolve(!err);
+        });
+    });
+}
+
+// If there exist some NPM module that does efficient recursive search of a first file with a given
+// name, then this function should be replaced with an alternative. Otherwise, it may be better to
+// be extracted to a separate NPM project and imported here.
+function recursiveFindFirstFile(dir: string, fileName: string, callback: (result: string|null) => void): void {
+    fs.readdir(dir, (err, list) => {
+        if (err || !list.length) { return callback(null); }
+        let i = 0;
+        let len = list.length;
+        const next = () => {
+            if (i >= len) { return callback(null); }
+            const name = list[i++];
+            const fullPath = path.join(dir, name);
+            fs.stat(fullPath, (statErr, stat) => {
+                if (statErr || !stat) {
+                    next();
+                } else if (stat.isDirectory()) {
+                    recursiveFindFirstFile(fullPath, fileName, (result) => {
+                        if (result) {
+                            callback(result);
+                        } else {
+                            next();
+                        }
+                    });
+                } else if (stat.isFile() && name === fileName) {
+                    callback(fullPath);
                 } else {
-                    return path.dirname(value);
+                    next();
                 }
             });
-        }
-    }
+        };
+        next();
+    });
 }
