@@ -73,7 +73,7 @@ export default function offerToInstallTools(): void {
                     });
             });
 
-            StatusBarService.showStatus('Rust Tools Missing', 'rust.install_tools', 'Missing Rust tools used by RustyCode');
+            StatusBarService.showStatus('Rust Tools Missing', 'rust.install_tools', 'Missing Rust tools');
         }
     });
 }

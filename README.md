@@ -26,7 +26,7 @@ This extension adds advanced language support for the Rust language to VS Code, 
 
 ## Using
 
-First, you will need to install Visual Studio Code `1.0` or newer. In the command pallete (`cmd-shift-p`) select `Install Extension` and choose `Rust`.
+First, you will need to install Visual Studio Code `1.8` or newer. In the command pallete (`cmd-shift-p`) select `Install Extension` and choose `Rust`.
 
 This extension uses the following applications:
 
@@ -36,13 +36,13 @@ This extension uses the following applications:
 
 All this applications can be installed by youself and by VSCode.
 
-In order to install them in VSCOde, Open any *.rs file and click on the button "Rust Tools Missing" at the right bottom corner.
+In order to install them in VSCode, Open any *.rs file and click on the button "Rust Tools Missing" at the right bottom corner.
 
 **racer** uses source files to provide autocompletion. Install them to your computer to use **racer**.
 
 ### Options
 
-The following Visual Studio Code settings are available for the RustyCode extension. These can be set in user preferences or workspace settings (`.vscode/settings.json`)
+The following Visual Studio Code settings are available for the Rust extension. These can be set in user preferences or workspace settings (`.vscode/settings.json`)
 
 ```javascript
 {
