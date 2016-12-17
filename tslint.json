@@ -5,6 +5,7 @@
     "comment-format": [true, "check-space"],
     "curly": true,
     "eofline": true,
+    "linebreak-style": [true, "LF"],
     "forin": true,
     "indent": [true, "spaces"],
     "interface-name": false,
