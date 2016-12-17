@@ -10,7 +10,7 @@ import PathService from './services/pathService';
 import {CheckTarget, CommandService, ErrorFormat} from './services/commandService';
 import WorkspaceSymbolService from './services/workspaceSymbolService';
 import DocumentSymbolService from './services/documentSymbolService';
-import offerToInstallTools from './installTools';
+import {Installator as MissingToolsInstallator} from './installTools';
 
 function initializeSuggestService(ctx: vscode.ExtensionContext): void {
     // Initialize suggestion service
@@ -154,7 +154,11 @@ export function activate(ctx: vscode.ExtensionContext): void {
     }));
 
     updateErrorFormatFlags();
-    offerToInstallTools();
+
+    {
+        let installator = new MissingToolsInstallator();
+        installator.addStatusBarItemIfSomeToolsAreMissing();
+    }
 
     // Commands
     // Cargo new

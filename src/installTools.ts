@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import fs = require('fs');
 import path = require('path');
-import * as cp from 'child_process';
 import PathService from './services/pathService';
 import StatusBarService from './services/statusBarService';
 
@@ -11,93 +10,76 @@ let tools = {
     'rustsym': PathService.getRustsymPath()
 };
 
-let channel = vscode.window.createOutputChannel('Rust Tool Installer');
-
-function getMissingTools(): Promise<string[]> {
-    const keys = Object.keys(tools);
-
-    const promises = keys.map(tool => {
-        // Check if the path exists as-is.
-        let userPath = tools[tool];
-        if (fs.existsSync(userPath)) {
-            return Promise.resolve(null);
-        }
-
-        // If the extension is running on Windows and no extension was 
-        // specified (likely because the user didn't configure a custom path), 
-        // then prefix one for them.
-        if (process.platform === 'win32' && path.extname(userPath).length === 0) {
-            userPath += '.exe';
-        }
-
-        // Check if the tool exists on the PATH
-        let parts = (process.env.PATH || '').split(path.delimiter);
-        for (const part of parts) {
-            let binPath = path.join(part, userPath);
-            if (fs.existsSync(binPath)) {
-                return Promise.resolve(null);
+export class Installator {
+    public addStatusBarItemIfSomeToolsAreMissing(): void {
+        this.getMissingTools().then(missingTools => {
+            if (missingTools.length !== 0) {
+                this.addStatusBarItemWhichOffersToInstallMissingTools(missingTools);
             }
-        }
+        });
+    }
 
-        // The tool wasn't found, we should install it
-        return Promise.resolve(tool);
-    });
+    private addStatusBarItemWhichOffersToInstallMissingTools(missingTools: string[]): void {
+        vscode.commands.registerCommand('rust.install_tools', () => this.offerToInstallMissingTools(missingTools));
+        StatusBarService.showStatus('Rust Tools Missing', 'rust.install_tools', 'Missing Rust tools');
+    }
 
-    return Promise.all(promises);
-}
+    private offerToInstallMissingTools(missingTools: string[]): void {
+        // Plurality is important. :')
+        const group = missingTools.length > 1 ? 'them' : 'it';
+        const message = `You are missing ${missingTools.join(', ')}. Would you like to install ${group}?`;
+        const option = { title: 'Install' };
 
-export default function offerToInstallTools(): void {
-    getMissingTools().then(result => {
-        const missingTools = result.filter(tool => tool != null);
+        vscode.window.showInformationMessage(message, option).then(selection => {
+            if (selection !== option) {
+                return;
+            }
 
-        if (missingTools.length > 0) {
-            vscode.commands.registerCommand('rust.install_tools', () => {
-                const option = {
-                    title: 'Install'
-                };
+            this.installMissingTools(missingTools);
+        });
+    }
 
-                // Plurality is important. :')
-                const group = missingTools.length > 1 ? 'them' : 'it';
+    private installMissingTools(missingTools: string[]): void {
+        const terminal = vscode.window.createTerminal('Rust tools installation');
+        // cargo install tool && cargo install another_tool
+        const command = missingTools.map(tool => `cargo install ${tool}`).join(' && ');
 
-                vscode.window.showInformationMessage(
-                    `You are missing ${missingTools.join(', ')}. Would you like to install ${group}?`, option)
-                    .then((selection) => {
-                        if (selection === option) {
-                            channel.clear();
-                            channel.show();
+        terminal.sendText(command);
+        terminal.show();
 
-                            missingTools.forEach(installTool);
+        StatusBarService.hideStatus();
+    }
 
-                            StatusBarService.hideStatus();
-                        }
-                    });
-            });
+    private getMissingTools(): Promise<string[]> {
+        const keys = Object.keys(tools);
 
-            StatusBarService.showStatus('Rust Tools Missing', 'rust.install_tools', 'Missing Rust tools');
-        }
-    });
-}
+        const promises: Promise<string>[] = keys.map(tool => {
+            // Check if the path exists as-is.
+            let userPath = tools[tool];
+            if (fs.existsSync(userPath)) {
+                return null;
+            }
 
-function installTool(tool: string): void {
-    channel.appendLine(`Executing "cargo install ${tool}"`);
-    let proc = cp.spawn(PathService.getCargoPath(), ['install', tool], { env: process.env });
+            // If the extension is running on Windows and no extension was
+            // specified (likely because the user didn't configure a custom path),
+            // then prefix one for them.
+            if (process.platform === 'win32' && path.extname(userPath).length === 0) {
+                userPath += '.exe';
+            }
 
-    proc.stdout.on('data', data => {
-        channel.append(data.toString());
-    });
+            // Check if the tool exists on the PATH
+            let parts = (process.env.PATH || '').split(path.delimiter);
+            for (const part of parts) {
+                let binPath = path.join(part, userPath);
+                if (fs.existsSync(binPath)) {
+                    return null;
+                }
+            }
 
-    proc.stderr.on('data', data => {
-        channel.append(data.toString());
-    });
+            // The tool wasn't found, we should install it
+            return Promise.resolve(tool);
+        }).filter(p => p !== null);
 
-    proc.on('err', err => {
-        if (err.code === 'ENOENT') {
-            vscode.window.showInformationMessage('The "cargo" command is not available. Make sure it is installed.');
-        }
-    });
-
-    proc.on('exit', () => {
-        proc.removeAllListeners();
-        proc = null;
-    });
+        return Promise.all(promises);
+    }
 }
