@@ -157,6 +157,11 @@
           "default": null,
           "description": "Specifies path to /src directory of local copy of Rust sources"
         },
+        "rust.showOutput": {
+          "type": ["boolean"],
+          "default": true,
+          "description": "Automatically show output panel when starting any cargo task"
+        },
         "rust.cargoPath": {
           "type": ["string", "null"],
           "default": null,
