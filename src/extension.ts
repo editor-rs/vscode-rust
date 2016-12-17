@@ -5,7 +5,7 @@ import FilterService from './services/filterService';
 import StatusBarService from './services/statusBarService';
 import SuggestService from './services/suggestService';
 import PathService from './services/pathService';
-import {CommandService, ErrorFormat} from './services/commandService';
+import {CheckTarget, CommandService, ErrorFormat} from './services/commandService';
 import WorkspaceSymbolService from './services/workspaceSymbolService';
 import DocumentSymbolService from './services/documentSymbolService';
 import offerToInstallTools from './installTools';
@@ -149,9 +149,9 @@ export function activate(ctx: vscode.ExtensionContext): void {
     // Cargo clean
     ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.clean', 'clean'));
     // Cargo check
-    ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.check', 'rustc', '--', '-Zno-trans'));
+    ctx.subscriptions.push(CommandService.checkCommand(CheckTarget.Application));
     // Cargo check lib
-    ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.check.lib', 'rustc', '--lib', '--', '-Zno-trans'));
+    ctx.subscriptions.push(CommandService.checkCommand(CheckTarget.Library));
     // Cargo clippy
     ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.clippy', 'clippy'));
     // Racer crash error

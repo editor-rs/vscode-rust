@@ -51,29 +51,44 @@ class ChannelWrapper {
     }
 }
 
+export enum CheckTarget {
+    Library,
+    Application
+}
+
+interface CargoTaskExecuteFailedResult {
+    success: boolean;
+    exitCode: number;
+    output: string;
+}
+
+interface CargoTaskExecuteSuccessResult {
+    success: boolean;
+    interrupted: boolean;
+    output: string;
+}
+
+type CargoTaskExecuteResult =
+    CargoTaskExecuteFailedResult | CargoTaskExecuteSuccessResult;
+
 class CargoTask {
-    private channel: ChannelWrapper;
     private process: cp.ChildProcess;
-    private arguments: string[];
-    private interrupted: boolean;
+    private interrupted: boolean = false;
 
-    constructor(args: string[], channel: ChannelWrapper) {
-        this.arguments = args;
-        this.channel = channel;
-        this.interrupted = false;
-    }
-
-    public execute(cwd: string): Thenable<string> {
-        return new Promise((resolve, reject) => {
+    public execute(args: string[], cwd: string, channel?: ChannelWrapper): Thenable<CargoTaskExecuteResult> {
+        args = CargoTask.addFeaturesToArgs(args);
+        return new Promise(resolve => {
             const cargoPath = PathService.getCargoPath();
             const startTime = Date.now();
-            const task = 'cargo ' + this.arguments.join(' ');
+            const task = 'cargo ' + args.join(' ');
             const errorFormat = CommandService.errorFormat;
 
             let output = '';
 
-            this.channel.clear(this);
-            this.channel.append(this, `Running "${task}":\n`);
+            if (channel) {
+                channel.clear(this);
+                channel.append(this, `Running "${task}":\n`);
+            }
 
             let newEnv = Object.assign({}, process.env);
 
@@ -88,19 +103,23 @@ class CargoTask {
                 newEnv['RUST_NEW_ERROR_FORMAT'] = 'true';
             }
 
-            this.process = cp.spawn(cargoPath, this.arguments, { cwd, env: newEnv });
+            this.process = cp.spawn(cargoPath, args, { cwd, env: newEnv });
 
             this.process.stdout.on('data', data => {
-                this.channel.append(this, data.toString());
+                if (channel) {
+                    channel.append(this, data.toString());
+                }
             });
             this.process.stderr.on('data', data => {
                 output += data.toString();
 
-                // If the user has selected JSON errors, we defer the output to process exit
-                // to allow us to parse the errors into something human readable.
-                // Otherwise we just emit the output as-is.
-                if (errorFormat !== ErrorFormat.JSON) {
-                    this.channel.append(this, data.toString());
+                if (channel) {
+                    // If the user has selected JSON errors, we defer the output to process exit
+                    // to allow us to parse the errors into something human readable.
+                    // Otherwise we just emit the output as-is.
+                    if (errorFormat !== ErrorFormat.JSON) {
+                        channel.append(this, data.toString());
+                    }
                 }
             });
             this.process.on('error', error => {
@@ -112,45 +131,55 @@ class CargoTask {
                 this.process.removeAllListeners();
                 this.process = null;
 
-                // If the user has selected JSON errors, we need to parse and print them into something human readable
-                // It might not match Rust 1-to-1, but its better than JSON
-                if (errorFormat === ErrorFormat.JSON) {
-                    for (const line of output.split('\n')) {
-                        // Catch any JSON lines
-                        if (line.startsWith('{')) {
-                            let errors: RustError[] = [];
-                            if (CommandService.parseJsonLine(errors, line)) {
-                                /* tslint:disable:max-line-length */
-                                // Print any errors as best we can match to Rust's format.
-                                // TODO: Add support for child errors/text highlights.
-                                // TODO: The following line will currently be printed fine, but the two lines after will not.
-                                // src\main.rs:5:5: 5:8 error: expected one of `!`, `.`, `::`, `;`, `?`, `{`, `}`, or an operator, found `let`
-                                // src\main.rs:5     let mut a = 4;
-                                //                   ^~~
-                                /* tslint:enable:max-line-length */
-                                for (const error of errors) {
-                                    this.channel.append(this, `${error.filename}:${error.startLine}:${error.startCharacter}:` +
-                                        ` ${error.endLine}:${error.endCharacter} ${error.severity}: ${error.message}\n`);
+                if (channel) {
+                    // If the user has selected JSON errors, we need to parse and print them into something human readable
+                    // It might not match Rust 1-to-1, but its better than JSON
+                    if (errorFormat === ErrorFormat.JSON) {
+                        for (const line of output.split('\n')) {
+                            // Catch any JSON lines
+                            if (line.startsWith('{')) {
+                                let errors: RustError[] = [];
+                                if (CommandService.parseJsonLine(errors, line)) {
+                                    /* tslint:disable:max-line-length */
+                                    // Print any errors as best we can match to Rust's format.
+                                    // TODO: Add support for child errors/text highlights.
+                                    // TODO: The following line will currently be printed fine, but the two lines after will not.
+                                    // src\main.rs:5:5: 5:8 error: expected one of `!`, `.`, `::`, `;`, `?`, `{`, `}`, or an operator, found `let`
+                                    // src\main.rs:5     let mut a = 4;
+                                    //                   ^~~
+                                    /* tslint:enable:max-line-length */
+                                    for (const error of errors) {
+                                        channel.append(this, `${error.filename}:${error.startLine}:${error.startCharacter}:` +
+                                            ` ${error.endLine}:${error.endCharacter} ${error.severity}: ${error.message}\n`);
+                                    }
                                 }
+                            } else {
+                                // Catch any non-JSON lines like "Compiling <project> (<path>)"
+                                channel.append(this, `${line}\n`);
                             }
-                        } else {
-                            // Catch any non-JSON lines like "Compiling <project> (<path>)"
-                            this.channel.append(this, `${line}\n`);
                         }
                     }
                 }
 
                 const endTime = Date.now();
-                this.channel.append(this, `\n"${task}" completed with code ${code}`);
-                this.channel.append(this, `\nIt took approximately ${(endTime - startTime) / 1000} seconds`);
+
+                if (channel) {
+                    channel.append(this, `\n"${task}" completed with code ${code}`);
+                    channel.append(this, `\nIt took approximately ${(endTime - startTime) / 1000} seconds`);
+                }
 
                 if (code === 0 || this.interrupted) {
-                    resolve(this.interrupted ? '' : output);
+                    resolve({
+                        success: true,
+                        output: output,
+                        interrupted: this.interrupted
+                    });
                 } else {
-                    if (code !== 101) {
-                        vscode.window.showWarningMessage(`Cargo unexpectedly stopped with code ${code}`);
-                    }
-                    reject(output);
+                    resolve({
+                        success: false,
+                        exitCode: code,
+                        output: output
+                    });
                 }
             });
         });
@@ -164,6 +193,28 @@ class CargoTask {
             }
         });
     }
+
+    private static addFeaturesToArgs(args: string[]): string[] {
+        const rustConfig = vscode.workspace.getConfiguration('rust');
+        const featureArray = rustConfig['features'];
+
+        if (featureArray.length === 0) {
+            return args;
+        }
+
+        const featuresArgs = ['--features'].concat(featureArray);
+
+        // replace args with new instance containing feature flags, features
+        // must be placed before doubledash `--`
+        let doubleDashIndex = args.indexOf('--');
+        if (doubleDashIndex >= 0) {
+            let argsBeforeDoubleDash = args.slice(0, doubleDashIndex);
+            let argsAfterDoubleDash = args.slice(doubleDashIndex);
+            return argsBeforeDoubleDash.concat(featuresArgs, argsAfterDoubleDash);
+        } else {
+            return args.concat(featuresArgs);
+        }
+    }
 }
 
 export class CommandService {
@@ -171,6 +222,36 @@ export class CommandService {
     private static channel: ChannelWrapper = new ChannelWrapper(vscode.window.createOutputChannel('Cargo'));
     private static currentTask: CargoTask;
     public static errorFormat: ErrorFormat;
+
+    public static checkCommand(target: CheckTarget): vscode.Disposable {
+        let commandId: string;
+        switch (target) {
+            case CheckTarget.Application:
+                commandId = 'rust.cargo.check';
+                break;
+            case CheckTarget.Library:
+                commandId = 'rust.cargo.check.lib';
+                break;
+        }
+        return vscode.commands.registerCommand(commandId, () => {
+            this.checkCargoCheckAvailability().then(isAvailable => {
+                if (isAvailable) {
+                    let args = ['check'];
+                    if (target === CheckTarget.Library) {
+                        args.push('--lib');
+                    }
+                    this.runCargo(args, true, true);
+                } else {
+                    let args = ['rustc'];
+                    if (target === CheckTarget.Library) {
+                        args.push('--lib');
+                    }
+                    args.push('--', '-Zno-trans');
+                    this.runCargo(args, true, true);
+                }
+            });
+        });
+    }
 
     public static formatCommand(commandName: string, ...args: string[]): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
@@ -372,6 +453,14 @@ export class CommandService {
         }
     };
 
+    private static checkCargoCheckAvailability(): Thenable<boolean> {
+        let args = ['check', '--help'];
+        let cwd = '/'; // Doesn't matter.
+        return (new CargoTask).execute(args, cwd, null).then(result => {
+            return result.success;
+        });
+    }
+
     public static parseJsonLine(errors: RustError[], line: string): boolean {
         let errorJson = JSON.parse(line);
         return this.parseJson(errors, errorJson);
@@ -415,26 +504,7 @@ export class CommandService {
             return;
         }
 
-        // collect feature flags
-        const rustConfig = vscode.workspace.getConfiguration('rust');
-        let features: any = [];
-        if (rustConfig['features'].length > 0) {
-            features.push('--features');
-            features.push(rustConfig['features'].join(' '));
-        }
-
-        // replace args with new instance containing feature flags, features
-        // must be placed before doubledash `--`
-        let doubledash = args.indexOf('--');
-        let argsWithFatures: string[];
-        if (doubledash >= 0) {
-            argsWithFatures = args.concat();
-            argsWithFatures.splice.apply(argsWithFatures, [doubledash, 0].concat(features));
-        } else {
-            argsWithFatures = args.concat(features);
-        }
-
-        this.currentTask = new CargoTask(argsWithFatures, this.channel);
+        this.currentTask = new CargoTask();
 
         if (visible) {
             this.channel.setOwner(this.currentTask);
@@ -443,10 +513,16 @@ export class CommandService {
 
         PathService.cwd().then((value: string | Error) => {
             if (typeof value === 'string') {
-                this.currentTask.execute(value).then(output => {
-                    this.parseDiagnostics(value, output);
-                }, output => {
-                    this.parseDiagnostics(value, output);
+                const cwd = value;
+                this.currentTask.execute(args, cwd, this.channel).then(result => {
+                    this.parseDiagnostics(cwd, result.output);
+                    if (!result.success) {
+                        const failedResult = <CargoTaskExecuteFailedResult>result;
+                        const code = failedResult.exitCode;
+                        if (code !== 101) {
+                            vscode.window.showWarningMessage(`Cargo unexpectedly stopped with code ${code}`);
+                        }
+                    }
                 }).then(() => {
                     this.currentTask = null;
                 });
