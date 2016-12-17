@@ -258,6 +258,12 @@ export class CommandService {
         });
     }
 
+    public static createProjectCommand(commandName: string, isBin: boolean): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            this.createProject(isBin);
+        });
+    }
+
     public static formatCommand(commandName: string, ...args: string[]): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
             this.runCargo(args, true);
@@ -523,6 +529,44 @@ export class CommandService {
         if (this.statusBarItem != null) {
             this.statusBarItem.hide();
         }
+    }
+
+    private static createProject(isBin: boolean): void {
+        let cwd = vscode.workspace.rootPath;
+        if (!cwd) {
+            vscode.window.showErrorMessage('Current document not in the workspace');
+            return;
+        }
+        const projectType = isBin ? 'executable' : 'library';
+        const placeHolder = `Enter ${projectType} project name`;
+        vscode.window.showInputBox({ placeHolder: placeHolder }).then((name: string) => {
+            if (!name || name.length === 0) {
+                vscode.window.showErrorMessage('Invalid name');
+                return;
+            }
+
+            let args = ['new', name];
+            if (isBin) {
+                args.push('--bin');
+            } else {
+                args.push('--lib');
+            }
+
+            this.currentTask = new CargoTask();
+
+            this.channel.setOwner(this.currentTask);
+
+            {
+                const rustConfig = vscode.workspace.getConfiguration('rust');
+                if (rustConfig['showOutput']) {
+                    this.channel.show();
+                }
+            }
+
+            this.currentTask.execute(args, cwd, this.channel).then(() => {
+                this.currentTask = null;
+            });
+        });
     }
 
     private static runCargo(args: string[], force = false): void {

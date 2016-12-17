@@ -127,6 +127,9 @@ export function activate(ctx: vscode.ExtensionContext): void {
     offerToInstallTools();
 
     // Commands
+    // Cargo new
+    ctx.subscriptions.push(CommandService.createProjectCommand('rust.cargo.new.bin', true));
+    ctx.subscriptions.push(CommandService.createProjectCommand('rust.cargo.new.lib', false));
     // Cargo build
     ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.build.debug', 'build'));
     ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.build.release', 'build', '--release'));

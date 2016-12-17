@@ -24,6 +24,8 @@
     "Snippets"
   ],
   "activationEvents": [
+    "onCommand:rust.cargo.new.bin",
+    "onCommand:rust.cargo.new.lib",
     "onLanguage:rust"
   ],
   "main": "./out/src/extension",
@@ -46,6 +48,16 @@
       }
     ],
     "commands": [
+      {
+        "command": "rust.cargo.new.bin",
+        "title": "Cargo: Create new executable project",
+        "description": "Creating a new executable project"
+      },
+      {
+        "command": "rust.cargo.new.lib",
+        "title": "Cargo: Create new library project",
+        "description": "Creating a new library project"
+      },
       {
         "command": "rust.cargo.build.example.debug",
         "title": "Cargo: Build example, Debug",
