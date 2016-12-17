@@ -1,6 +1,6 @@
-[![Build Status](https://travis-ci.org/saviorisdead/RustyCode.svg)](https://travis-ci.org/saviorisdead/RustyCode)
+[![Build Status](https://api.travis-ci.org/KalitaAlexey/vscode-rust.svg)](https://travis-ci.org/KalitaAlexey/vscode-rust)
 
-# Rust for Visual Studio Code (Latest: 0.19.1)
+# Rust for Visual Studio Code (Latest: 0.1.0)
 
 [Changelog](CHANGELOG.md)
 
@@ -12,8 +12,7 @@ This extension adds advanced language support for the Rust language to VS Code, 
 - Go To Definition (using `racer`)
 - Go To Symbol (using `rustsym`)
 - Format (using `rustfmt`)
-- Linter *checkOnSave is experimental*
-- Linting can be done via  *checkWith is experimental*
+- Linter. Linting can be done via:
 	- `check`. This is the default. Runs rust compiler but skips codegen pass.
 	- `check-lib`. As above, but is limited only to library if project has library + multiple binaries
 	- `clippy` if `cargo-clippy` is installed
@@ -27,13 +26,19 @@ This extension adds advanced language support for the Rust language to VS Code, 
 
 ## Using
 
-First, you will need to install Visual Studio Code `1.0` or newer. In the command pallete (`cmd-shift-p`) select `Install Extension` and choose `RustyCode`.
+First, you will need to install Visual Studio Code `1.0` or newer. In the command pallete (`cmd-shift-p`) select `Install Extension` and choose `Rust`.
 
-Then, you need to install Racer (instructions and source code [here](https://github.com/phildawes/racer)). Please, note that we only support latest versions of `Racer`.
+This extension uses the following applications:
 
-Also, you need to install Rustfmt (instructions and source code [here](https://github.com/rust-lang-nursery/rustfmt))
+* racer
+* rustsym
+* rustfmt
 
-And last step is downloading Rust language source files from [here](https://github.com/rust-lang/rust).
+All this applications can be installed by youself and by VSCode.
+
+In order to install them in VSCOde, Open any *.rs file and click on the button "Rust Tools Missing" at the right bottom corner.
+
+**racer** uses source files to provide autocompletion. Install them to your computer to use **racer**.
 
 ### Options
 
@@ -58,17 +63,17 @@ The following Visual Studio Code settings are available for the RustyCode extens
 
 ## Building and Debugging the Extension
 
-[Repository](https://github.com/saviorisdead/RustyCode)
+[Repository](https://github.com/KalitaAlexey/vscode-rust)
 
 You can set up a development enviroment for debugging the extension during extension development.
 
 First make sure you do not have the extension installed in `~/.vscode/extensions`. Then clone the repo somewhere else on your machine, run `npm install` and open a development instance of Code.
 
 ```bash
-rm -rf ~/.vscode/extensions/RustyCode
+rm -rf ~/.vscode/extensions/vscode-rust
 cd ~
-git clone https://github.com/saviorisdead/RustyCode
-cd RustyCode
+git clone https://github.com/KalitaAlexey/vscode-rust
+cd vscode-rust
 npm install
 npm run-script compile
 code .

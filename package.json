@@ -1,19 +1,19 @@
 {
-  "name": "RustyCode",
-  "displayName": "Rusty Code",
+  "name": "vscode-rust",
+  "displayName": "Rust",
   "description": "Rust language integration for VSCode",
-  "version": "0.19.1",
-  "publisher": "saviorisdead",
+  "version": "0.1.0",
+  "publisher": "kalitaalexey",
   "license": "MIT",
   "icon": "images/icon.png",
-  "homepage": "https://github.com/saviorisdead/RustyCode",
+  "homepage": "https://github.com/KalitaAlexey/vscode-rust",
   "repository": {
     "type": "git",
-    "url": "https://github.com/saviorisdead/RustyCode"
+    "url": "https://github.com/KalitaAlexey/vscode-rust"
   },
   "bugs": {
-    "url": "https://github.com/saviorisdead/RustyCode/issues",
-    "email": "saviorisdead@gmail.com"
+    "url": "https://github.com/KalitaAlexey/vscode-rust/issues",
+    "email": "kalita.alexey@outlook.com"
   },
   "engines": {
     "vscode": "^1.0.0"
