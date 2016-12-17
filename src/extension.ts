@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import * as vscode from 'vscode';
 
 import FormatService from './services/formatService';
@@ -10,16 +12,44 @@ import WorkspaceSymbolService from './services/workspaceSymbolService';
 import DocumentSymbolService from './services/documentSymbolService';
 import offerToInstallTools from './installTools';
 
-export function activate(ctx: vscode.ExtensionContext): void {
+function initializeSuggestService(ctx: vscode.ExtensionContext): void {
+    // Initialize suggestion service
+    let suggestService = new SuggestService();
+
     // Set path to Rust language sources
     let rustSrcPath = PathService.getRustLangSrcPath();
     if (rustSrcPath) {
         process.env['RUST_SRC_PATH'] = rustSrcPath;
+
+        ctx.subscriptions.push(suggestService.start());
+    } else {
+        PathService.getRustcSysroot().then(sysroot => {
+            rustSrcPath = path.join(sysroot, 'lib', 'rustlib', 'src', 'rust', 'src');
+            fs.access(rustSrcPath, err => {
+                if (!err) {
+                    process.env['RUST_SRC_PATH'] = rustSrcPath;
+                } else if (rustSrcPath.includes('.rustup')) {
+                    // tslint:disable-next-line
+                    const message = 'You are using rustup, but don\'t have installed source code. Do you want to install it?';
+                    vscode.window.showErrorMessage(message, 'Yes').then(chosenItem => {
+                        if (chosenItem === 'Yes') {
+                            const terminal = vscode.window.createTerminal('Rust source code installation');
+                            terminal.sendText('rustup component add rust-src');
+                            terminal.show();
+                        }
+                    });
+                }
+                ctx.subscriptions.push(suggestService.start());
+            });
+        });
     }
 
-    // Initialize suggestion service
-    let suggestService = new SuggestService();
-    ctx.subscriptions.push(suggestService.start());
+    // Racer crash error
+    ctx.subscriptions.push(suggestService.racerCrashErrorCommand('rust.racer.showerror'));
+}
+
+export function activate(ctx: vscode.ExtensionContext): void {
+    initializeSuggestService(ctx);
 
     // Initialize format service
     let formatService = new FormatService();
@@ -157,8 +187,6 @@ export function activate(ctx: vscode.ExtensionContext): void {
     ctx.subscriptions.push(CommandService.checkCommand(CheckTarget.Library));
     // Cargo clippy
     ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.clippy', 'clippy'));
-    // Racer crash error
-    ctx.subscriptions.push(suggestService.racerCrashErrorCommand('rust.racer.showerror'));
 
     // Cargo terminate
     ctx.subscriptions.push(CommandService.stopCommand('rust.cargo.terminate'));
