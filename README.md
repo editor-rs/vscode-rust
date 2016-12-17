@@ -1,6 +1,6 @@
 [![Build Status](https://api.travis-ci.org/KalitaAlexey/vscode-rust.svg)](https://travis-ci.org/KalitaAlexey/vscode-rust)
 
-# Rust for Visual Studio Code (Latest: 0.1.0)
+# Rust for Visual Studio Code (Latest: 0.1.1)
 
 [Changelog](CHANGELOG.md)
 

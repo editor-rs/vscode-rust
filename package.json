@@ -2,7 +2,7 @@
   "name": "vscode-rust",
   "displayName": "Rust",
   "description": "Rust language integration for VSCode",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "kalitaalexey",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -149,42 +149,65 @@
       "type": "object",
       "properties": {
         "rust.racerPath": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "default": null,
           "description": "Specifies path to Racer binary if it's not in PATH"
         },
         "rust.rustfmtPath": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "default": null,
           "description": "Specifies path to Rustfmt binary if it's not in PATH"
         },
         "rust.rustsymPath": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "default": null,
           "description": "Specifies path to Rustsym binary if it's not in PATH"
         },
         "rust.rustLangSrcPath": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "default": null,
           "description": "Specifies path to /src directory of local copy of Rust sources"
         },
         "rust.showOutput": {
-          "type": ["boolean"],
+          "type": [
+            "boolean"
+          ],
           "default": true,
           "description": "Automatically show output panel when starting any cargo task"
         },
         "rust.cargoPath": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "default": null,
           "description": "Specifies path to Cargo binary if it's not in PATH"
         },
         "rust.cargoHomePath": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "default": null,
           "description": "Specifies path to home directory of Cargo. Mostly needed for working with custom installations of Rust via rustup or multirust."
         },
         "rust.cargoEnv": {
-          "type": ["object", "null"],
+          "type": [
+            "object",
+            "null"
+          ],
           "default": null,
           "description": "Specifies custom variables to set when running cargo. Useful for crates which use env vars in their build.rs (like openssl-sys)."
         },
