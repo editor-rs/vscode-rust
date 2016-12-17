@@ -126,7 +126,7 @@ class CargoTask {
                 }
             });
             this.process.on('error', error => {
-                if (error.code === 'ENOENT') {
+                if (error.message === 'ENOENT') {
                     vscode.window.showInformationMessage('The "cargo" command is not available. Make sure it is installed.');
                 }
             });

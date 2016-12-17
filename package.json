@@ -16,7 +16,7 @@
     "email": "kalita.alexey@outlook.com"
   },
   "engines": {
-    "vscode": "^1.0.0"
+    "vscode": "^1.8.0"
   },
   "categories": [
     "Languages",
@@ -254,8 +254,8 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "node ./node_modules/vscode/bin/compile",
-    "compile": "node ./node_modules/vscode/bin/compile -watch -p ./",
+    "vscode:prepublish": "tsc -p .",
+    "compile": "tsc -watch -p .",
     "gulp": "node ./node_modules/gulp/bin/gulp.js",
     "postinstall": "node ./node_modules/vscode/bin/install"
   },
@@ -263,9 +263,12 @@
     "gulp": "^3.9.0",
     "gulp-shell": "^0.5.1",
     "gulp-tslint": "^4.1.0",
+    "mocha": "^3.2.0",
     "tslint": "^3.1.1",
-    "typescript": "1.8.7",
-    "vscode": "^0.11.12"
+    "typescript": "^2.1.4",
+    "vscode": "^1.0.3",
+    "@types/node": "^6.0.52",
+    "@types/mocha": "^2.2.33"
   },
   "dependencies": {
     "tmp": "0.0.28",

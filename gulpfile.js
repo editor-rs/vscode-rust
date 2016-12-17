@@ -8,7 +8,7 @@ var files = {
 };
 
 gulp.task('compile', shell.task([
-    'node ./node_modules/vscode/bin/compile -p ./'
+    'tsc -p .'
 ]));
 
 gulp.task('tslint', function() {
