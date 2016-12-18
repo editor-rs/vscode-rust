@@ -400,22 +400,26 @@ export class CommandService {
 
     private static parseOldHumanReadable(errors: RustError[], line: string): void {
         let match = line.match(errorRegex);
-        if (match) {
-            let filename = match[1];
-            if (!errors[filename]) {
-                errors[filename] = [];
-            }
 
-            errors.push({
-                filename: filename,
-                startLine: Number(match[2]),
-                startCharacter: Number(match[3]),
-                endLine: Number(match[4]),
-                endCharacter: Number(match[5]),
-                severity: match[6],
-                message: match[7]
-            });
+        if (!match) {
+            return;
         }
+
+        let filename = match[1];
+
+        if (!errors[filename]) {
+            errors[filename] = [];
+        }
+
+        errors.push({
+            filename: filename,
+            startLine: Number(match[2]),
+            startCharacter: Number(match[3]),
+            endLine: Number(match[4]),
+            endCharacter: Number(match[5]),
+            severity: match[6],
+            message: match[7]
+        });
     }
 
     private static parseNewHumanReadable(errors: RustError[], output: string): void {

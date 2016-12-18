@@ -41,25 +41,27 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
                 continue;
             }
 
-            if (currentFile.toString() === fileToProcess.toString() + '.fmt') {
-                if (line.startsWith('Diff at line')) {
-                    if (currentPatch != null) {
-                        patches.push(currentPatch);
-                    }
+            if (currentFile.toString() !== fileToProcess.toString() + '.fmt') {
+                continue;
+            }
 
-                    currentPatch = {
-                        startLine: parseInt(line.slice('Diff at line'.length), 10),
-                        newLines: [],
-                        removedLines: 0
-                    };
-                } else if (line.startsWith('+')) {
-                    currentPatch.newLines.push(this.cleanDiffLine(line));
-                } else if (line.startsWith('-')) {
-                    currentPatch.removedLines += 1;
-                } else if (line.startsWith(' ')) {
-                    currentPatch.newLines.push(this.cleanDiffLine(line));
-                    currentPatch.removedLines += 1;
+            if (line.startsWith('Diff at line')) {
+                if (currentPatch != null) {
+                    patches.push(currentPatch);
                 }
+
+                currentPatch = {
+                    startLine: parseInt(line.slice('Diff at line'.length), 10),
+                    newLines: [],
+                    removedLines: 0
+                };
+            } else if (line.startsWith('+')) {
+                currentPatch.newLines.push(this.cleanDiffLine(line));
+            } else if (line.startsWith('-')) {
+                currentPatch.removedLines += 1;
+            } else if (line.startsWith(' ')) {
+                currentPatch.newLines.push(this.cleanDiffLine(line));
+                currentPatch.removedLines += 1;
             }
         }
 
