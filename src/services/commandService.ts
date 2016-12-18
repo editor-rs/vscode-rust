@@ -564,7 +564,6 @@ export class CommandService {
         const placeHolder = `Enter ${projectType} project name`;
         vscode.window.showInputBox({ placeHolder: placeHolder }).then((name: string) => {
             if (!name || name.length === 0) {
-                vscode.window.showErrorMessage('Invalid name');
                 return;
             }
 
