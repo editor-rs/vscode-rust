@@ -348,7 +348,7 @@
         "prefix": "extern-fn",
         "body": [
             "extern \"C\" fn ${1:name}(${2:arg}: ${3:Type}) -> ${4:RetType} {",
-            "    ${5:add code here}",
+            "    ${5:// add code here}",
             "}"
         ],
         "description": "extern \"C\" fn …(…) { … }"
@@ -357,7 +357,7 @@
         "prefix": "extern-mod",
         "body": [
             "extern \"C\" {",
-            "    ${2:add code here}",
+            "    ${2:// add code here}",
             "}"
         ],
         "description": "extern \"C\" { … }"
@@ -402,7 +402,7 @@
         "prefix": "impl-trait",
         "body": [
             "impl ${1:Trait} for ${2:Type} {",
-            "    ${3:add code here}",
+            "    ${3:// add code here}",
             "}"
         ],
         "description": "impl … for … { … }"
@@ -411,7 +411,7 @@
         "prefix": "impl",
         "body": [
             "impl ${1:Type} {",
-            "    ${2:add code here}",
+            "    ${2:// add code here}",
             "}"
         ],
         "description": "impl … { … }"
@@ -471,7 +471,7 @@
         "prefix": "mod-block",
         "body": [
             "mod ${1:name} {",
-            "    ${2:add code here}",
+            "    ${2:// add code here}",
             "}"
         ],
         "description": "mod … { … }"
@@ -521,7 +521,7 @@
         "prefix": "trait",
         "body": [
             "trait ${1:Name} {",
-            "    ${2:add code here}",
+            "    ${2:// add code here}",
             "}",
             ""
         ],
