@@ -42,7 +42,8 @@ export class Installator {
     private installMissingTools(missingTools: string[]): void {
         const terminal = vscode.window.createTerminal('Rust tools installation');
         // cargo install tool && cargo install another_tool
-        const command = missingTools.map(tool => `cargo install ${tool}`).join(' && ');
+        const cargoBinPath = PathService.getCargoPath();
+        const command = missingTools.map(tool => `${cargoBinPath} install ${tool}`).join(' && ');
 
         terminal.sendText(command);
         terminal.show();
