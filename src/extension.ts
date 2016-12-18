@@ -7,7 +7,7 @@ import FilterService from './services/filterService';
 import StatusBarService from './services/statusBarService';
 import SuggestService from './services/suggestService';
 import PathService from './services/pathService';
-import {CheckTarget, CommandService, ErrorFormat} from './services/commandService';
+import {BuildType, CheckTarget, CommandService, ErrorFormat} from './services/commandService';
 import WorkspaceSymbolService from './services/workspaceSymbolService';
 import DocumentSymbolService from './services/documentSymbolService';
 import {Installator as MissingToolsInstallator} from './installTools';
@@ -165,8 +165,8 @@ export function activate(ctx: vscode.ExtensionContext): void {
     ctx.subscriptions.push(CommandService.createProjectCommand('rust.cargo.new.bin', true));
     ctx.subscriptions.push(CommandService.createProjectCommand('rust.cargo.new.lib', false));
     // Cargo build
-    ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.build.debug', 'build'));
-    ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.build.release', 'build', '--release'));
+    ctx.subscriptions.push(CommandService.createBuildCommand('rust.cargo.build.debug', BuildType.Debug));
+    ctx.subscriptions.push(CommandService.createBuildCommand('rust.cargo.build.release', BuildType.Release));
     ctx.subscriptions.push(CommandService.buildExampleCommand('rust.cargo.build.example.debug', false));
     ctx.subscriptions.push(CommandService.buildExampleCommand('rust.cargo.build.example.release', true));
     ctx.subscriptions.push(CommandService.runExampleCommand('rust.cargo.run.example.debug', false));

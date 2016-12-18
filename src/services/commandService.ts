@@ -19,6 +19,11 @@ interface RustError {
     message: string;
 }
 
+export enum BuildType {
+    Debug,
+    Release
+}
+
 export enum ErrorFormat {
     OldStyle,
     NewStyle,
@@ -264,6 +269,12 @@ export class CommandService {
         });
     }
 
+    public static createBuildCommand(commandName: string, buildType: BuildType): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            this.buildProject(buildType);
+        });
+    }
+
     public static formatCommand(commandName: string, ...args: string[]): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
             this.runCargo(args, true);
@@ -317,6 +328,14 @@ export class CommandService {
             return '';
         }
         return path.basename(filename, '.rs');
+    }
+
+    private static buildProject(buildType: BuildType): void {
+        let args = ['build'];
+        if (buildType === BuildType.Release) {
+            args.push('--release');
+        }
+        this.runCargo(args, true);
     }
 
     private static buildExample(release: boolean): void {
