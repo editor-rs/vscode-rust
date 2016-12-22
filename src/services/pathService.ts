@@ -99,7 +99,12 @@ export default class PathService {
             .catch(() => { return tryLastCwd(PathService.lastCwd); })
             .catch(() => { return tryWorkspaceRootProject(); })
             .then((result) => {
-                PathService.lastCwd = result;
+                if (result.indexOf(vscode.workspace.rootPath) >= 0) {
+                    // Only directories that belong to the current workspace are remembered.
+                    // This prevents us from remembering and accidently compiling unrelated
+                    // projects (if user opens a file from an outside project by drag & drop).
+                    PathService.lastCwd = result;
+                }
                 return result;
             });
     }
@@ -110,9 +115,6 @@ function tryResolveCwdFromEditor(): Promise<string> {
         return Promise.reject(new Error('No active editor.'));
     }
     const fileName = vscode.window.activeTextEditor.document.fileName;
-    if (!fileName.startsWith(vscode.workspace.rootPath)) {
-        return Promise.reject(new Error('Currently active editor is not in the workspace.'));
-    }
     return findUp('Cargo.toml', {cwd: path.dirname(fileName)}).then((value: string) => {
         if (value) {
             return path.dirname(value);
