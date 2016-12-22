@@ -43,7 +43,8 @@
     "onCommand:rust.cargo.clean",
     "onCommand:rust.cargo.check",
     "onCommand:rust.cargo.check.lib",
-    "onCommand:rust.cargo.terminate"
+    "onCommand:rust.cargo.terminate",
+    "onCommand:rust.cargo.clippy"
   ],
   "main": "./out/src/extension",
   "contributes": {
@@ -154,6 +155,11 @@
         "command": "rust.cargo.check.lib",
         "title": "Cargo: Check Library",
         "description": "Check the main library of the project for warnings and errors"
+      },
+      {
+        "command": "rust.cargo.clippy",
+        "title": "Cargo: Clippy",
+        "description": "Check project with clippy."
       },
       {
         "command": "rust.cargo.terminate",
