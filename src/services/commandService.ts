@@ -324,8 +324,33 @@ export class CommandService {
         });
 
         diagnosticMap.forEach((diags, uri) => {
-            this.diagnostics.set(vscode.Uri.file(uri), diags);
+            const uniqueDiagnostics = this.getUniqueDiagnostics(diags);
+            this.diagnostics.set(vscode.Uri.file(uri), uniqueDiagnostics);
         });
+    }
+
+    private static getUniqueDiagnostics(diagnostics: vscode.Diagnostic[]): vscode.Diagnostic[] {
+        let uniqueDiagnostics: vscode.Diagnostic[] = [];
+
+        for (let diagnostic of diagnostics) {
+            const uniqueDiagnostic = uniqueDiagnostics.find(uniqueDiagnostic => {
+                if (!diagnostic.range.isEqual(uniqueDiagnostic.range)) {
+                    return false;
+                }
+
+                if (diagnostic.message !== uniqueDiagnostic.message) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            if (uniqueDiagnostic === undefined) {
+                uniqueDiagnostics.push(diagnostic);
+            }
+        }
+
+        return uniqueDiagnostics;
     }
 
     private static parseOldHumanReadable(errors: RustError[], line: string): void {
