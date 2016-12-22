@@ -87,20 +87,17 @@ export default class PathService {
      * (window has no editors opened at all), then it is ambiguous which project should be the
      * context of the invoked command. In this case, we return first from the following sequence:
      *
-     * 1. Workspace root directory, if it contains Cargo.toml file.
-     *
-     * 2. Last project directory user has worked with (value that was returned by the last cwd()
+     * 1. Last project directory user has worked with (value that was returned by the last cwd()
      *    call), if there was one, if it still exists and if it still has Cargo.toml file.
      *
-     * 3. First directory in the workspace that has a Cargo.toml file (found by recursive search).
+     * 2. Workspace root directory, if it contains Cargo.toml file.
      *
-     * 4. Error.
+     * 3. Error.
      */
     public static cwd(): Promise<string> {
         return tryResolveCwdFromEditor()
-            .catch(() => { return tryWorkspaceRootProject(); })
             .catch(() => { return tryLastCwd(PathService.lastCwd); })
-            .catch(() => { return tryFindAnyProject(); })
+            .catch(() => { return tryWorkspaceRootProject(); })
             .then((result) => {
                 PathService.lastCwd = result;
                 return result;
@@ -151,60 +148,10 @@ function tryLastCwd(cwd: string): Promise<string> {
     });
 }
 
-function tryFindAnyProject(): Promise<string> {
-    const rootWSDir = vscode.workspace.rootPath;
-    if (!rootWSDir) {
-        throw new Error('No workspace opened.');
-    }
-    return new Promise((resolve, reject) => {
-        recursiveFindFirstFile(rootWSDir, 'Cargo.toml', (result) => {
-            if (result) {
-                resolve(path.dirname(result));
-            } else {
-                reject(new Error('No Cargo.toml file in workspace.'));
-            }
-        });
-    });
-}
-
 function pathExists(fp: string): Promise<boolean> {
     return new Promise(resolve => {
         fs.access(fp, err => {
             resolve(!err);
         });
-    });
-}
-
-// If there exist some NPM module that does efficient recursive search of a first file with a given
-// name, then this function should be replaced with an alternative. Otherwise, it may be better to
-// be extracted to a separate NPM project and imported here.
-function recursiveFindFirstFile(dir: string, fileName: string, callback: (result: string|null) => void): void {
-    fs.readdir(dir, (err, list) => {
-        if (err || !list.length) { return callback(null); }
-        let i = 0;
-        let len = list.length;
-        const next = () => {
-            if (i >= len) { return callback(null); }
-            const name = list[i++];
-            const fullPath = path.join(dir, name);
-            fs.stat(fullPath, (statErr, stat) => {
-                if (statErr || !stat) {
-                    next();
-                } else if (stat.isDirectory()) {
-                    recursiveFindFirstFile(fullPath, fileName, (result) => {
-                        if (result) {
-                            callback(result);
-                        } else {
-                            next();
-                        }
-                    });
-                } else if (stat.isFile() && name === fileName) {
-                    callback(fullPath);
-                } else {
-                    next();
-                }
-            });
-        };
-        next();
     });
 }
