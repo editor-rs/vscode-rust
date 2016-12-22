@@ -253,16 +253,6 @@
           "type": "array",
           "default": [],
           "description": "List of feature flags passed to cargo"
-        },
-        "rust.useJsonErrors": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable the use of JSON errors (requires Rust 1.7+). Note: This is an unstable feature of Rust and is still in the process of being stablised"
-        },
-        "rust.useNewErrorFormat": {
-          "type": "boolean",
-          "default": false,
-          "description": "Use the new Rust error format (RUST_NEW_ERROR_FORMAT=true). Note: This flag is mutually exclusive with `useJsonErrors`."
         }
       }
     },
