@@ -253,6 +253,10 @@ export class CommandService {
         });
     }
 
+    private static getConfiguration(): vscode.WorkspaceConfiguration {
+        return vscode.workspace.getConfiguration('rust');
+    }
+
     private static determineExampleName(): string {
         let showDocumentIsNotExampleWarning = () => {
             vscode.window.showWarningMessage('Current document is not an example');
@@ -272,81 +276,129 @@ export class CommandService {
     }
 
     private static buildProject(buildType: BuildType): void {
-        let args = ['build', '--message-format', 'json'];
+        const args = ['build', '--message-format', 'json'];
 
         if (buildType === BuildType.Release) {
             args.push('--release');
         }
+
+        const configuration = this.getConfiguration();
+        const userDefinedArgs: string[] = configuration.get<string[]>('buildArgs');
+
+        args.push(...userDefinedArgs);
 
         this.runCargo(args, true);
     }
 
     private static checkProject(target: CheckTarget): void {
         this.checkCargoCheckAvailability().then(isAvailable => {
+            let args: string[];
+
             if (isAvailable) {
-                let args = ['check'];
+                args = ['check'];
+
                 if (target === CheckTarget.Library) {
                     args.push('--lib');
                 }
-                this.runCargo(args, true);
+
+                const configuration = this.getConfiguration();
+                const userDefinedArgs: string[] = configuration.get<string[]>('checkArgs');
+
+                args.push(...userDefinedArgs);
             } else {
-                let args = ['rustc'];
+                args = ['rustc'];
+
                 if (target === CheckTarget.Library) {
                     args.push('--lib');
                 }
+
                 args.push('--', '-Zno-trans');
-                this.runCargo(args, true);
             }
+
+            this.runCargo(args, true);
         });
     }
 
     private static checkProjectWithClippy(): void {
         const args = ['clippy'];
 
+        const configuration = this.getConfiguration();
+        const userDefinedArgs: string[] = configuration.get<string[]>('clippyArgs');
+
+        args.push(...userDefinedArgs);
+
         this.runCargo(args, true);
     }
 
     private static runProject(buildType: BuildType): void {
-        let args = ['run'];
+        const args = ['run'];
 
         if (buildType === BuildType.Release) {
             args.push('--release');
         }
+
+        const configuration = this.getConfiguration();
+        const userDefinedArgs: string[] = configuration.get<string[]>('runArgs');
+
+        args.push(...userDefinedArgs);
 
         this.runCargo(args, true);
     }
 
     private static testProject(buildType: BuildType): void {
-        let args = ['test'];
+        const args = ['test'];
 
         if (buildType === BuildType.Release) {
             args.push('--release');
         }
 
+        const configuration = this.getConfiguration();
+        const userDefinedArgs: string[] = configuration.get<string[]>('testArgs');
+
+        args.push(...userDefinedArgs);
+
         this.runCargo(args, true);
     }
 
     private static buildExample(release: boolean): void {
-        let exampleName = this.determineExampleName();
+        const exampleName = this.determineExampleName();
+
         if (exampleName.length === 0) {
             return;
         }
-        let args = ['build', '--example', exampleName];
+
+        const args = ['build', '--example', exampleName];
+
         if (release) {
             args.push('--release');
         }
+
+        const configuration = this.getConfiguration();
+        const userDefinedArgs: string[] = configuration.get<string[]>('buildArgs');
+
+        args.push(...userDefinedArgs);
+
         this.runCargo(args, true);
     }
 
     private static runExample(release: boolean): void {
-        let exampleName = this.determineExampleName();
+        const exampleName = this.determineExampleName();
+
         if (exampleName.length === 0) {
             return;
         }
-        let args = ['run', '--example', exampleName];
+
+        const args = ['run', '--example', exampleName];
+
         if (release) {
             args.push('--release');
         }
+
+        const configuration = this.getConfiguration();
+        const userDefinedArgs: string[] = configuration.get<string[]>('runArgs');
+
+        args.push(...userDefinedArgs);
+
         this.runCargo(args, true);
     }
 

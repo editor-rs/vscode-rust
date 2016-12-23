@@ -249,10 +249,30 @@
           "default": "check",
           "description": "Choose between check, check-lib, clippy, build and test to lint"
         },
-        "rust.features": {
+        "rust.buildArgs": {
           "type": "array",
           "default": [],
-          "description": "List of feature flags passed to cargo"
+          "description": "Arguments which is passed to cargo build"
+        },
+        "rust.checkArgs": {
+          "type": "array",
+          "default": [],
+          "description": "Arguments which is passed to cargo check"
+        },
+        "rust.clippyArgs": {
+          "type": "array",
+          "default": [],
+          "description": "Arguments which is passed to cargo clippy"
+        },
+        "rust.runArgs": {
+          "type": "array",
+          "default": [],
+          "description": "Arguments which is passed to cargo run"
+        },
+        "rust.testArgs": {
+          "type": "array",
+          "default": [],
+          "description": "Arguments which is passed to cargo test"
         }
       }
     },
