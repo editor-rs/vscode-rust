@@ -630,8 +630,6 @@ export class CommandService {
 
                 const cwd = value;
 
-                args = this.addFeaturesToArgs(args);
-
                 let startTime: number;
 
                 let onStart = () => {
@@ -712,28 +710,6 @@ export class CommandService {
                 vscode.window.showErrorMessage(value.message);
             }
         });
-    }
-
-    private static addFeaturesToArgs(args: string[]): string[] {
-        const rustConfig = vscode.workspace.getConfiguration('rust');
-        const featureArray = rustConfig['features'];
-
-        if (featureArray.length === 0) {
-            return args;
-        }
-
-        const featuresArgs = ['--features'].concat(featureArray);
-
-        // replace args with new instance containing feature flags, features
-        // must be placed before doubledash `--`
-        let doubleDashIndex = args.indexOf('--');
-        if (doubleDashIndex >= 0) {
-            let argsBeforeDoubleDash = args.slice(0, doubleDashIndex);
-            let argsAfterDoubleDash = args.slice(doubleDashIndex);
-            return argsBeforeDoubleDash.concat(featuresArgs, argsAfterDoubleDash);
-        } else {
-            return args.concat(featuresArgs);
-        }
     }
 }
 
