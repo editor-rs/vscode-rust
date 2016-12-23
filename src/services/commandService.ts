@@ -197,6 +197,12 @@ export class CommandService {
         });
     }
 
+    public static createClippyCommand(commandName: string): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            this.checkProjectWithClippy();
+        });
+    }
+
     public static createProjectCommand(commandName: string, isBin: boolean): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
             this.createProject(isBin);
@@ -292,6 +298,12 @@ export class CommandService {
                 this.runCargo(args, true);
             }
         });
+    }
+
+    private static checkProjectWithClippy(): void {
+        const args = ['clippy'];
+
+        this.runCargo(args, true);
     }
 
     private static runProject(buildType: BuildType): void {
