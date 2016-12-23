@@ -239,6 +239,12 @@ export class CommandService {
         });
     }
 
+    public static createTestCommand(commandName: string, buildType: BuildType): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            this.testProject(buildType);
+        });
+    }
+
     public static formatCommand(commandName: string, ...args: string[]): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
             this.runCargo(args, true);
@@ -295,6 +301,16 @@ export class CommandService {
 
     private static runProject(buildType: BuildType): void {
         let args = ['run'];
+
+        if (buildType === BuildType.Release) {
+            args.push('--release');
+        }
+
+        this.runCargo(args, true);
+    }
+
+    private static testProject(buildType: BuildType): void {
+        let args = ['test'];
 
         if (buildType === BuildType.Release) {
             args.push('--release');
