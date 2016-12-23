@@ -153,9 +153,9 @@ export function activate(ctx: vscode.ExtensionContext): void {
     // Cargo clean
     ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.clean', 'clean'));
     // Cargo check
-    ctx.subscriptions.push(CommandService.checkCommand(CheckTarget.Application));
+    ctx.subscriptions.push(CommandService.createCheckCommand('rust.cargo.check', CheckTarget.Application));
     // Cargo check lib
-    ctx.subscriptions.push(CommandService.checkCommand(CheckTarget.Library));
+    ctx.subscriptions.push(CommandService.createCheckCommand('rust.cargo.check.lib', CheckTarget.Library));
     // Cargo clippy
     ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.clippy', 'clippy'));
 

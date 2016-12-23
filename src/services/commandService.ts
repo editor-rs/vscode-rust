@@ -191,33 +191,9 @@ export class CommandService {
     private static statusBarItem: vscode.StatusBarItem;
     private static spinnerUpdate: any;
 
-    public static checkCommand(target: CheckTarget): vscode.Disposable {
-        let commandId: string;
-        switch (target) {
-            case CheckTarget.Application:
-                commandId = 'rust.cargo.check';
-                break;
-            case CheckTarget.Library:
-                commandId = 'rust.cargo.check.lib';
-                break;
-        }
-        return vscode.commands.registerCommand(commandId, () => {
-            this.checkCargoCheckAvailability().then(isAvailable => {
-                if (isAvailable) {
-                    let args = ['check'];
-                    if (target === CheckTarget.Library) {
-                        args.push('--lib');
-                    }
-                    this.runCargo(args, true);
-                } else {
-                    let args = ['rustc'];
-                    if (target === CheckTarget.Library) {
-                        args.push('--lib');
-                    }
-                    args.push('--', '-Zno-trans');
-                    this.runCargo(args, true);
-                }
-            });
+    public static createCheckCommand(commandName: string, target: CheckTarget): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            this.checkProject(target);
         });
     }
 
@@ -297,6 +273,25 @@ export class CommandService {
         }
 
         this.runCargo(args, true);
+    }
+
+    private static checkProject(target: CheckTarget): void {
+        this.checkCargoCheckAvailability().then(isAvailable => {
+            if (isAvailable) {
+                let args = ['check'];
+                if (target === CheckTarget.Library) {
+                    args.push('--lib');
+                }
+                this.runCargo(args, true);
+            } else {
+                let args = ['rustc'];
+                if (target === CheckTarget.Library) {
+                    args.push('--lib');
+                }
+                args.push('--', '-Zno-trans');
+                this.runCargo(args, true);
+            }
+        });
     }
 
     private static runProject(buildType: BuildType): void {
