@@ -218,25 +218,21 @@ export default class SuggestService {
                 return null;
             }
 
+            let results = lines.slice(1).map(x => x.split('\t'));
             let result =
                 isFunction
-                ? lines.slice(1).find(x => x.split('\t')[6] === 'Function')
-                : lines[1];
-
-            let parts = result.split('\t');
-            let match = parts[2];
-            let type = parts[6];
-            let definition = type === 'Module' ? 'module ' + match : parts[7];
-            let docs = JSON.parse(parts[8].replace(/\\'/g, "'")).split('\n');
+                    ? results.find(parts => parts[2].startsWith(word + '(') && parts[6] === 'Function')
+                    : results.find(parts => parts[2] === word);
 
             // We actually found a completion instead of a definition, so we won't show the returned info.
-            if (type === 'Function') {
-                if (!match.startsWith(word + '(')) {
-                    return null;
-                }
-            } else if (match !== word) {
+            if (result == null) {
                 return null;
             }
+
+            let match = result[2];
+            let type = result[6];
+            let definition = type === 'Module' ? 'module ' + match : result[7];
+            let docs = JSON.parse(result[8].replace(/\\'/g, "'")).split('\n');
 
             let bracketIndex = definition.indexOf('{');
             if (bracketIndex !== -1) {
