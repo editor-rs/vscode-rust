@@ -239,15 +239,17 @@
           "default": false,
           "description": "Turn on/off autoformatting file on save"
         },
-        "rust.checkOnSave": {
-          "type": "boolean",
-          "default": false,
-          "description": "Turn on/off autochecking file on save using cargo check"
-        },
-        "rust.checkWith": {
+        "rust.actionOnSave": {
           "type": "string",
-          "default": "check",
-          "description": "Choose between check, check-lib, clippy, build and test to lint"
+          "default": null,
+          "enum": [
+            "build",
+            "check",
+            "clippy",
+            "run",
+            "test",
+            null
+          ]
         },
         "rust.buildArgs": {
           "type": "array",

@@ -92,26 +92,35 @@ export function activate(ctx: vscode.ExtensionContext): void {
             });
         }
 
-        if (rustConfig['checkOnSave']) {
-            formatPromise.then(() => {
-                switch (rustConfig['checkWith']) {
-                    case 'clippy':
-                        vscode.commands.executeCommand('rust.cargo.clippy');
-                        break;
-                    case 'build':
-                        vscode.commands.executeCommand('rust.cargo.build.debug');
-                        break;
-                    case 'check-lib':
-                        vscode.commands.executeCommand('rust.cargo.check.lib');
-                        break;
-                    case 'test':
-                        vscode.commands.executeCommand('rust.cargo.test.debug');
-                        break;
-                    default:
-                        vscode.commands.executeCommand('rust.cargo.check');
-                }
-            });
+        const actionOnSave: string | null = rustConfig['actionOnSave'];
+
+        if (actionOnSave === null) {
+            return;
         }
+
+        let command: string;
+
+        switch (actionOnSave) {
+            case 'build':
+                command = 'rust.cargo.build.debug';
+            break;
+            case 'check':
+                command = 'rust.cargo.check';
+            break;
+            case 'clippy':
+                command = 'rust.cargo.clippy';
+            break;
+            case 'run':
+                command = 'rust.cargo.run.debug';
+            break;
+            case 'test':
+                command = 'rust.cargo.test.debug';
+            break;
+        }
+
+        formatPromise.then(() => {
+            vscode.commands.executeCommand(command);
+        });
     }));
 
     // Watch for configuration changes for ENV
