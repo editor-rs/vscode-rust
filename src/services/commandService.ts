@@ -280,12 +280,12 @@ export class CommandService {
     }
 
     private static buildProjectWithAdditionalArgs(buildType: BuildType, additionalArgs: string[]): void {
-        const args = ['build', '--message-format', 'json'];
+        const args = ['build'];
 
-        if (buildType === BuildType.Release) {
-            args.push('--release');
-        }
+        this.addJsonMessageFormatToArgs(args);
 
+        this.addReleaseFlagToArgsIfRequired(args, buildType);
+        
         args.push(...additionalArgs);
 
         const configuration = this.getConfiguration();
@@ -301,7 +301,9 @@ export class CommandService {
             let args: string[];
 
             if (isAvailable) {
-                args = ['check', '--message-format', 'json'];
+                args = ['check'];
+
+                this.addJsonMessageFormatToArgs(args);
 
                 if (target === CheckTarget.Library) {
                     args.push('--lib');
@@ -312,7 +314,9 @@ export class CommandService {
 
                 args.push(...userDefinedArgs);
             } else {
-                args = ['rustc', '--message-format', 'json'];
+                args = ['rustc'];
+
+                this.addJsonMessageFormatToArgs(args);
 
                 if (target === CheckTarget.Library) {
                     args.push('--lib');
@@ -341,11 +345,11 @@ export class CommandService {
     }
 
     private static runProjectWithAdditionalArgs(buildType: BuildType, additionalArgs: string[]): void {
-        const args = ['run', '--message-format', 'json'];
+        const args = ['run'];
 
-        if (buildType === BuildType.Release) {
-            args.push('--release');
-        }
+        this.addJsonMessageFormatToArgs(args);
+
+        this.addReleaseFlagToArgsIfRequired(args, buildType);
 
         args.push(...additionalArgs);
 
@@ -358,11 +362,11 @@ export class CommandService {
     }
 
     private static testProject(buildType: BuildType): void {
-        const args = ['test', '--message-format', 'json'];
+        const args = ['test'];
 
-        if (buildType === BuildType.Release) {
-            args.push('--release');
-        }
+        this.addJsonMessageFormatToArgs(args);
+
+        this.addReleaseFlagToArgsIfRequired(args, buildType);
 
         const configuration = this.getConfiguration();
         const userDefinedArgs: string[] = configuration.get<string[]>('testArgs');
@@ -396,6 +400,16 @@ export class CommandService {
         const args = ['--example', exampleName];
 
         this.runProjectWithAdditionalArgs(buildType, args);
+    }
+
+    private static addJsonMessageFormatToArgs(args: string[]): void {
+        args.push('--message-format', 'json');
+    }
+
+    private static addReleaseFlagToArgsIfRequired(args: string[], buildType: BuildType): void {
+        if (buildType === BuildType.Release) {
+            args.push('--release');
+        }
     }
 
     private static parseOutput(cwd: string, output: string): void {
