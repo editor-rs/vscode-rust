@@ -1,6 +1,6 @@
 [![Build Status](https://api.travis-ci.org/KalitaAlexey/vscode-rust.svg)](https://travis-ci.org/KalitaAlexey/vscode-rust)
 
-# Rust for Visual Studio Code (Latest: 0.2.1)
+# Rust for Visual Studio Code (Latest: 0.2.2)
 
 **0.2.0** introduces breaking changes.
 

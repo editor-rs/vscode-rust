@@ -1,10 +1,14 @@
 # Changelog
 
-## 0.2.1
+##
 
 ### Fixes
 
 Fixed lack of errors in the "Problems" panel and in a terminal for a cargo {check, run, test} invocation
+
+## 0.2.1
+
+This version is invalid
 
 ## 0.2.0
 
