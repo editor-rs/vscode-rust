@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as cp from 'child_process';
+import * as readline from 'readline';
 import * as path from 'path';
 import kill = require('tree-kill');
 import PathService from './pathService';
@@ -120,8 +121,8 @@ class CargoTask {
         args: string[],
         cwd: string,
         onStart?: () => void,
-        onStdoutData?: (data: string) => void,
-        onStderrData?: (data: string) => void
+        onStdoutLine?: (data: string) => void,
+        onStderrLine?: (data: string) => void
     ): Thenable<ExitCode> {
         return new Promise<ExitCode>((resolve, reject) => {
             const cargoPath = PathService.getCargoPath();
@@ -139,23 +140,21 @@ class CargoTask {
 
             this.process = cp.spawn(cargoPath, args, { cwd, env: newEnv });
 
-            this.process.stdout.on('data', data => {
-                if (!onStdoutData) {
+            const stdout = readline.createInterface({ input: this.process.stdout });
+            stdout.on('line', line => {
+                if (!onStdoutLine) {
                     return;
                 }
 
-                let dataAsString: string = data.toString();
-
-                onStdoutData(dataAsString);
+                onStdoutLine(line);
             });
-            this.process.stderr.on('data', data => {
-                if (!onStderrData) {
+            const stderr = readline.createInterface({ input: this.process.stderr });
+            stderr.on('line', line => {
+                if (!onStderrLine) {
                     return;
                 }
 
-                let dataAsString: string = data.toString();
-
-                onStderrData(dataAsString);
+                onStderrLine(line);
             });
             this.process.on('error', error => {
                 reject(error);
@@ -414,17 +413,7 @@ export class CommandService {
         }
     }
 
-    private static parseOutput(cwd: string, output: string): void {
-        let errors: RustError[] = [];
-
-        for (let line of output.split('\n')) {
-            if (!line.startsWith('{')) {
-                continue;
-            }
-
-            this.parseJsonLine(errors, line);
-        }
-
+    private static updateDiagnostics(cwd: string, errors: RustError[]): void {
         let mapSeverityToVsCode = (severity) => {
             if (severity === 'warning') {
                 return vscode.DiagnosticSeverity.Warning;
@@ -439,12 +428,10 @@ export class CommandService {
             }
         };
 
-        this.diagnostics.clear();
-
         let diagnosticMap: Map<string, vscode.Diagnostic[]> = new Map();
         errors.forEach(error => {
             let filePath = path.join(cwd, error.filename);
-            // VSCode starts its lines and columns at 0, so subtract 1 off 
+            // VSCode starts its lines and columns at 0, so subtract 1 off
             let range = new vscode.Range(error.startLine - 1, error.startCharacter - 1, error.endLine - 1, error.endCharacter - 1);
             let severity = mapSeverityToVsCode(error.severity);
 
@@ -605,19 +592,21 @@ export class CommandService {
                     this.channel.show();
                 }
             }
-            let onData = (data: string) => {
-                this.channel.append(data);
+            let onLine = (line: string) => {
+                this.channel.append(`${line}\n`);
             };
             let onStart = undefined;
-            let onStdoutData = onData;
-            let onStderrData = onData;
-            this.currentTask.execute(args, cwd, onStart, onStdoutData, onStderrData).then(() => {
+            let onStdoutLine = onLine;
+            let onStderrLine = onLine;
+            this.currentTask.execute(args, cwd, onStart, onStdoutLine, onStderrLine).then(() => {
                 this.currentTask = null;
             });
         });
     }
 
     private static runCargo(args: string[], force = false): void {
+        this.diagnostics.clear();
+
         if (force && this.currentTask) {
             this.currentTask.kill().then(() => {
                 this.runCargo(args, force);
@@ -628,7 +617,6 @@ export class CommandService {
         }
 
         this.currentTask = new CargoTask();
-
         {
             const rustConfig = vscode.workspace.getConfiguration('rust');
             if (rustConfig['showOutput']) {
@@ -651,15 +639,35 @@ export class CommandService {
                     this.channel.append(`Started cargo ${args.join(' ')}\n`);
                 };
 
-                let output = '';
+                let errors: RustError[] = [];
+                let onStdoutLine = (line: string) => {
+                    if (line.startsWith('{')) {
+                        let newErrors: RustError[] = [];
+                        if (CommandService.parseJsonLine(newErrors, line)) {
+                            /* tslint:disable:max-line-length */
+                            // Print any errors as best we can match to Rust's format.
+                            // TODO: Add support for child errors/text highlights.
+                            // TODO: The following line will currently be printed fine, but the two lines after will not.
+                            // src\main.rs:5:5: 5:8 error: expected one of `!`, `.`, `::`, `;`, `?`, `{`, `}`, or an operator, found `let`
+                            // src\main.rs:5     let mut a = 4;
+                            //                   ^~~
+                            /* tslint:enable:max-line-length */
+                            for (const error of newErrors) {
+                                this.channel.append(`${error.filename}:${error.startLine}:${error.startCharacter}:` +
+                                    ` ${error.severity}: ${error.message}\n`);
+                            }
 
-                let onData = (data: string) => {
-                    output += data;
+                            errors.push(...newErrors);
+                            this.updateDiagnostics(cwd, errors);
+                        }
+                    } else {
+                        this.channel.append(`${line}\n`);
+                    }
                 };
 
-                let onStdoutData = onData;
-
-                let onStderrData = onData;
+                let onStderrLine = (line: string) => {
+                    this.channel.append(`${line}\n`);
+                };
 
                 let onGracefullyEnded = (exitCode: ExitCode) => {
                     this.hideSpinner();
@@ -667,35 +675,6 @@ export class CommandService {
                     this.currentTask = null;
 
                     const endTime = Date.now();
-
-                    // If the user has selected JSON errors, we need to parse and print them into something human readable
-                    // It might not match Rust 1-to-1, but its better than JSON
-                    this.parseOutput(cwd, output);
-
-                    for (const line of output.split('\n')) {
-                        // Catch any JSON lines
-                        if (line.startsWith('{')) {
-                            let errors: RustError[] = [];
-                            if (CommandService.parseJsonLine(errors, line)) {
-                                /* tslint:disable:max-line-length */
-                                // Print any errors as best we can match to Rust's format.
-                                // TODO: Add support for child errors/text highlights.
-                                // TODO: The following line will currently be printed fine, but the two lines after will not.
-                                // src\main.rs:5:5: 5:8 error: expected one of `!`, `.`, `::`, `;`, `?`, `{`, `}`, or an operator, found `let`
-                                // src\main.rs:5     let mut a = 4;
-                                //                   ^~~
-                                /* tslint:enable:max-line-length */
-                                for (const error of errors) {
-                                    this.channel.append(`${error.filename}:${error.startLine}:${error.startCharacter}:` +
-                                        ` ${error.severity}: ${error.message}\n`);
-                                }
-                            }
-                        } else {
-                            // Catch any non-JSON lines like "Compiling <project> (<path>)"
-                            this.channel.append(`${line}\n`);
-                        }
-                    }
-
                     this.channel.append(`Completed with code ${exitCode}\n`);
                     this.channel.append(`It took approximately ${(endTime - startTime) / 1000} seconds\n`);
                 };
@@ -717,7 +696,7 @@ export class CommandService {
                     vscode.window.showInformationMessage('The "cargo" command is not available. Make sure it is installed.');
                 };
 
-                this.currentTask.execute(args, cwd, onStart, onStdoutData, onStderrData).then(onGracefullyEnded, onUnexpectedlyEnded);
+                this.currentTask.execute(args, cwd, onStart, onStdoutLine, onStderrLine).then(onGracefullyEnded, onUnexpectedlyEnded);
             } else {
                 vscode.window.showErrorMessage(value.message);
             }
