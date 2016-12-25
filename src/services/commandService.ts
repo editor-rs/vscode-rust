@@ -401,13 +401,7 @@ export class CommandService {
         this.runCargo(args, true);
     }
 
-    private static parseMessages(cwd: string, messages: string[]): void {
-        let errors: RustError[] = [];
-
-        for (const message of messages) {
-            this.parseJsonLine(errors, message);
-        }
-
+    private static updateDiagnostics(cwd: string, errors: RustError[]): void {
         let mapSeverityToVsCode = (severity) => {
             if (severity === 'warning') {
                 return vscode.DiagnosticSeverity.Warning;
@@ -421,8 +415,6 @@ export class CommandService {
                 return vscode.DiagnosticSeverity.Error;
             }
         };
-
-        this.diagnostics.clear();
 
         let diagnosticMap: Map<string, vscode.Diagnostic[]> = new Map();
         errors.forEach(error => {
@@ -559,6 +551,8 @@ export class CommandService {
     }
 
     private static createProject(isBin: boolean): void {
+        this.diagnostics.clear();
+
         let cwd = vscode.workspace.rootPath;
         if (!cwd) {
             vscode.window.showErrorMessage('Current document not in the workspace');
@@ -601,6 +595,8 @@ export class CommandService {
     }
 
     private static runCargo(args: string[], force = false): void {
+        this.diagnostics.clear();
+
         if (force && this.currentTask) {
             this.currentTask.kill().then(() => {
                 this.runCargo(args, force);
@@ -611,7 +607,6 @@ export class CommandService {
         }
 
         this.currentTask = new CargoTask();
-
         {
             const rustConfig = vscode.workspace.getConfiguration('rust');
             if (rustConfig['showOutput']) {
@@ -634,13 +629,11 @@ export class CommandService {
                     this.channel.append(`Started cargo ${args.join(' ')}\n`);
                 };
 
-                let jsonMessages: string[] = [];
+                let errors: RustError[] = [];
                 let onStdoutLine = (line: string) => {
                     if (line.startsWith('{')) {
-                        jsonMessages.push(line);
-
-                        let errors: RustError[] = [];
-                        if (CommandService.parseJsonLine(errors, line)) {
+                        let newErrors: RustError[] = [];
+                        if (CommandService.parseJsonLine(newErrors, line)) {
                             /* tslint:disable:max-line-length */
                             // Print any errors as best we can match to Rust's format.
                             // TODO: Add support for child errors/text highlights.
@@ -649,10 +642,13 @@ export class CommandService {
                             // src\main.rs:5     let mut a = 4;
                             //                   ^~~
                             /* tslint:enable:max-line-length */
-                            for (const error of errors) {
+                            for (const error of newErrors) {
                                 this.channel.append(`${error.filename}:${error.startLine}:${error.startCharacter}:` +
                                     ` ${error.severity}: ${error.message}\n`);
                             }
+
+                            errors = errors.concat(newErrors);
+                            this.updateDiagnostics(cwd, errors);
                         }
                     } else {
                         this.channel.append(`${line}\n`);
@@ -669,9 +665,6 @@ export class CommandService {
                     this.currentTask = null;
 
                     const endTime = Date.now();
-
-                    this.parseMessages(cwd, jsonMessages);
-
                     this.channel.append(`Completed with code ${exitCode}\n`);
                     this.channel.append(`It took approximately ${(endTime - startTime) / 1000} seconds\n`);
                 };
