@@ -277,7 +277,9 @@ export default class SuggestService {
                 }
 
                 if (codeBlock) {
-                    currentBlock.push(docLine.slice(extraIndent));
+                    if (!docLine.trim().startsWith('#')) {
+                        currentBlock.push(docLine.slice(extraIndent));
+                    }
                     continue;
                 }
 
