@@ -285,7 +285,7 @@ export class CommandService {
         this.addJsonMessageFormatToArgs(args);
 
         this.addReleaseFlagToArgsIfRequired(args, buildType);
-        
+
         args.push(...additionalArgs);
 
         const configuration = this.getConfiguration();
@@ -331,6 +331,8 @@ export class CommandService {
 
     private static checkProjectWithClippy(): void {
         const args = ['clippy'];
+
+        this.addJsonMessageFormatToArgs(args);
 
         const configuration = this.getConfiguration();
         const userDefinedArgs: string[] = configuration.get<string[]>('clippyArgs');
