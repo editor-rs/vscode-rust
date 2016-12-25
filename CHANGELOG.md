@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.3
+
+### Bug fixes
+
+* `cargo clippy` outputs messages in JSON.
+
+### features
+
+* Lines starting with "# " in code block in documentation isn't shown in hover. This is same how cargo doc renders code block.
+
+* A cargo command output is flushed line by line. Before it was flushed at the end
+
 ## 0.2.2
 
 ### Fixes
