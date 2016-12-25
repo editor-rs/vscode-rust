@@ -551,8 +551,6 @@ export class CommandService {
     }
 
     private static createProject(isBin: boolean): void {
-        this.diagnostics.clear();
-
         let cwd = vscode.workspace.rootPath;
         if (!cwd) {
             vscode.window.showErrorMessage('Current document not in the workspace');
@@ -647,7 +645,7 @@ export class CommandService {
                                     ` ${error.severity}: ${error.message}\n`);
                             }
 
-                            errors = errors.concat(newErrors);
+                            errors.push(...newErrors);
                             this.updateDiagnostics(cwd, errors);
                         }
                     } else {
