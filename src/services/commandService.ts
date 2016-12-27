@@ -192,6 +192,77 @@ class CargoTask {
     }
 }
 
+class CargoTaskArgs {
+    private args: string[];
+
+    public constructor(command: string) {
+        this.args = [command];
+    }
+
+    public setMessageFormatToJson(): void {
+        this.args.push('--message-format', 'json');
+    }
+
+    public setBuildTypeToReleaseIfRequired(buildType: BuildType): void {
+        if (buildType !== BuildType.Release) {
+            return;
+        }
+
+        this.args.push('--release');
+    }
+
+    public addArg(arg: string): void {
+        this.args.push(arg);
+    }
+
+    public addArgs(args: string[]): void {
+        this.args.push(...args);
+    }
+
+    public getArgs(): string[] {
+        return this.args;
+    }
+}
+
+class UserDefinedArgs {
+    public static getBuildArgs(): string[] {
+        const args = UserDefinedArgs.getArgs('buildArgs');
+
+        return args;
+    }
+
+    public static getCheckArgs(): string[] {
+        const args = UserDefinedArgs.getArgs('checkArgs');
+
+        return args;
+    }
+
+    public static getClippyArgs(): string[] {
+        const args = UserDefinedArgs.getArgs('clippyArgs');
+
+        return args;
+    }
+
+    public static getRunArgs(): string[] {
+        const args = UserDefinedArgs.getArgs('runArgs');
+
+        return args;
+    }
+
+    public static getTestArgs(): string[] {
+        const args = UserDefinedArgs.getArgs('testArgs');
+
+        return args;
+    }
+
+    private static getArgs(property: string): string[] {
+        const configuration = getConfiguration();
+        const args = configuration.get<string[]>(property);
+
+        return args;
+    }
+}
+
 class CargoManager {
     private diagnostics: vscode.DiagnosticCollection = vscode.languages.createDiagnosticCollection('rust');
     private channel: ChannelWrapper = new ChannelWrapper(vscode.window.createOutputChannel('Cargo'));
@@ -209,40 +280,40 @@ class CargoManager {
 
     public invokeCargoCheckUsingCheckArgs(target: CheckTarget): void {
         this.checkCargoCheckAvailability().then(isAvailable => {
-            let args: string[];
+            let argsBuilder: CargoTaskArgs;
 
             if (isAvailable) {
-                args = ['check'];
-
-                this.addJsonMessageFormatToArgs(args);
+                argsBuilder = new CargoTaskArgs('check');
+                argsBuilder.setMessageFormatToJson();
 
                 if (target === CheckTarget.Library) {
-                    args.push('--lib');
+                    argsBuilder.addArg('--lib');
                 }
 
-                this.addUserDefinedArgs(args, 'checkArgs');
+                argsBuilder.addArgs(UserDefinedArgs.getCheckArgs());
             } else {
-                args = ['rustc'];
-
-                this.addJsonMessageFormatToArgs(args);
+                argsBuilder = new CargoTaskArgs('rustc');
+                argsBuilder.setMessageFormatToJson();
 
                 if (target === CheckTarget.Library) {
-                    args.push('--lib');
+                    argsBuilder.addArg('--lib');
                 }
 
-                args.push('--', '-Zno-trans');
+                argsBuilder.addArgs(['--', '-Zno-trans']);
             }
+
+            const args = argsBuilder.getArgs();
 
             this.runCargo(args, true);
         });
     }
 
     public invokeCargoClippyUsingClippyArgs(): void {
-        const args = ['clippy'];
+        const argsBuilder = new CargoTaskArgs('clippy');
+        argsBuilder.setMessageFormatToJson();
+        argsBuilder.addArgs(UserDefinedArgs.getClippyArgs());
 
-        this.addJsonMessageFormatToArgs(args);
-
-        this.addUserDefinedArgs(args, 'clippyArgs');
+        const args = argsBuilder.getArgs();
 
         this.runCargo(args, true);
     }
@@ -286,13 +357,12 @@ class CargoManager {
     }
 
     public invokeCargoTestUsingTestArgs(buildType: BuildType): void {
-        const args = ['test'];
+        const argsBuilder = new CargoTaskArgs('test');
+        argsBuilder.setMessageFormatToJson();
+        argsBuilder.setBuildTypeToReleaseIfRequired(buildType);
+        argsBuilder.addArgs(UserDefinedArgs.getTestArgs());
 
-        this.addJsonMessageFormatToArgs(args);
-
-        this.addReleaseFlagToArgsIfRequired(args, buildType);
-
-        this.addUserDefinedArgs(args, 'testArgs');
+        const args = argsBuilder.getArgs();
 
         this.runCargo(args, true);
     }
@@ -308,7 +378,7 @@ class CargoManager {
     }
 
     private determineExampleName(): string {
-        let showDocumentIsNotExampleWarning = () => {
+        const showDocumentIsNotExampleWarning = () => {
             vscode.window.showWarningMessage('Current document is not an example');
         };
 
@@ -321,7 +391,7 @@ class CargoManager {
             return '';
         }
 
-        let filename = path.basename(filePath);
+        const filename = path.basename(filePath);
 
         if (!filename.endsWith('.rs')) {
             showDocumentIsNotExampleWarning();
@@ -333,29 +403,25 @@ class CargoManager {
     }
 
     private buildProjectWithAdditionalArgs(buildType: BuildType, additionalArgs: string[]): void {
-        const args = ['build'];
+        const argsBuilder = new CargoTaskArgs('build');
+        argsBuilder.setMessageFormatToJson();
+        argsBuilder.setBuildTypeToReleaseIfRequired(buildType);
+        argsBuilder.addArgs(additionalArgs);
+        argsBuilder.addArgs(UserDefinedArgs.getBuildArgs());
 
-        this.addJsonMessageFormatToArgs(args);
-
-        this.addReleaseFlagToArgsIfRequired(args, buildType);
-
-        args.push(...additionalArgs);
-
-        this.addUserDefinedArgs(args, 'buildArgs');
+        const args = argsBuilder.getArgs();
 
         this.runCargo(args, true);
     }
 
     private runProjectWithAdditionalArgs(buildType: BuildType, additionalArgs: string[]): void {
-        const args = ['run'];
+        const argsBuilder = new CargoTaskArgs('run');
+        argsBuilder.setMessageFormatToJson();
+        argsBuilder.setBuildTypeToReleaseIfRequired(buildType);
+        argsBuilder.addArgs(additionalArgs);
+        argsBuilder.addArgs(UserDefinedArgs.getRunArgs());
 
-        this.addJsonMessageFormatToArgs(args);
-
-        this.addReleaseFlagToArgsIfRequired(args, buildType);
-
-        args.push(...additionalArgs);
-
-        this.addUserDefinedArgs(args, 'runArgs');
+        const args = argsBuilder.getArgs();
 
         this.runCargo(args, true);
     }
@@ -382,23 +448,6 @@ class CargoManager {
         const args = ['--example', exampleName];
 
         this.runProjectWithAdditionalArgs(buildType, args);
-    }
-
-    private addUserDefinedArgs(args: string[], userDefinedArgsPropertyName: string): void {
-        const configuration = getConfiguration();
-        const userDefinedArgs: string[] = configuration.get<string[]>(userDefinedArgsPropertyName);
-
-        args.push(...userDefinedArgs);
-    }
-
-    private addJsonMessageFormatToArgs(args: string[]): void {
-        args.push('--message-format', 'json');
-    }
-
-    private addReleaseFlagToArgsIfRequired(args: string[], buildType: BuildType): void {
-        if (buildType === BuildType.Release) {
-            args.push('--release');
-        }
     }
 
     private updateDiagnostics(cwd: string, errors: RustError[]): void {
@@ -468,8 +517,8 @@ class CargoManager {
     }
 
     private checkCargoCheckAvailability(): Thenable<boolean> {
-        let args = ['check', '--help'];
-        let cwd = '/'; // Doesn't matter.
+        const args = ['check', '--help'];
+        const cwd = '/'; // Doesn't matter.
 
         return (new CargoTask).execute(args, cwd).then((exitCode: ExitCode) => {
             return exitCode === 0;
