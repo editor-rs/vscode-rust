@@ -287,10 +287,7 @@ export class CommandService {
 
         args.push(...additionalArgs);
 
-        const configuration = this.getConfiguration();
-        const userDefinedArgs: string[] = configuration.get<string[]>('buildArgs');
-
-        args.push(...userDefinedArgs);
+        this.addUserDefinedArgs(args, 'buildArgs');
 
         this.runCargo(args, true);
     }
@@ -308,10 +305,7 @@ export class CommandService {
                     args.push('--lib');
                 }
 
-                const configuration = this.getConfiguration();
-                const userDefinedArgs: string[] = configuration.get<string[]>('checkArgs');
-
-                args.push(...userDefinedArgs);
+                this.addUserDefinedArgs(args, 'checkArgs');
             } else {
                 args = ['rustc'];
 
@@ -333,10 +327,7 @@ export class CommandService {
 
         this.addJsonMessageFormatToArgs(args);
 
-        const configuration = this.getConfiguration();
-        const userDefinedArgs: string[] = configuration.get<string[]>('clippyArgs');
-
-        args.push(...userDefinedArgs);
+        this.addUserDefinedArgs(args, 'clippyArgs');
 
         this.runCargo(args, true);
     }
@@ -354,10 +345,7 @@ export class CommandService {
 
         args.push(...additionalArgs);
 
-        const configuration = this.getConfiguration();
-        const userDefinedArgs: string[] = configuration.get<string[]>('runArgs');
-
-        args.push(...userDefinedArgs);
+        this.addUserDefinedArgs(args, 'runArgs');
 
         this.runCargo(args, true);
     }
@@ -369,10 +357,7 @@ export class CommandService {
 
         this.addReleaseFlagToArgsIfRequired(args, buildType);
 
-        const configuration = this.getConfiguration();
-        const userDefinedArgs: string[] = configuration.get<string[]>('testArgs');
-
-        args.push(...userDefinedArgs);
+        this.addUserDefinedArgs(args, 'testArgs');
 
         this.runCargo(args, true);
     }
@@ -401,6 +386,13 @@ export class CommandService {
         const args = ['--example', exampleName];
 
         this.runProjectWithAdditionalArgs(buildType, args);
+    }
+
+    private static addUserDefinedArgs(args: string[], userDefinedArgsPropertyName: string): void {
+        const configuration = this.getConfiguration();
+        const userDefinedArgs: string[] = configuration.get<string[]>(userDefinedArgsPropertyName);
+
+        args.push(...userDefinedArgs);
     }
 
     private static addJsonMessageFormatToArgs(args: string[]): void {
