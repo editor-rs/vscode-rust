@@ -270,12 +270,18 @@ class CargoManager {
     private statusBarItem: vscode.StatusBarItem;
     private spinnerUpdate: any;
 
-    public invokeCargoBuildForExample(buildType: BuildType): void {
-        this.buildExample(buildType);
+    public invokeCargoBuildWithArgs(additionalArgs: string[]): void {
+        const argsBuilder = new CargoTaskArgs('build');
+        argsBuilder.setMessageFormatToJson();
+        argsBuilder.addArgs(additionalArgs);
+
+        const args = argsBuilder.getArgs();
+
+        this.runCargo(args, true);
     }
 
-    public invokeCargoBuildUsingBuildArgs(buildType: BuildType): void {
-        this.buildProjectWithAdditionalArgs(buildType, []);
+    public invokeCargoBuildUsingBuildArgs(): void {
+        this.invokeCargoBuildWithArgs(UserDefinedArgs.getBuildArgs());
     }
 
     public invokeCargoCheckUsingCheckArgs(target: CheckTarget): void {
@@ -405,18 +411,6 @@ class CargoManager {
         return path.basename(filename, '.rs');
     }
 
-    private buildProjectWithAdditionalArgs(buildType: BuildType, additionalArgs: string[]): void {
-        const argsBuilder = new CargoTaskArgs('build');
-        argsBuilder.setMessageFormatToJson();
-        argsBuilder.setBuildTypeToReleaseIfRequired(buildType);
-        argsBuilder.addArgs(additionalArgs);
-        argsBuilder.addArgs(UserDefinedArgs.getBuildArgs());
-
-        const args = argsBuilder.getArgs();
-
-        this.runCargo(args, true);
-    }
-
     private runProjectWithAdditionalArgs(buildType: BuildType, additionalArgs: string[]): void {
         const argsBuilder = new CargoTaskArgs('run');
         argsBuilder.setMessageFormatToJson();
@@ -427,18 +421,6 @@ class CargoManager {
         const args = argsBuilder.getArgs();
 
         this.runCargo(args, true);
-    }
-
-    private buildExample(buildType: BuildType): void {
-        const exampleName = this.determineExampleName();
-
-        if (exampleName.length === 0) {
-            return;
-        }
-
-        const args = ['--example', exampleName];
-
-        this.buildProjectWithAdditionalArgs(buildType, args);
     }
 
     private runExample(buildType: BuildType): void {
@@ -763,6 +745,10 @@ class CustomConfigurationQuickPickItem implements vscode.QuickPickItem {
 }
 
 class CustomConfigurationManager {
+    public static showQuickPickOrChooseSingleCustomConfigurationArgsForCargoBuild(): Thenable<string[] | null> {
+        return CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgs('customBuildConfigurations');
+    }
+
     public static showQuickPickOrChooseSingleCustomConfigurationArgsForCargoTest(): Thenable<string[] | null> {
         return CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgs('customTestConfigurations');
     }
@@ -832,9 +818,21 @@ export class CommandService {
         });
     }
 
-    public registerCommandInvokingCargoBuildUsingBuildArgs(commandName: string, buildType: BuildType): vscode.Disposable {
+    public registerCommandHelpingChooseArgsAndInvokingCargoBuild(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
-            this.cargoManager.invokeCargoBuildUsingBuildArgs(buildType);
+            CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgsForCargoBuild().then(args => {
+                if (!args) {
+                    return;
+                }
+
+                this.cargoManager.invokeCargoBuildWithArgs(args);
+            });
+        });
+    }
+
+    public registerCommandInvokingCargoBuildUsingBuildArgs(commandName: string): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            this.cargoManager.invokeCargoBuildUsingBuildArgs();
         });
     }
 
@@ -865,14 +863,6 @@ export class CommandService {
     public registerCommandInvokingCargoWithArgs(commandName: string, ...args: string[]): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
             this.cargoManager.invokeCargoWithArgs(args);
-        });
-    }
-
-    public registerCommandInvokingCargoBuildForExample(commandName: string, release: boolean): vscode.Disposable {
-        return vscode.commands.registerCommand(commandName, () => {
-            const buildType = release ? BuildType.Release : BuildType.Debug;
-
-            this.cargoManager.invokeCargoBuildForExample(buildType);
         });
     }
 

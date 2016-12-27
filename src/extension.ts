@@ -102,7 +102,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
 
         switch (actionOnSave) {
             case 'build':
-                command = 'rust.cargo.build.debug';
+                command = 'rust.cargo.build.default';
             break;
             case 'check':
                 command = 'rust.cargo.check';
@@ -145,13 +145,9 @@ export function activate(ctx: vscode.ExtensionContext): void {
     ctx.subscriptions.push(commandService.registerCommandHelpingCreateProject('rust.cargo.new.lib', false));
 
     // Cargo build
-    ctx.subscriptions.push(commandService.registerCommandInvokingCargoBuildUsingBuildArgs('rust.cargo.build.debug', BuildType.Debug));
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoBuildUsingBuildArgs('rust.cargo.build.default'));
 
-    ctx.subscriptions.push(commandService.registerCommandInvokingCargoBuildUsingBuildArgs('rust.cargo.build.release', BuildType.Release));
-
-    ctx.subscriptions.push(commandService.registerCommandInvokingCargoBuildForExample('rust.cargo.build.example.debug', false));
-
-    ctx.subscriptions.push(commandService.registerCommandInvokingCargoBuildForExample('rust.cargo.build.example.release', true));
+    ctx.subscriptions.push(commandService.registerCommandHelpingChooseArgsAndInvokingCargoBuild('rust.cargo.build.custom'));
 
     // Cargo run
     ctx.subscriptions.push(commandService.registerCommandInvokingCargoRunUsingRunArgs('rust.cargo.run.debug', BuildType.Debug));

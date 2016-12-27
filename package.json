@@ -27,12 +27,10 @@
     "onLanguage:rust",
     "onCommand:rust.cargo.new.bin",
     "onCommand:rust.cargo.new.lib",
-    "onCommand:rust.cargo.build.example.debug",
-    "onCommand:rust.cargo.build.example.release",
     "onCommand:rust.cargo.run.example.debug",
     "onCommand:rust.cargo.run.example.release",
-    "onCommand:rust.cargo.build.debug",
-    "onCommand:rust.cargo.build.release",
+    "onCommand:rust.cargo.build.default",
+    "onCommand:rust.cargo.build.custom",
     "onCommand:rust.cargo.run.debug",
     "onCommand:rust.cargo.run.release",
     "onCommand:rust.cargo.doc",
@@ -77,16 +75,6 @@
         "description": "Creating a new library project"
       },
       {
-        "command": "rust.cargo.build.example.debug",
-        "title": "Cargo: Build example, Debug",
-        "description": "Compile the current example"
-      },
-      {
-        "command": "rust.cargo.build.example.release",
-        "title": "Cargo: Build example, Release",
-        "description": "Compile the current example with \"--release\" flag"
-      },
-      {
         "command": "rust.cargo.run.example.debug",
         "title": "Cargo: Run example, Debug",
         "description": "Compile the current example and execute it"
@@ -97,14 +85,14 @@
         "description": "Compile the current example with \"--release\" flag and execute it"
       },
       {
-        "command": "rust.cargo.build.debug",
-        "title": "Cargo: Build Debug",
+        "command": "rust.cargo.build.default",
+        "title": "Cargo: Build",
         "description": "Compile the current project"
       },
       {
-        "command": "rust.cargo.build.release",
-        "title": "Cargo: Build Release",
-        "description": "Compile the current project with \"--release\" flag"
+        "command": "rust.cargo.build.custom",
+        "title": "Cargo: Build using custom configuration",
+        "description": "Compile the current project using custom configuration"
       },
       {
         "command": "rust.cargo.run.debug",
@@ -276,6 +264,25 @@
           "default": [],
           "description": "Arguments which is passed to cargo test"
         },
+        "rust.customBuildConfigurations": {
+          "default": [],
+          "description": "Custom configurations for cargo build",
+          "items": {
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": ["title", "args"]
+          },
+          "type": "array"
+        },
         "rust.customTestConfigurations": {
           "default": [],
           "description": "Custom configurations for cargo test",
@@ -300,7 +307,7 @@
     "keybindings": [
       {
         "key": "ctrl+shift+b",
-        "command": "rust.cargo.build.debug",
+        "command": "rust.cargo.build.default",
         "when": "editorLangId == 'rust'"
       },
       {
@@ -315,7 +322,7 @@
       },
       {
         "key": "ctrl+shift+alt+b",
-        "command": "rust.cargo.build.release",
+        "command": "rust.cargo.build.custom",
         "when": "editorLangId == 'rust'"
       },
       {
