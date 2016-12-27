@@ -53,18 +53,36 @@ The following Visual Studio Code settings are available for the Rust extension. 
 
 ```javascript
 {
-	"rust.racerPath": null, // Specifies path to Racer binary if it's not in PATH
-	"rust.rustLangSrcPath": null, // Specifies path to /src directory of local copy of Rust sources
-	"rust.rustfmtPath": null, // Specifies path to Rustfmt binary if it's not in PATH
-	"rust.rustsymPath": null, // Specifies path to Rustsym binary if it's not in PATH
-	"rust.cargoPath": null, // Specifies path to Cargo binary if it's not in PATH
-	"rust.cargoHomePath": null, // Path to Cargo home directory, mostly needed for racer. Needed only if using custom rust installation.
-	"rust.cargoEnv": null, // Specifies custom variables to set when running cargo. Useful for crates which use env vars in their build.rs (like openssl-sys).
-	"rust.formatOnSave": false, // Turn on/off autoformatting file on save (EXPERIMENTAL)
-	"rust.checkOnSave": false, // Turn on/off `cargo check` project on save (EXPERIMENTAL)
-	"rust.checkWith": "build", // Specifies the linter to use. (EXPERIMENTAL)
-	"rust.useJsonErrors": false, // Enable the use of JSON errors (requires Rust 1.7+). Note: This is an unstable feature of Rust and is still in the process of being stablised
-	"rust.useNewErrorFormat": false, // "Use the new Rust error format (RUST_NEW_ERROR_FORMAT=true). Note: This flag is mutually exclusive with `useJsonErrors`.
+	// Specifies path to Racer binary if it's not in PATH
+	"rust.racerPath": null,
+	// Specifies path to Rustfmt binary if it's not in PATH
+	"rust.rustfmtPath": null,
+	// Specifies path to Rustsym binary if it's not in PATH
+	"rust.rustsymPath": null,
+	// Specifies path to /src directory of local copy of Rust sources
+	"rust.rustLangSrcPath": null,
+	// Automatically show output panel when starting any cargo task
+	"rust.showOutput": true,
+	// Specifies path to Cargo binary if it's not in PATH
+	"rust.cargoPath": null,
+	// Specifies path to home directory of Cargo. Mostly needed for working with custom installations of Rust via rustup or multirust.
+	"rust.cargoHomePath": null,
+	// Specifies custom variables to set when running cargo. Useful for crates which use env vars in their build.rs (like openssl-sys).
+	"rust.cargoEnv": null,
+	// Turn on/off autoformatting file on save
+	"rust.formatOnSave": false,
+	//
+	"rust.actionOnSave": null,
+	// Arguments which is passed to cargo build
+	"rust.buildArgs": [],
+	// Arguments which is passed to cargo check
+	"rust.checkArgs": [],
+	// Arguments which is passed to cargo clippy
+	"rust.clippyArgs": [],
+	// Arguments which is passed to cargo run
+	"rust.runArgs": [],
+	// Arguments which is passed to cargo test
+	"rust.testArgs": [],
 }
 ```
 
