@@ -108,7 +108,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
                 command = 'rust.cargo.check.default';
             break;
             case 'clippy':
-                command = 'rust.cargo.clippy';
+                command = 'rust.cargo.clippy.default';
             break;
             case 'run':
                 command = 'rust.cargo.run.default';
@@ -177,7 +177,9 @@ export function activate(ctx: vscode.ExtensionContext): void {
     ctx.subscriptions.push(commandService.registerCommandHelpingChooseArgsAndInvokingCargoCheck('rust.cargo.check.custom'));
 
     // Cargo clippy
-    ctx.subscriptions.push(commandService.registerCommandInvokingCargoClippyUsingClippyArgs('rust.cargo.clippy'));
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoClippyUsingClippyArgs('rust.cargo.clippy.default'));
+
+    ctx.subscriptions.push(commandService.registerCommandHelpingChooseArgsAndInvokingCargoClippy('rust.cargo.clippy.custom'));
 
     // Cargo terminate
     ctx.subscriptions.push(commandService.registerCommandStoppingCargoTask('rust.cargo.terminate'));

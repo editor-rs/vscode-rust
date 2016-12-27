@@ -29,6 +29,8 @@
     "onCommand:rust.cargo.new.lib",
     "onCommand:rust.cargo.build.default",
     "onCommand:rust.cargo.build.custom",
+    "onCommand:rust.cargo.clippy.default",
+    "onCommand:rust.cargo.clippy.custom",
     "onCommand:rust.cargo.run.default",
     "onCommand:rust.cargo.run.custom",
     "onCommand:rust.cargo.doc",
@@ -39,8 +41,7 @@
     "onCommand:rust.cargo.clean",
     "onCommand:rust.cargo.check.default",
     "onCommand:rust.cargo.check.custom",
-    "onCommand:rust.cargo.terminate",
-    "onCommand:rust.cargo.clippy"
+    "onCommand:rust.cargo.terminate"
   ],
   "main": "./out/src/extension",
   "contributes": {
@@ -133,9 +134,14 @@
         "description": "Check the main library of the project for warnings and errors using custom configuration"
       },
       {
-        "command": "rust.cargo.clippy",
+        "command": "rust.cargo.clippy.default",
         "title": "Cargo: Clippy",
         "description": "Check project with clippy."
+      },
+      {
+        "command": "rust.cargo.clippy.custom",
+        "title": "Cargo: Clippy using custom configuration",
+        "description": "Check project with clippy using custom configuration"
       },
       {
         "command": "rust.cargo.terminate",
@@ -274,6 +280,25 @@
         "rust.customCheckConfigurations": {
           "default": [],
           "description": "Custom configurations for cargo check",
+          "items": {
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": ["title", "args"]
+          },
+          "type": "array"
+        },
+        "rust.customClippyConfigurations": {
+          "default": [],
+          "description": "Custom configurations for cargo clippy",
           "items": {
             "properties": {
               "title": {

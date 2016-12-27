@@ -309,14 +309,18 @@ class CargoManager {
         this.invokeCargoCheckWithArgs(UserDefinedArgs.getCheckArgs());
     }
 
-    public invokeCargoClippyUsingClippyArgs(): void {
+    public invokeCargoClippyWithArgs(additionalArgs: string[]): void {
         const argsBuilder = new CargoTaskArgs('clippy');
         argsBuilder.setMessageFormatToJson();
-        argsBuilder.addArgs(UserDefinedArgs.getClippyArgs());
+        argsBuilder.addArgs(additionalArgs);
 
         const args = argsBuilder.getArgs();
 
         this.runCargo(args, true);
+    }
+
+    public invokeCargoClippyUsingClippyArgs(): void {
+        this.invokeCargoClippyWithArgs(UserDefinedArgs.getClippyArgs());
     }
 
     public invokeCargoNew(projectName: string, isBin: boolean, cwd: string): void {
@@ -705,6 +709,10 @@ class CustomConfigurationManager {
         return CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgs('customCheckConfigurations');
     }
 
+    public static showQuickPickOrChooseSingleCustomConfigurationArgsForCargoClippy(): Thenable<string[] | null> {
+        return CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgs('customClippyConfigurations');
+    }
+
     public static showQuickPickOrChooseSingleCustomConfigurationArgsForCargoRun(): Thenable<string[] | null> {
         return CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgs('customRunConfigurations');
     }
@@ -758,6 +766,18 @@ export class CommandService {
     public registerCommandInvokingCargoCheckUsingCheckArgs(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
             this.cargoManager.invokeCargoCheckUsingCheckArgs();
+        });
+    }
+
+    public registerCommandHelpingChooseArgsAndInvokingCargoClippy(commandName: string): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgsForCargoClippy().then(args => {
+                if (!args) {
+                    return;
+                }
+
+                this.cargoManager.invokeCargoClippyWithArgs(args);
+            });
         });
     }
 
