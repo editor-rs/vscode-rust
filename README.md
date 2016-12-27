@@ -1,5 +1,5 @@
 [![Build Status](https://api.travis-ci.org/KalitaAlexey/vscode-rust.svg)](https://travis-ci.org/KalitaAlexey/vscode-rust)
-[![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://github.com/KalitaAlexey/vscode-rust)
+[![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/vscode-rust/Lobby)
 
 # Rust for Visual Studio Code (Latest: 0.2.3)
 
