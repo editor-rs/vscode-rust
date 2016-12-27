@@ -111,7 +111,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
                 command = 'rust.cargo.clippy';
             break;
             case 'run':
-                command = 'rust.cargo.run.debug';
+                command = 'rust.cargo.run.default';
             break;
             case 'test':
                 command = 'rust.cargo.test.default';
@@ -150,13 +150,9 @@ export function activate(ctx: vscode.ExtensionContext): void {
     ctx.subscriptions.push(commandService.registerCommandHelpingChooseArgsAndInvokingCargoBuild('rust.cargo.build.custom'));
 
     // Cargo run
-    ctx.subscriptions.push(commandService.registerCommandInvokingCargoRunUsingRunArgs('rust.cargo.run.debug', BuildType.Debug));
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoRunUsingRunArgs('rust.cargo.run.default'));
 
-    ctx.subscriptions.push(commandService.registerCommandInvokingCargoRunUsingRunArgs('rust.cargo.run.release', BuildType.Release));
-
-    ctx.subscriptions.push(commandService.registerCommandInvokingCargoRunForExample('rust.cargo.run.example.debug', false));
-
-    ctx.subscriptions.push(commandService.registerCommandInvokingCargoRunForExample('rust.cargo.run.example.release', true));
+    ctx.subscriptions.push(commandService.registerCommandHelpingChooseArgsAndInvokingCargoRun('rust.cargo.run.custom'));
 
     // Cargo test
     ctx.subscriptions.push(commandService.registerCommandInvokingCargoTestUsingTestArgs('rust.cargo.test.default'));

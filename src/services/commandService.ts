@@ -354,12 +354,18 @@ class CargoManager {
         });
     }
 
-    public invokeCargoRunForExample(buildType: BuildType): void {
-        this.runExample(buildType);
+    public invokeCargoRunWithArgs(additionalArgs: string[]): void {
+        const argsBuilder = new CargoTaskArgs('run');
+        argsBuilder.setMessageFormatToJson();
+        argsBuilder.addArgs(additionalArgs);
+
+        const args = argsBuilder.getArgs();
+
+        this.runCargo(args, true);
     }
 
-    public invokeCargoRunUsingRunArgs(buildType: BuildType): void {
-        this.runProjectWithAdditionalArgs(buildType, []);
+    public invokeCargoRunUsingRunArgs(): void {
+        this.invokeCargoRunWithArgs(UserDefinedArgs.getRunArgs());
     }
 
     public invokeCargoTestWithArgs(additionalArgs: string[]): void {
@@ -384,55 +390,6 @@ class CargoManager {
         if (this.currentTask) {
             this.currentTask.kill();
         }
-    }
-
-    private determineExampleName(): string {
-        const showDocumentIsNotExampleWarning = () => {
-            vscode.window.showWarningMessage('Current document is not an example');
-        };
-
-        const filePath = vscode.window.activeTextEditor.document.uri.fsPath;
-        const dir = path.basename(path.dirname(filePath));
-
-        if (dir !== 'examples') {
-            showDocumentIsNotExampleWarning();
-
-            return '';
-        }
-
-        const filename = path.basename(filePath);
-
-        if (!filename.endsWith('.rs')) {
-            showDocumentIsNotExampleWarning();
-
-            return '';
-        }
-
-        return path.basename(filename, '.rs');
-    }
-
-    private runProjectWithAdditionalArgs(buildType: BuildType, additionalArgs: string[]): void {
-        const argsBuilder = new CargoTaskArgs('run');
-        argsBuilder.setMessageFormatToJson();
-        argsBuilder.setBuildTypeToReleaseIfRequired(buildType);
-        argsBuilder.addArgs(additionalArgs);
-        argsBuilder.addArgs(UserDefinedArgs.getRunArgs());
-
-        const args = argsBuilder.getArgs();
-
-        this.runCargo(args, true);
-    }
-
-    private runExample(buildType: BuildType): void {
-        const exampleName = this.determineExampleName();
-
-        if (exampleName.length === 0) {
-            return;
-        }
-
-        const args = ['--example', exampleName];
-
-        this.runProjectWithAdditionalArgs(buildType, args);
     }
 
     private updateDiagnostics(cwd: string, errors: RustError[]): void {
@@ -749,6 +706,10 @@ class CustomConfigurationManager {
         return CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgs('customBuildConfigurations');
     }
 
+    public static showQuickPickOrChooseSingleCustomConfigurationArgsForCargoRun(): Thenable<string[] | null> {
+        return CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgs('customRunConfigurations');
+    }
+
     public static showQuickPickOrChooseSingleCustomConfigurationArgsForCargoTest(): Thenable<string[] | null> {
         return CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgs('customTestConfigurations');
     }
@@ -836,9 +797,21 @@ export class CommandService {
         });
     }
 
-    public registerCommandInvokingCargoRunUsingRunArgs(commandName: string, buildType: BuildType): vscode.Disposable {
+    public registerCommandHelpingChooseArgsAndInvokingCargoRun(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
-            this.cargoManager.invokeCargoRunUsingRunArgs(buildType);
+            CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgsForCargoRun().then(args => {
+                if (!args) {
+                    return;
+                }
+
+                this.cargoManager.invokeCargoRunWithArgs(args);
+            });
+        });
+    }
+
+    public registerCommandInvokingCargoRunUsingRunArgs(commandName: string): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            this.cargoManager.invokeCargoRunUsingRunArgs();
         });
     }
 
@@ -863,14 +836,6 @@ export class CommandService {
     public registerCommandInvokingCargoWithArgs(commandName: string, ...args: string[]): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
             this.cargoManager.invokeCargoWithArgs(args);
-        });
-    }
-
-    public registerCommandInvokingCargoRunForExample(commandName: string, release: boolean): vscode.Disposable {
-        return vscode.commands.registerCommand(commandName, () => {
-            const buildType = release ? BuildType.Release : BuildType.Debug;
-
-            this.cargoManager.invokeCargoRunForExample(buildType);
         });
     }
 

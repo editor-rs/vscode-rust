@@ -27,12 +27,10 @@
     "onLanguage:rust",
     "onCommand:rust.cargo.new.bin",
     "onCommand:rust.cargo.new.lib",
-    "onCommand:rust.cargo.run.example.debug",
-    "onCommand:rust.cargo.run.example.release",
     "onCommand:rust.cargo.build.default",
     "onCommand:rust.cargo.build.custom",
-    "onCommand:rust.cargo.run.debug",
-    "onCommand:rust.cargo.run.release",
+    "onCommand:rust.cargo.run.default",
+    "onCommand:rust.cargo.run.custom",
     "onCommand:rust.cargo.doc",
     "onCommand:rust.cargo.test.default",
     "onCommand:rust.cargo.test.custom",
@@ -75,16 +73,6 @@
         "description": "Creating a new library project"
       },
       {
-        "command": "rust.cargo.run.example.debug",
-        "title": "Cargo: Run example, Debug",
-        "description": "Compile the current example and execute it"
-      },
-      {
-        "command": "rust.cargo.run.example.release",
-        "title": "Cargo: Run example, Release",
-        "description": "Compile the current example with \"--release\" flag and execute it"
-      },
-      {
         "command": "rust.cargo.build.default",
         "title": "Cargo: Build",
         "description": "Compile the current project"
@@ -95,14 +83,14 @@
         "description": "Compile the current project using custom configuration"
       },
       {
-        "command": "rust.cargo.run.debug",
-        "title": "Cargo: Run Debug",
+        "command": "rust.cargo.run.default",
+        "title": "Cargo: Run",
         "description": "Build and execute src/main.rs"
       },
       {
-        "command": "rust.cargo.run.release",
-        "title": "Cargo: Run Release",
-        "description": "Build with \"--release\" flag and execute src/main.rs"
+        "command": "rust.cargo.run.custom",
+        "title": "Cargo: Run using custom configuration",
+        "description": "Build and execute src/main.rs using custom configuration"
       },
       {
         "command": "rust.cargo.doc",
@@ -283,6 +271,25 @@
           },
           "type": "array"
         },
+        "rust.customRunConfigurations": {
+          "default": [],
+          "description": "Custom configurations for cargo run",
+          "items": {
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": ["title", "args"]
+          },
+          "type": "array"
+        },
         "rust.customTestConfigurations": {
           "default": [],
           "description": "Custom configurations for cargo test",
@@ -317,7 +324,7 @@
       },
       {
         "key": "ctrl+shift+r",
-        "command": "rust.cargo.run.debug",
+        "command": "rust.cargo.run.default",
         "when": "editorLangId == 'rust'"
       },
       {
@@ -332,7 +339,7 @@
       },
       {
         "key": "ctrl+shift+alt+r",
-        "command": "rust.cargo.run.release",
+        "command": "rust.cargo.run.custom",
         "when": "editorLangId == 'rust'"
       }
     ]
