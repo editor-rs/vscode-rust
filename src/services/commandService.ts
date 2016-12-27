@@ -701,33 +701,35 @@ class CustomConfigurationQuickPickItem implements vscode.QuickPickItem {
 }
 
 class CustomConfigurationManager {
-    public static showQuickPickOrChooseSingleCustomConfigurationArgsForCargoBuild(): Thenable<string[] | null> {
+    public static showQuickPickOrChooseSingleCustomConfigurationArgsForCargoBuild(): Thenable<string[]> {
         return CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgs('customBuildConfigurations');
     }
 
-    public static showQuickPickOrChooseSingleCustomConfigurationArgsForCargoCheck(): Thenable<string[] | null> {
+    public static showQuickPickOrChooseSingleCustomConfigurationArgsForCargoCheck(): Thenable<string[]> {
         return CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgs('customCheckConfigurations');
     }
 
-    public static showQuickPickOrChooseSingleCustomConfigurationArgsForCargoClippy(): Thenable<string[] | null> {
+    public static showQuickPickOrChooseSingleCustomConfigurationArgsForCargoClippy(): Thenable<string[]> {
         return CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgs('customClippyConfigurations');
     }
 
-    public static showQuickPickOrChooseSingleCustomConfigurationArgsForCargoRun(): Thenable<string[] | null> {
+    public static showQuickPickOrChooseSingleCustomConfigurationArgsForCargoRun(): Thenable<string[]> {
         return CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgs('customRunConfigurations');
     }
 
-    public static showQuickPickOrChooseSingleCustomConfigurationArgsForCargoTest(): Thenable<string[] | null> {
+    public static showQuickPickOrChooseSingleCustomConfigurationArgsForCargoTest(): Thenable<string[]> {
         return CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgs('customTestConfigurations');
     }
 
-    private static showQuickPickOrChooseSingleCustomConfigurationArgs(property: string): Thenable<string[] | null> {
+    private static showQuickPickOrChooseSingleCustomConfigurationArgs(property: string): Thenable<string[]> {
         const configuration = getConfiguration();
 
         const customConfigurations = configuration.get<CustomConfiguration[]>(property);
 
         if (customConfigurations.length === 0) {
-            return Promise.resolve(null);
+            vscode.window.showErrorMessage('There are no defined custom configurations');
+
+            return Promise.reject(null);
         }
 
         if (customConfigurations.length === 1) {
@@ -740,7 +742,13 @@ class CustomConfigurationManager {
 
         const quickPickItems = customConfigurations.map(c => new CustomConfigurationQuickPickItem(c));
 
-        return vscode.window.showQuickPick(quickPickItems).then(item => item.args);
+        return vscode.window.showQuickPick(quickPickItems).then(item => {
+            if (!item) {
+                return Promise.reject(null);
+            }
+
+            return Promise.resolve(item.args);
+        });
     }
 }
 
@@ -754,12 +762,8 @@ export class CommandService {
     public registerCommandHelpingChooseArgsAndInvokingCargoCheck(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
             CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgsForCargoCheck().then(args => {
-                if (!args) {
-                    return;
-                }
-
                 this.cargoManager.invokeCargoCheckWithArgs(args);
-            });
+            }, () => undefined);
         });
     }
 
@@ -772,12 +776,8 @@ export class CommandService {
     public registerCommandHelpingChooseArgsAndInvokingCargoClippy(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
             CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgsForCargoClippy().then(args => {
-                if (!args) {
-                    return;
-                }
-
                 this.cargoManager.invokeCargoClippyWithArgs(args);
-            });
+            }, () => undefined);
         });
     }
 
@@ -813,12 +813,8 @@ export class CommandService {
     public registerCommandHelpingChooseArgsAndInvokingCargoBuild(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
             CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgsForCargoBuild().then(args => {
-                if (!args) {
-                    return;
-                }
-
                 this.cargoManager.invokeCargoBuildWithArgs(args);
-            });
+            }, () => undefined);
         });
     }
 
@@ -831,12 +827,8 @@ export class CommandService {
     public registerCommandHelpingChooseArgsAndInvokingCargoRun(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
             CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgsForCargoRun().then(args => {
-                if (!args) {
-                    return;
-                }
-
                 this.cargoManager.invokeCargoRunWithArgs(args);
-            });
+            }, () => undefined);
         });
     }
 
@@ -849,12 +841,8 @@ export class CommandService {
     public registerCommandHelpingChooseArgsAndInvokingCargoTest(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
             CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgsForCargoTest().then(args => {
-                if (!args) {
-                    return;
-                }
-
                 this.cargoManager.invokeCargoTestWithArgs(args);
-            });
+            }, () => undefined);
         });
     }
 
