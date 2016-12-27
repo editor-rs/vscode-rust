@@ -37,8 +37,8 @@
     "onCommand:rust.cargo.bench",
     "onCommand:rust.cargo.update",
     "onCommand:rust.cargo.clean",
-    "onCommand:rust.cargo.check",
-    "onCommand:rust.cargo.check.lib",
+    "onCommand:rust.cargo.check.default",
+    "onCommand:rust.cargo.check.custom",
     "onCommand:rust.cargo.terminate",
     "onCommand:rust.cargo.clippy"
   ],
@@ -123,14 +123,14 @@
         "description": "Remove the target directory"
       },
       {
-        "command": "rust.cargo.check",
+        "command": "rust.cargo.check.default",
         "title": "Cargo: Check",
         "description": "Check the project for warnings and errors"
       },
       {
-        "command": "rust.cargo.check.lib",
-        "title": "Cargo: Check Library",
-        "description": "Check the main library of the project for warnings and errors"
+        "command": "rust.cargo.check.custom",
+        "title": "Cargo: Check using custom configuration",
+        "description": "Check the main library of the project for warnings and errors using custom configuration"
       },
       {
         "command": "rust.cargo.clippy",
@@ -255,6 +255,25 @@
         "rust.customBuildConfigurations": {
           "default": [],
           "description": "Custom configurations for cargo build",
+          "items": {
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": ["title", "args"]
+          },
+          "type": "array"
+        },
+        "rust.customCheckConfigurations": {
+          "default": [],
+          "description": "Custom configurations for cargo check",
           "items": {
             "properties": {
               "title": {

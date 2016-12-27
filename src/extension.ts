@@ -7,7 +7,7 @@ import FilterService from './services/filterService';
 import StatusBarService from './services/statusBarService';
 import SuggestService from './services/suggestService';
 import PathService from './services/pathService';
-import {BuildType, CheckTarget, CommandService} from './services/commandService';
+import {CommandService} from './services/commandService';
 import WorkspaceSymbolService from './services/workspaceSymbolService';
 import DocumentSymbolService from './services/documentSymbolService';
 import {Installator as MissingToolsInstallator} from './installTools';
@@ -105,7 +105,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
                 command = 'rust.cargo.build.default';
             break;
             case 'check':
-                command = 'rust.cargo.check';
+                command = 'rust.cargo.check.default';
             break;
             case 'clippy':
                 command = 'rust.cargo.clippy';
@@ -172,10 +172,9 @@ export function activate(ctx: vscode.ExtensionContext): void {
     ctx.subscriptions.push(commandService.registerCommandInvokingCargoWithArgs('rust.cargo.clean', 'clean'));
 
     // Cargo check
-    ctx.subscriptions.push(commandService.registerCommandInvokingCargoCheckUsingCheckArgs('rust.cargo.check', CheckTarget.Application));
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoCheckUsingCheckArgs('rust.cargo.check.default'));
 
-    // Cargo check lib
-    ctx.subscriptions.push(commandService.registerCommandInvokingCargoCheckUsingCheckArgs('rust.cargo.check.lib', CheckTarget.Library));
+    ctx.subscriptions.push(commandService.registerCommandHelpingChooseArgsAndInvokingCargoCheck('rust.cargo.check.custom'));
 
     // Cargo clippy
     ctx.subscriptions.push(commandService.registerCommandInvokingCargoClippyUsingClippyArgs('rust.cargo.clippy'));

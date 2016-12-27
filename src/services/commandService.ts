@@ -284,27 +284,18 @@ class CargoManager {
         this.invokeCargoBuildWithArgs(UserDefinedArgs.getBuildArgs());
     }
 
-    public invokeCargoCheckUsingCheckArgs(target: CheckTarget): void {
+    public invokeCargoCheckWithArgs(additionalArgs: string[]): void {
         this.checkCargoCheckAvailability().then(isAvailable => {
             let argsBuilder: CargoTaskArgs;
 
             if (isAvailable) {
                 argsBuilder = new CargoTaskArgs('check');
                 argsBuilder.setMessageFormatToJson();
-
-                if (target === CheckTarget.Library) {
-                    argsBuilder.addArg('--lib');
-                }
-
-                argsBuilder.addArgs(UserDefinedArgs.getCheckArgs());
+                argsBuilder.addArgs(additionalArgs);
             } else {
                 argsBuilder = new CargoTaskArgs('rustc');
                 argsBuilder.setMessageFormatToJson();
-
-                if (target === CheckTarget.Library) {
-                    argsBuilder.addArg('--lib');
-                }
-
+                argsBuilder.addArgs(additionalArgs);
                 argsBuilder.addArgs(['--', '-Zno-trans']);
             }
 
@@ -312,6 +303,10 @@ class CargoManager {
 
             this.runCargo(args, true);
         });
+    }
+
+    public invokeCargoCheckUsingCheckArgs(): void {
+        this.invokeCargoCheckWithArgs(UserDefinedArgs.getCheckArgs());
     }
 
     public invokeCargoClippyUsingClippyArgs(): void {
@@ -706,6 +701,10 @@ class CustomConfigurationManager {
         return CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgs('customBuildConfigurations');
     }
 
+    public static showQuickPickOrChooseSingleCustomConfigurationArgsForCargoCheck(): Thenable<string[] | null> {
+        return CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgs('customCheckConfigurations');
+    }
+
     public static showQuickPickOrChooseSingleCustomConfigurationArgsForCargoRun(): Thenable<string[] | null> {
         return CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgs('customRunConfigurations');
     }
@@ -744,9 +743,21 @@ export class CommandService {
         this.cargoManager = new CargoManager();
     }
 
-    public registerCommandInvokingCargoCheckUsingCheckArgs(commandName: string, target: CheckTarget): vscode.Disposable {
+    public registerCommandHelpingChooseArgsAndInvokingCargoCheck(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
-            this.cargoManager.invokeCargoCheckUsingCheckArgs(target);
+            CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgsForCargoCheck().then(args => {
+                if (!args) {
+                    return;
+                }
+
+                this.cargoManager.invokeCargoCheckWithArgs(args);
+            });
+        });
+    }
+
+    public registerCommandInvokingCargoCheckUsingCheckArgs(commandName: string): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            this.cargoManager.invokeCargoCheckUsingCheckArgs();
         });
     }
 
