@@ -137,37 +137,57 @@ export function activate(ctx: vscode.ExtensionContext): void {
     }
 
     // Commands
+    const commandService = new CommandService();
+
     // Cargo new
-    ctx.subscriptions.push(CommandService.createProjectCommand('rust.cargo.new.bin', true));
-    ctx.subscriptions.push(CommandService.createProjectCommand('rust.cargo.new.lib', false));
+    ctx.subscriptions.push(commandService.registerCommandHelpingCreateProject('rust.cargo.new.bin', true));
+
+    ctx.subscriptions.push(commandService.registerCommandHelpingCreateProject('rust.cargo.new.lib', false));
+
     // Cargo build
-    ctx.subscriptions.push(CommandService.createBuildCommand('rust.cargo.build.debug', BuildType.Debug));
-    ctx.subscriptions.push(CommandService.createBuildCommand('rust.cargo.build.release', BuildType.Release));
-    ctx.subscriptions.push(CommandService.buildExampleCommand('rust.cargo.build.example.debug', false));
-    ctx.subscriptions.push(CommandService.buildExampleCommand('rust.cargo.build.example.release', true));
-    ctx.subscriptions.push(CommandService.runExampleCommand('rust.cargo.run.example.debug', false));
-    ctx.subscriptions.push(CommandService.runExampleCommand('rust.cargo.run.example.release', true));
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoBuildUsingBuildArgs('rust.cargo.build.debug', BuildType.Debug));
+
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoBuildUsingBuildArgs('rust.cargo.build.release', BuildType.Release));
+
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoBuildForExample('rust.cargo.build.example.debug', false));
+
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoBuildForExample('rust.cargo.build.example.release', true));
+
     // Cargo run
-    ctx.subscriptions.push(CommandService.createRunCommand('rust.cargo.run.debug', BuildType.Debug));
-    ctx.subscriptions.push(CommandService.createRunCommand('rust.cargo.run.release', BuildType.Release));
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoRunUsingRunArgs('rust.cargo.run.debug', BuildType.Debug));
+
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoRunUsingRunArgs('rust.cargo.run.release', BuildType.Release));
+
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoRunForExample('rust.cargo.run.example.debug', false));
+
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoRunForExample('rust.cargo.run.example.release', true));
+
     // Cargo test
-    ctx.subscriptions.push(CommandService.createTestCommand('rust.cargo.test.debug', BuildType.Debug));
-    ctx.subscriptions.push(CommandService.createTestCommand('rust.cargo.test.release', BuildType.Release));
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoTestUsingTestArgs('rust.cargo.test.debug', BuildType.Debug));
+
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoTestUsingTestArgs('rust.cargo.test.release', BuildType.Release));
+
     // Cargo bench
-    ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.bench', 'bench'));
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoWithArgs('rust.cargo.bench', 'bench'));
+
     // Cargo doc
-    ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.doc', 'doc'));
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoWithArgs('rust.cargo.doc', 'doc'));
+
     // Cargo update
-    ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.update', 'update'));
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoWithArgs('rust.cargo.update', 'update'));
+
     // Cargo clean
-    ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.clean', 'clean'));
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoWithArgs('rust.cargo.clean', 'clean'));
+
     // Cargo check
-    ctx.subscriptions.push(CommandService.createCheckCommand('rust.cargo.check', CheckTarget.Application));
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoCheckUsingCheckArgs('rust.cargo.check', CheckTarget.Application));
+
     // Cargo check lib
-    ctx.subscriptions.push(CommandService.createCheckCommand('rust.cargo.check.lib', CheckTarget.Library));
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoCheckUsingCheckArgs('rust.cargo.check.lib', CheckTarget.Library));
+
     // Cargo clippy
-    ctx.subscriptions.push(CommandService.createClippyCommand('rust.cargo.clippy'));
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoClippyUsingClippyArgs('rust.cargo.clippy'));
 
     // Cargo terminate
-    ctx.subscriptions.push(CommandService.stopCommand('rust.cargo.terminate'));
+    ctx.subscriptions.push(commandService.registerCommandStoppingCargoTask('rust.cargo.terminate'));
 }
