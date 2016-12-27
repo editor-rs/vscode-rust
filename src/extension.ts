@@ -114,7 +114,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
                 command = 'rust.cargo.run.debug';
             break;
             case 'test':
-                command = 'rust.cargo.test.debug';
+                command = 'rust.cargo.test.default';
             break;
         }
 
@@ -163,9 +163,9 @@ export function activate(ctx: vscode.ExtensionContext): void {
     ctx.subscriptions.push(commandService.registerCommandInvokingCargoRunForExample('rust.cargo.run.example.release', true));
 
     // Cargo test
-    ctx.subscriptions.push(commandService.registerCommandInvokingCargoTestUsingTestArgs('rust.cargo.test.debug', BuildType.Debug));
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoTestUsingTestArgs('rust.cargo.test.default'));
 
-    ctx.subscriptions.push(commandService.registerCommandInvokingCargoTestUsingTestArgs('rust.cargo.test.release', BuildType.Release));
+    ctx.subscriptions.push(commandService.registerCommandHelpingChooseArgsAndInvokingCargoTest('rust.cargo.test.custom'));
 
     // Cargo bench
     ctx.subscriptions.push(commandService.registerCommandInvokingCargoWithArgs('rust.cargo.bench', 'bench'));

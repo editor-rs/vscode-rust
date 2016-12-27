@@ -36,8 +36,8 @@
     "onCommand:rust.cargo.run.debug",
     "onCommand:rust.cargo.run.release",
     "onCommand:rust.cargo.doc",
-    "onCommand:rust.cargo.test.debug",
-    "onCommand:rust.cargo.test.release",
+    "onCommand:rust.cargo.test.default",
+    "onCommand:rust.cargo.test.custom",
     "onCommand:rust.cargo.bench",
     "onCommand:rust.cargo.update",
     "onCommand:rust.cargo.clean",
@@ -122,14 +122,14 @@
         "description": "Build this project's and its dependencies' documentation"
       },
       {
-        "command": "rust.cargo.test.debug",
-        "title": "Cargo: Test Debug",
+        "command": "rust.cargo.test.default",
+        "title": "Cargo: Test",
         "description": "Run the tests"
       },
       {
-        "command": "rust.cargo.test.release",
-        "title": "Cargo: Test Release",
-        "description": "Run the tests with --release"
+        "command": "rust.cargo.test.custom",
+        "title": "Cargo: Test using custom configuration",
+        "description": "Run the tests using custom configuration"
       },
       {
         "command": "rust.cargo.bench",
@@ -275,6 +275,25 @@
           "type": "array",
           "default": [],
           "description": "Arguments which is passed to cargo test"
+        },
+        "rust.customTestConfigurations": {
+          "default": [],
+          "description": "Custom configurations for cargo test",
+          "items": {
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": ["title", "args"]
+          },
+          "type": "array"
         }
       }
     },
@@ -286,7 +305,7 @@
       },
       {
         "key": "ctrl+shift+t",
-        "command": "rust.cargo.test.debug",
+        "command": "rust.cargo.test.default",
         "when": "editorLangId == 'rust'"
       },
       {
@@ -301,7 +320,7 @@
       },
       {
         "key": "ctrl+shift+alt+t",
-        "command": "rust.cargo.test.release",
+        "command": "rust.cargo.test.custom",
         "when": "editorLangId == 'rust'"
       },
       {

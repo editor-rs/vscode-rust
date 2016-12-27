@@ -356,15 +356,18 @@ class CargoManager {
         this.runProjectWithAdditionalArgs(buildType, []);
     }
 
-    public invokeCargoTestUsingTestArgs(buildType: BuildType): void {
+    public invokeCargoTestWithArgs(additionalArgs: string[]): void {
         const argsBuilder = new CargoTaskArgs('test');
         argsBuilder.setMessageFormatToJson();
-        argsBuilder.setBuildTypeToReleaseIfRequired(buildType);
-        argsBuilder.addArgs(UserDefinedArgs.getTestArgs());
+        argsBuilder.addArgs(additionalArgs);
 
         const args = argsBuilder.getArgs();
 
         this.runCargo(args, true);
+    }
+
+    public invokeCargoTestUsingTestArgs(): void {
+        this.invokeCargoTestWithArgs(UserDefinedArgs.getTestArgs());
     }
 
     public invokeCargoWithArgs(args: string[]): void {
@@ -742,6 +745,51 @@ class CargoManager {
     }
 }
 
+interface CustomConfiguration {
+    title: string;
+    args: string[];
+}
+
+class CustomConfigurationQuickPickItem implements vscode.QuickPickItem {
+    public label: string;
+    public description: string;
+    public args: string[];
+
+    public constructor(configuration: CustomConfiguration) {
+        this.label = configuration.title;
+        this.description = '';
+        this.args = configuration.args;
+    }
+}
+
+class CustomConfigurationManager {
+    public static showQuickPickOrChooseSingleCustomConfigurationArgsForCargoTest(): Thenable<string[] | null> {
+        return CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgs('customTestConfigurations');
+    }
+
+    private static showQuickPickOrChooseSingleCustomConfigurationArgs(property: string): Thenable<string[] | null> {
+        const configuration = getConfiguration();
+
+        const customConfigurations = configuration.get<CustomConfiguration[]>(property);
+
+        if (customConfigurations.length === 0) {
+            return Promise.resolve(null);
+        }
+
+        if (customConfigurations.length === 1) {
+            const customConfiguration = customConfigurations[0];
+
+            const args = customConfiguration.args;
+
+            return Promise.resolve(args);
+        }
+
+        const quickPickItems = customConfigurations.map(c => new CustomConfigurationQuickPickItem(c));
+
+        return vscode.window.showQuickPick(quickPickItems).then(item => item.args);
+    }
+}
+
 export class CommandService {
     private cargoManager: CargoManager;
 
@@ -796,9 +844,21 @@ export class CommandService {
         });
     }
 
-    public registerCommandInvokingCargoTestUsingTestArgs(commandName: string, buildType: BuildType): vscode.Disposable {
+    public registerCommandHelpingChooseArgsAndInvokingCargoTest(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
-            this.cargoManager.invokeCargoTestUsingTestArgs(buildType);
+            CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgsForCargoTest().then(args => {
+                if (!args) {
+                    return;
+                }
+
+                this.cargoManager.invokeCargoTestWithArgs(args);
+            });
+        });
+    }
+
+    public registerCommandInvokingCargoTestUsingTestArgs(commandName: string): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            this.cargoManager.invokeCargoTestUsingTestArgs();
         });
     }
 
