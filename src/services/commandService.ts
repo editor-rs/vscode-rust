@@ -133,7 +133,9 @@ class CargoTask {
 
             let newEnv = Object.assign({}, process.env);
 
-            let customEnv = vscode.workspace.getConfiguration('rust')['cargoEnv'];
+            const configuration = getConfiguration();
+            const customEnv = configuration['cargoEnv'];
+
             if (customEnv) {
                 newEnv = Object.assign(newEnv, customEnv);
             }
@@ -141,6 +143,7 @@ class CargoTask {
             this.process = cp.spawn(cargoPath, args, { cwd, env: newEnv });
 
             const stdout = readline.createInterface({ input: this.process.stdout });
+
             stdout.on('line', line => {
                 if (!onStdoutLine) {
                     return;
@@ -148,7 +151,9 @@ class CargoTask {
 
                 onStdoutLine(line);
             });
+
             const stderr = readline.createInterface({ input: this.process.stderr });
+
             stderr.on('line', line => {
                 if (!onStderrLine) {
                     return;
@@ -156,15 +161,18 @@ class CargoTask {
 
                 onStderrLine(line);
             });
+
             this.process.on('error', error => {
                 reject(error);
             });
+
             this.process.on('exit', code => {
                 this.process.removeAllListeners();
                 this.process = null;
 
                 if (this.interrupted) {
                     reject();
+
                     return;
                 }
 
@@ -177,122 +185,29 @@ class CargoTask {
         return new Promise(resolve => {
             if (!this.interrupted && this.process) {
                 kill(this.process.pid, 'SIGINT', resolve);
+
                 this.interrupted = true;
             }
         });
     }
 }
 
-export class CommandService {
-    private static diagnostics: vscode.DiagnosticCollection = vscode.languages.createDiagnosticCollection('rust');
-    private static channel: ChannelWrapper = new ChannelWrapper(vscode.window.createOutputChannel('Cargo'));
-    private static currentTask: CargoTask;
-    private static statusBarItem: vscode.StatusBarItem;
-    private static spinnerUpdate: any;
+class CargoManager {
+    private diagnostics: vscode.DiagnosticCollection = vscode.languages.createDiagnosticCollection('rust');
+    private channel: ChannelWrapper = new ChannelWrapper(vscode.window.createOutputChannel('Cargo'));
+    private currentTask: CargoTask;
+    private statusBarItem: vscode.StatusBarItem;
+    private spinnerUpdate: any;
 
-    public static createCheckCommand(commandName: string, target: CheckTarget): vscode.Disposable {
-        return vscode.commands.registerCommand(commandName, () => {
-            this.checkProject(target);
-        });
+    public invokeCargoBuildForExample(buildType: BuildType): void {
+        this.buildExample(buildType);
     }
 
-    public static createClippyCommand(commandName: string): vscode.Disposable {
-        return vscode.commands.registerCommand(commandName, () => {
-            this.checkProjectWithClippy();
-        });
-    }
-
-    public static createProjectCommand(commandName: string, isBin: boolean): vscode.Disposable {
-        return vscode.commands.registerCommand(commandName, () => {
-            this.createProject(isBin);
-        });
-    }
-
-    public static createBuildCommand(commandName: string, buildType: BuildType): vscode.Disposable {
-        return vscode.commands.registerCommand(commandName, () => {
-            this.buildProject(buildType);
-        });
-    }
-
-    public static createRunCommand(commandName: string, buildType: BuildType): vscode.Disposable {
-        return vscode.commands.registerCommand(commandName, () => {
-            this.runProject(buildType);
-        });
-    }
-
-    public static createTestCommand(commandName: string, buildType: BuildType): vscode.Disposable {
-        return vscode.commands.registerCommand(commandName, () => {
-            this.testProject(buildType);
-        });
-    }
-
-    public static formatCommand(commandName: string, ...args: string[]): vscode.Disposable {
-        return vscode.commands.registerCommand(commandName, () => {
-            this.runCargo(args, true);
-        });
-    }
-
-    public static buildExampleCommand(commandName: string, release: boolean): vscode.Disposable {
-        return vscode.commands.registerCommand(commandName, () => {
-            this.buildExample(release);
-        });
-    }
-
-    public static runExampleCommand(commandName: string, release: boolean): vscode.Disposable {
-        return vscode.commands.registerCommand(commandName, () => {
-            this.runExample(release);
-        });
-    }
-
-    public static stopCommand(commandName: string): vscode.Disposable {
-        return vscode.commands.registerCommand(commandName, () => {
-            if (this.currentTask) {
-                this.currentTask.kill();
-            }
-        });
-    }
-
-    private static getConfiguration(): vscode.WorkspaceConfiguration {
-        return vscode.workspace.getConfiguration('rust');
-    }
-
-    private static determineExampleName(): string {
-        let showDocumentIsNotExampleWarning = () => {
-            vscode.window.showWarningMessage('Current document is not an example');
-        };
-        let filePath = vscode.window.activeTextEditor.document.uri.fsPath;
-        let dir = path.basename(path.dirname(filePath));
-        if (dir !== 'examples') {
-            showDocumentIsNotExampleWarning();
-            return '';
-        }
-        let filename = path.basename(filePath);
-        if (!filename.endsWith('.rs')) {
-            showDocumentIsNotExampleWarning();
-            return '';
-        }
-        return path.basename(filename, '.rs');
-    }
-
-    private static buildProject(buildType: BuildType): void {
+    public invokeCargoBuildUsingBuildArgs(buildType: BuildType): void {
         this.buildProjectWithAdditionalArgs(buildType, []);
     }
 
-    private static buildProjectWithAdditionalArgs(buildType: BuildType, additionalArgs: string[]): void {
-        const args = ['build'];
-
-        this.addJsonMessageFormatToArgs(args);
-
-        this.addReleaseFlagToArgsIfRequired(args, buildType);
-
-        args.push(...additionalArgs);
-
-        this.addUserDefinedArgs(args, 'buildArgs');
-
-        this.runCargo(args, true);
-    }
-
-    private static checkProject(target: CheckTarget): void {
+    public invokeCargoCheckUsingCheckArgs(target: CheckTarget): void {
         this.checkCargoCheckAvailability().then(isAvailable => {
             let args: string[];
 
@@ -322,7 +237,7 @@ export class CommandService {
         });
     }
 
-    private static checkProjectWithClippy(): void {
+    public invokeCargoClippyUsingClippyArgs(): void {
         const args = ['clippy'];
 
         this.addJsonMessageFormatToArgs(args);
@@ -332,11 +247,106 @@ export class CommandService {
         this.runCargo(args, true);
     }
 
-    private static runProject(buildType: BuildType): void {
+    public invokeCargoNew(projectName: string, isBin: boolean, cwd: string): void {
+        this.currentTask = new CargoTask();
+
+        this.channel.clear();
+
+        const args = ['new', projectName, isBin ? '--bin' : '--lib'];
+
+        {
+            const configuration = getConfiguration();
+
+            if (configuration['showOutput']) {
+                this.channel.show();
+            }
+        }
+
+        const onLine = (line: string) => {
+            this.channel.append(`${line}\n`);
+        };
+
+        const onStart = undefined;
+
+        const onStdoutLine = onLine;
+
+        const onStderrLine = onLine;
+
+        this.currentTask.execute(args, cwd, onStart, onStdoutLine, onStderrLine).then(() => {
+            this.currentTask = null;
+        });
+    }
+
+    public invokeCargoRunForExample(buildType: BuildType): void {
+        this.runExample(buildType);
+    }
+
+    public invokeCargoRunUsingRunArgs(buildType: BuildType): void {
         this.runProjectWithAdditionalArgs(buildType, []);
     }
 
-    private static runProjectWithAdditionalArgs(buildType: BuildType, additionalArgs: string[]): void {
+    public invokeCargoTestUsingTestArgs(buildType: BuildType): void {
+        const args = ['test'];
+
+        this.addJsonMessageFormatToArgs(args);
+
+        this.addReleaseFlagToArgsIfRequired(args, buildType);
+
+        this.addUserDefinedArgs(args, 'testArgs');
+
+        this.runCargo(args, true);
+    }
+
+    public invokeCargoWithArgs(args: string[]): void {
+        this.runCargo(args, true);
+    }
+
+    public stopTask(): void {
+        if (this.currentTask) {
+            this.currentTask.kill();
+        }
+    }
+
+    private determineExampleName(): string {
+        let showDocumentIsNotExampleWarning = () => {
+            vscode.window.showWarningMessage('Current document is not an example');
+        };
+
+        const filePath = vscode.window.activeTextEditor.document.uri.fsPath;
+        const dir = path.basename(path.dirname(filePath));
+
+        if (dir !== 'examples') {
+            showDocumentIsNotExampleWarning();
+
+            return '';
+        }
+
+        let filename = path.basename(filePath);
+
+        if (!filename.endsWith('.rs')) {
+            showDocumentIsNotExampleWarning();
+
+            return '';
+        }
+
+        return path.basename(filename, '.rs');
+    }
+
+    private buildProjectWithAdditionalArgs(buildType: BuildType, additionalArgs: string[]): void {
+        const args = ['build'];
+
+        this.addJsonMessageFormatToArgs(args);
+
+        this.addReleaseFlagToArgsIfRequired(args, buildType);
+
+        args.push(...additionalArgs);
+
+        this.addUserDefinedArgs(args, 'buildArgs');
+
+        this.runCargo(args, true);
+    }
+
+    private runProjectWithAdditionalArgs(buildType: BuildType, additionalArgs: string[]): void {
         const args = ['run'];
 
         this.addJsonMessageFormatToArgs(args);
@@ -350,63 +360,49 @@ export class CommandService {
         this.runCargo(args, true);
     }
 
-    private static testProject(buildType: BuildType): void {
-        const args = ['test'];
-
-        this.addJsonMessageFormatToArgs(args);
-
-        this.addReleaseFlagToArgsIfRequired(args, buildType);
-
-        this.addUserDefinedArgs(args, 'testArgs');
-
-        this.runCargo(args, true);
-    }
-
-    private static buildExample(release: boolean): void {
+    private buildExample(buildType: BuildType): void {
         const exampleName = this.determineExampleName();
 
         if (exampleName.length === 0) {
             return;
         }
 
-        const buildType = release ? BuildType.Release : BuildType.Debug;
         const args = ['--example', exampleName];
 
         this.buildProjectWithAdditionalArgs(buildType, args);
     }
 
-    private static runExample(release: boolean): void {
+    private runExample(buildType: BuildType): void {
         const exampleName = this.determineExampleName();
 
         if (exampleName.length === 0) {
             return;
         }
 
-        const buildType = release ? BuildType.Release : BuildType.Debug;
         const args = ['--example', exampleName];
 
         this.runProjectWithAdditionalArgs(buildType, args);
     }
 
-    private static addUserDefinedArgs(args: string[], userDefinedArgsPropertyName: string): void {
-        const configuration = this.getConfiguration();
+    private addUserDefinedArgs(args: string[], userDefinedArgsPropertyName: string): void {
+        const configuration = getConfiguration();
         const userDefinedArgs: string[] = configuration.get<string[]>(userDefinedArgsPropertyName);
 
         args.push(...userDefinedArgs);
     }
 
-    private static addJsonMessageFormatToArgs(args: string[]): void {
+    private addJsonMessageFormatToArgs(args: string[]): void {
         args.push('--message-format', 'json');
     }
 
-    private static addReleaseFlagToArgsIfRequired(args: string[], buildType: BuildType): void {
+    private addReleaseFlagToArgsIfRequired(args: string[], buildType: BuildType): void {
         if (buildType === BuildType.Release) {
             args.push('--release');
         }
     }
 
-    private static updateDiagnostics(cwd: string, errors: RustError[]): void {
-        let mapSeverityToVsCode = (severity) => {
+    private updateDiagnostics(cwd: string, errors: RustError[]): void {
+        const mapSeverityToVsCode = (severity) => {
             if (severity === 'warning') {
                 return vscode.DiagnosticSeverity.Warning;
             } else if (severity === 'error') {
@@ -420,18 +416,21 @@ export class CommandService {
             }
         };
 
-        let diagnosticMap: Map<string, vscode.Diagnostic[]> = new Map();
-        errors.forEach(error => {
-            let filePath = path.join(cwd, error.filename);
-            // VSCode starts its lines and columns at 0, so subtract 1 off
-            let range = new vscode.Range(error.startLine - 1, error.startCharacter - 1, error.endLine - 1, error.endCharacter - 1);
-            let severity = mapSeverityToVsCode(error.severity);
+        const diagnosticMap: Map<string, vscode.Diagnostic[]> = new Map();
 
-            let diagnostic = new vscode.Diagnostic(range, error.message, severity);
+        errors.forEach(error => {
+            const filePath = path.join(cwd, error.filename);
+            // VSCode starts its lines and columns at 0, so subtract 1 off
+            const range = new vscode.Range(error.startLine - 1, error.startCharacter - 1, error.endLine - 1, error.endCharacter - 1);
+            const severity = mapSeverityToVsCode(error.severity);
+
+            const diagnostic = new vscode.Diagnostic(range, error.message, severity);
             let diagnostics = diagnosticMap.get(filePath);
+
             if (!diagnostics) {
                 diagnostics = [];
             }
+
             diagnostics.push(diagnostic);
 
             diagnosticMap.set(filePath, diagnostics);
@@ -439,14 +438,15 @@ export class CommandService {
 
         diagnosticMap.forEach((diags, uri) => {
             const uniqueDiagnostics = this.getUniqueDiagnostics(diags);
+
             this.diagnostics.set(vscode.Uri.file(uri), uniqueDiagnostics);
         });
     }
 
-    private static getUniqueDiagnostics(diagnostics: vscode.Diagnostic[]): vscode.Diagnostic[] {
-        let uniqueDiagnostics: vscode.Diagnostic[] = [];
+    private getUniqueDiagnostics(diagnostics: vscode.Diagnostic[]): vscode.Diagnostic[] {
+        const uniqueDiagnostics: vscode.Diagnostic[] = [];
 
-        for (let diagnostic of diagnostics) {
+        for (const diagnostic of diagnostics) {
             const uniqueDiagnostic = uniqueDiagnostics.find(uniqueDiagnostic => {
                 if (!diagnostic.range.isEqual(uniqueDiagnostic.range)) {
                     return false;
@@ -467,15 +467,16 @@ export class CommandService {
         return uniqueDiagnostics;
     }
 
-    private static checkCargoCheckAvailability(): Thenable<boolean> {
+    private checkCargoCheckAvailability(): Thenable<boolean> {
         let args = ['check', '--help'];
         let cwd = '/'; // Doesn't matter.
+
         return (new CargoTask).execute(args, cwd).then((exitCode: ExitCode) => {
             return exitCode === 0;
         });
     }
 
-    public static parseJsonLine(errors: RustError[], line: string): boolean {
+    public parseJsonLine(errors: RustError[], line: string): boolean {
         const errorJson: CargoMessageWithCompilerArtifact | CargoMessageWithCompilerMessage = JSON.parse(line);
 
         if (errorJson.reason !== 'compiler-message') {
@@ -485,7 +486,7 @@ export class CommandService {
         return this.parseCargoMessage(errors, errorJson);
     }
 
-    private static parseCargoMessage(errors: RustError[], cargoMessage: CargoMessageWithCompilerMessage): boolean {
+    private parseCargoMessage(errors: RustError[], cargoMessage: CargoMessageWithCompilerMessage): boolean {
         const compilerMessage = cargoMessage.message;
         const spans = compilerMessage.spans;
 
@@ -506,7 +507,7 @@ export class CommandService {
             primarySpan = primarySpan.expansion.span;
         }
 
-        let error: RustError = {
+        const error: RustError = {
             filename: primarySpan.file_name,
             startLine: primarySpan.line_start,
             startCharacter: primarySpan.column_start,
@@ -521,13 +522,13 @@ export class CommandService {
         }
 
 
-        error.message = addNotesToMessage(error.message, compilerMessage.children, 1);
+        error.message = this.addNotesToMessage(error.message, compilerMessage.children, 1);
         errors.push(error);
 
         return true;
     }
 
-    private static showSpinner(): void {
+    private showSpinner(): void {
         if (this.statusBarItem == null) {
             this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
             this.statusBarItem.text = spinner();
@@ -537,15 +538,18 @@ export class CommandService {
         this.statusBarItem.show();
 
         if (this.spinnerUpdate == null) {
-            this.spinnerUpdate = setInterval(() => {
+            const callback = () => {
                 this.statusBarItem.text = spinner();
-            }, 50);
+            };
+
+            this.spinnerUpdate = setInterval(callback, 50);
         }
     }
 
-    private static hideSpinner(): void {
+    private hideSpinner(): void {
         if (this.spinnerUpdate != null) {
             clearInterval(this.spinnerUpdate);
+
             this.spinnerUpdate = null;
         }
 
@@ -554,64 +558,25 @@ export class CommandService {
         }
     }
 
-    private static createProject(isBin: boolean): void {
-        let cwd = vscode.workspace.rootPath;
-        if (!cwd) {
-            vscode.window.showErrorMessage('Current document not in the workspace');
-            return;
-        }
-        const projectType = isBin ? 'executable' : 'library';
-        const placeHolder = `Enter ${projectType} project name`;
-        vscode.window.showInputBox({ placeHolder: placeHolder }).then((name: string) => {
-            if (!name || name.length === 0) {
-                return;
-            }
-
-            let args = ['new', name];
-            if (isBin) {
-                args.push('--bin');
-            } else {
-                args.push('--lib');
-            }
-
-            this.currentTask = new CargoTask();
-
-            this.channel.clear();
-
-            {
-                const rustConfig = vscode.workspace.getConfiguration('rust');
-                if (rustConfig['showOutput']) {
-                    this.channel.show();
-                }
-            }
-            let onLine = (line: string) => {
-                this.channel.append(`${line}\n`);
-            };
-            let onStart = undefined;
-            let onStdoutLine = onLine;
-            let onStderrLine = onLine;
-            this.currentTask.execute(args, cwd, onStart, onStdoutLine, onStderrLine).then(() => {
-                this.currentTask = null;
-            });
-        });
-    }
-
-    private static runCargo(args: string[], force = false): void {
+    private runCargo(args: string[], force = false): void {
         this.diagnostics.clear();
 
         if (force && this.currentTask) {
             this.currentTask.kill().then(() => {
                 this.runCargo(args, force);
             });
+
             return;
         } else if (this.currentTask) {
             return;
         }
 
         this.currentTask = new CargoTask();
+
         {
-            const rustConfig = vscode.workspace.getConfiguration('rust');
-            if (rustConfig['showOutput']) {
+            const configuration = getConfiguration();
+
+            if (configuration['showOutput']) {
                 this.channel.show();
             }
         }
@@ -624,18 +589,20 @@ export class CommandService {
 
                 let startTime: number;
 
-                let onStart = () => {
+                const onStart = () => {
                     startTime = Date.now();
 
                     this.channel.clear();
                     this.channel.append(`Started cargo ${args.join(' ')}\n`);
                 };
 
-                let errors: RustError[] = [];
-                let onStdoutLine = (line: string) => {
+                const errors: RustError[] = [];
+
+                const onStdoutLine = (line: string) => {
                     if (line.startsWith('{')) {
-                        let newErrors: RustError[] = [];
-                        if (CommandService.parseJsonLine(newErrors, line)) {
+                        const newErrors: RustError[] = [];
+
+                        if (this.parseJsonLine(newErrors, line)) {
                             /* tslint:disable:max-line-length */
                             // Print any errors as best we can match to Rust's format.
                             // TODO: Add support for child errors/text highlights.
@@ -657,21 +624,22 @@ export class CommandService {
                     }
                 };
 
-                let onStderrLine = (line: string) => {
+                const onStderrLine = (line: string) => {
                     this.channel.append(`${line}\n`);
                 };
 
-                let onGracefullyEnded = (exitCode: ExitCode) => {
+                const onGracefullyEnded = (exitCode: ExitCode) => {
                     this.hideSpinner();
 
                     this.currentTask = null;
 
                     const endTime = Date.now();
+
                     this.channel.append(`Completed with code ${exitCode}\n`);
                     this.channel.append(`It took approximately ${(endTime - startTime) / 1000} seconds\n`);
                 };
 
-                let onUnexpectedlyEnded = (error?: Error) => {
+                const onUnexpectedlyEnded = (error?: Error) => {
                     this.hideSpinner();
 
                     this.currentTask = null;
@@ -694,26 +662,126 @@ export class CommandService {
             }
         });
     }
+
+    private addNotesToMessage(msg: string, children: any[], level: number): string {
+        const ident = '   '.repeat(level);
+
+        for (const child of children) {
+            msg += `\n${ident}${child.message}`;
+
+            if (child.spans && child.spans.length > 0) {
+                msg += ': ';
+                const lines = [];
+
+                for (const span of child.spans) {
+                    if (!span.file_name || !span.line_start) {
+                        continue;
+                    }
+
+                    lines.push(`${span.file_name}(${span.line_start})`);
+                }
+
+                msg += lines.join(', ');
+            }
+
+            if (child.children) {
+                msg = this.addNotesToMessage(msg, child.children, level + 1);
+            }
+        }
+
+        return msg;
+    }
 }
 
-function addNotesToMessage(msg: string, children: any[], level: number): string {
-    const ident = '   '.repeat(level);
-    for (let child of children) {
-        msg += `\n${ident}${child.message}`;
-        if (child.spans && child.spans.length > 0) {
-            msg += ': ';
-            let lines = [];
-            for (let span of child.spans) {
-                if (!span.file_name || !span.line_start) {
-                    continue;
-                }
-                lines.push(`${span.file_name}(${span.line_start})`);
-            }
-            msg += lines.join(', ');
-        }
-        if (child.children) {
-            msg = addNotesToMessage(msg, child.children, level + 1);
-        }
+export class CommandService {
+    private cargoManager: CargoManager;
+
+    public constructor() {
+        this.cargoManager = new CargoManager();
     }
-    return msg;
+
+    public registerCommandInvokingCargoCheckUsingCheckArgs(commandName: string, target: CheckTarget): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            this.cargoManager.invokeCargoCheckUsingCheckArgs(target);
+        });
+    }
+
+    public registerCommandInvokingCargoClippyUsingClippyArgs(commandName: string): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            this.cargoManager.invokeCargoClippyUsingClippyArgs();
+        });
+    }
+
+    public registerCommandHelpingCreateProject(commandName: string, isBin: boolean): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            const cwd = vscode.workspace.rootPath;
+
+            if (!cwd) {
+                vscode.window.showErrorMessage('Current document not in the workspace');
+
+                return;
+            }
+
+            const projectType = isBin ? 'executable' : 'library';
+            const placeHolder = `Enter ${projectType} project name`;
+
+            vscode.window.showInputBox({ placeHolder: placeHolder }).then((name: string) => {
+                if (!name || name.length === 0) {
+                    return;
+                }
+
+                this.cargoManager.invokeCargoNew(name, isBin, cwd);
+            });
+        });
+    }
+
+    public registerCommandInvokingCargoBuildUsingBuildArgs(commandName: string, buildType: BuildType): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            this.cargoManager.invokeCargoBuildUsingBuildArgs(buildType);
+        });
+    }
+
+    public registerCommandInvokingCargoRunUsingRunArgs(commandName: string, buildType: BuildType): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            this.cargoManager.invokeCargoRunUsingRunArgs(buildType);
+        });
+    }
+
+    public registerCommandInvokingCargoTestUsingTestArgs(commandName: string, buildType: BuildType): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            this.cargoManager.invokeCargoTestUsingTestArgs(buildType);
+        });
+    }
+
+    public registerCommandInvokingCargoWithArgs(commandName: string, ...args: string[]): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            this.cargoManager.invokeCargoWithArgs(args);
+        });
+    }
+
+    public registerCommandInvokingCargoBuildForExample(commandName: string, release: boolean): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            const buildType = release ? BuildType.Release : BuildType.Debug;
+
+            this.cargoManager.invokeCargoBuildForExample(buildType);
+        });
+    }
+
+    public registerCommandInvokingCargoRunForExample(commandName: string, release: boolean): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            const buildType = release ? BuildType.Release : BuildType.Debug;
+
+            this.cargoManager.invokeCargoRunForExample(buildType);
+        });
+    }
+
+    public registerCommandStoppingCargoTask(commandName: string): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            this.cargoManager.stopTask();
+        });
+    }
+}
+
+function getConfiguration(): vscode.WorkspaceConfiguration {
+    return vscode.workspace.getConfiguration('rust');
 }
