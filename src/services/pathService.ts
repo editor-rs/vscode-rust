@@ -51,20 +51,20 @@ export default class PathService {
     }
 
     public static cwd(): Promise<string|Error> {
-        if (vscode.window.activeTextEditor === null) {
+        if (!vscode.window.activeTextEditor) {
             return Promise.resolve(new Error('No active document'));
-        } else {
-            const fileName = vscode.window.activeTextEditor.document.fileName;
-            if (!fileName.startsWith(vscode.workspace.rootPath)) {
-                return Promise.resolve(new Error('Current document not in the workspace'));
-            }
-            return findUp('Cargo.toml', {cwd: path.dirname(fileName)}).then((value: string) => {
-                if (value === null) {
-                    return new Error('There is no Cargo.toml near active document');
-                } else {
-                    return path.dirname(value);
-                }
-            });
         }
+
+        const fileName = vscode.window.activeTextEditor.document.fileName;
+        if (!fileName.startsWith(vscode.workspace.rootPath)) {
+            return Promise.resolve(new Error('Current document not in the workspace'));
+        }
+        return findUp('Cargo.toml', {cwd: path.dirname(fileName)}).then((value: string) => {
+            if (value === null) {
+                return new Error('There is no Cargo.toml near active document');
+            } else {
+                return path.dirname(value);
+            }
+        });
     }
 }

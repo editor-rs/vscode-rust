@@ -549,30 +549,30 @@ class CargoManager {
     }
 
     private runCargo(args: string[], force = false): void {
-        this.diagnostics.clear();
-
-        if (force && this.currentTask) {
-            this.currentTask.kill().then(() => {
-                this.runCargo(args, force);
-            });
-
-            return;
-        } else if (this.currentTask) {
-            return;
-        }
-
-        this.currentTask = new CargoTask();
-
-        {
-            const configuration = getConfiguration();
-
-            if (configuration['showOutput']) {
-                this.channel.show();
-            }
-        }
-
         PathService.cwd().then((value: string | Error) => {
             if (typeof value === 'string') {
+                if (force && this.currentTask) {
+                    this.currentTask.kill().then(() => {
+                        this.runCargo(args, force);
+                    });
+
+                    return;
+                } else if (this.currentTask) {
+                    return;
+                }
+
+                this.diagnostics.clear();
+
+                this.currentTask = new CargoTask();
+
+                {
+                    const configuration = getConfiguration();
+
+                    if (configuration['showOutput']) {
+                        this.channel.show();
+                    }
+                }
+
                 this.showSpinner();
 
                 const cwd = value;
