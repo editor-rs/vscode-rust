@@ -149,11 +149,11 @@ export default class SuggestService {
         this.racerDaemon = null;
         this.providers.forEach(disposable => disposable.dispose());
         this.providers = [];
-        if (!error) {
+        if (error === 0) {
             this.statusBarItem.showTurnedOff();
             return;
         }
-        if (error.code === 'ENOENT') {
+        if (error != null && error.code === 'ENOENT') {
             this.statusBarItem.showNotFound();
         } else {
             this.statusBarItem.showCrashed();
