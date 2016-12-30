@@ -8,13 +8,14 @@ import StatusBarService from './services/statusBarService';
 import SuggestService from './services/suggestService';
 import PathService from './services/pathService';
 import {CommandService} from './services/commandService';
+import {ChildLogger, RootLogger} from './logging/mod';
 import WorkspaceSymbolService from './services/workspaceSymbolService';
 import DocumentSymbolService from './services/documentSymbolService';
 import {Installator as MissingToolsInstallator} from './installTools';
 
-function initializeSuggestService(ctx: vscode.ExtensionContext): void {
+function initializeSuggestService(ctx: vscode.ExtensionContext, logger: ChildLogger): void {
     // Initialize suggestion service
-    let suggestService = new SuggestService();
+    let suggestService = new SuggestService(logger);
 
     // Set path to Rust language sources
     let rustSrcPath = PathService.getRustLangSrcPath();
@@ -49,7 +50,13 @@ function initializeSuggestService(ctx: vscode.ExtensionContext): void {
 }
 
 export function activate(ctx: vscode.ExtensionContext): void {
-    initializeSuggestService(ctx);
+    const logger = new RootLogger('');
+
+    logger.setLogFunction((message: string) => {
+        console.log(message);
+    });
+
+    initializeSuggestService(ctx, logger.createChildLogger('Suggest Service: '));
 
     // Initialize format service
     let formatService = new FormatService();

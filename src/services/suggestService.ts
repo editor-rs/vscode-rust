@@ -8,6 +8,7 @@ import * as fs from 'fs';
 import * as vscode from 'vscode';
 import * as tmp from 'tmp';
 
+import {ChildLogger} from '../logging/mod';
 import PathService from './pathService';
 import FilterService from './filterService';
 
@@ -50,6 +51,8 @@ class StatusBarItem {
 }
 
 export default class SuggestService {
+    private logger: ChildLogger;
+
     private racerDaemon: cp.ChildProcess;
     private commandCallbacks: ((lines: string[]) => void)[];
     private linesBuffer: string[];
@@ -82,9 +85,13 @@ export default class SuggestService {
     };
     private statusBarItem: StatusBarItem;
 
-    constructor() {
+    constructor(logger: ChildLogger) {
+        this.logger = logger;
+
         this.listeners = [];
+
         this.statusBarItem = new StatusBarItem();
+
         let tmpFile = tmp.fileSync();
         this.tmpFile = tmpFile.name;
     }
@@ -96,6 +103,8 @@ export default class SuggestService {
     }
 
     public start(): vscode.Disposable {
+        this.logger.debug('start');
+
         this.commandCallbacks = [];
         this.linesBuffer = [];
         this.dataBuffer = '';
@@ -131,12 +140,16 @@ export default class SuggestService {
     }
 
     public stop(): void {
+        this.logger.debug('stop');
+
         this.stopDaemon(0);
         this.stopListeners();
         this.clearCommandCallbacks();
     }
 
     public restart(): void {
+        this.logger.debug('restart');
+
         this.stop();
         this.start();
     }
