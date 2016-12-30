@@ -184,7 +184,7 @@ class CargoTask {
     public kill(): Thenable<any> {
         return new Promise(resolve => {
             if (!this.interrupted && this.process) {
-                kill(this.process.pid, 'SIGINT', resolve);
+                kill(this.process.pid, 'SIGTERM', resolve);
 
                 this.interrupted = true;
             }
