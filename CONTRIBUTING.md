@@ -37,3 +37,7 @@ Please follow the instructions:
 
 # Instruction to be done before submitting a pull question
 * Execute `npm run gulp` in the root directory of the extension to compile the code and to check for code style violation
+* Launch tests:
+  * Open the project in VSCode
+  * Switch to Debug
+  * Launch tests
