@@ -97,7 +97,6 @@ export default class PathService {
     public static cwd(): Promise<string> {
         return tryResolveCwdFromEditor()
             .catch(() => { return tryLastCwd(PathService.lastCwd); })
-            .catch(() => { return tryWorkspaceRootProject(); })
             .then((result) => {
                 if (result.indexOf(vscode.workspace.rootPath) >= 0) {
                     // Only directories that belong to the current workspace are remembered.
@@ -120,18 +119,6 @@ function tryResolveCwdFromEditor(): Promise<string> {
             return path.dirname(value);
         } else {
             throw new Error('No Cargo.toml in any parent directory of the currently active editor.');
-        }
-    });
-}
-
-function tryWorkspaceRootProject(): Promise<string> {
-    const rootWSDir = vscode.workspace.rootPath;
-    const rootCargo = path.join(rootWSDir, 'Cargo.toml');
-    return pathExists(rootCargo).then(rootCargoExists => {
-        if (rootCargoExists) {
-            return rootWSDir;
-        } else {
-            throw new Error('No Cargo.toml in workspace root directory.');
         }
     });
 }
