@@ -549,107 +549,105 @@ class CargoManager {
     }
 
     private runCargo(args: string[], force = false): void {
-        PathService.cwd().then((value: string | Error) => {
-            if (typeof value === 'string') {
-                if (force && this.currentTask) {
-                    this.currentTask.kill().then(() => {
-                        this.runCargo(args, force);
-                    });
+        PathService.cwd().then((value: string) => {
+            if (force && this.currentTask) {
+                this.currentTask.kill().then(() => {
+                    this.runCargo(args, force);
+                });
 
-                    return;
-                } else if (this.currentTask) {
-                    return;
-                }
-
-                this.diagnostics.clear();
-
-                this.currentTask = new CargoTask();
-
-                {
-                    const configuration = getConfiguration();
-
-                    if (configuration['showOutput']) {
-                        this.channel.show();
-                    }
-                }
-
-                this.showSpinner();
-
-                const cwd = value;
-
-                let startTime: number;
-
-                const onStart = () => {
-                    startTime = Date.now();
-
-                    this.channel.clear();
-                    this.channel.append(`Started cargo ${args.join(' ')}\n`);
-                };
-
-                const errors: RustError[] = [];
-
-                const onStdoutLine = (line: string) => {
-                    if (line.startsWith('{')) {
-                        const newErrors: RustError[] = [];
-
-                        if (this.parseJsonLine(newErrors, line)) {
-                            /* tslint:disable:max-line-length */
-                            // Print any errors as best we can match to Rust's format.
-                            // TODO: Add support for child errors/text highlights.
-                            // TODO: The following line will currently be printed fine, but the two lines after will not.
-                            // src\main.rs:5:5: 5:8 error: expected one of `!`, `.`, `::`, `;`, `?`, `{`, `}`, or an operator, found `let`
-                            // src\main.rs:5     let mut a = 4;
-                            //                   ^~~
-                            /* tslint:enable:max-line-length */
-                            for (const error of newErrors) {
-                                this.channel.append(`${error.filename}:${error.startLine}:${error.startCharacter}:` +
-                                    ` ${error.severity}: ${error.message}\n`);
-                            }
-
-                            errors.push(...newErrors);
-                            this.updateDiagnostics(cwd, errors);
-                        }
-                    } else {
-                        this.channel.append(`${line}\n`);
-                    }
-                };
-
-                const onStderrLine = (line: string) => {
-                    this.channel.append(`${line}\n`);
-                };
-
-                const onGracefullyEnded = (exitCode: ExitCode) => {
-                    this.hideSpinner();
-
-                    this.currentTask = null;
-
-                    const endTime = Date.now();
-
-                    this.channel.append(`Completed with code ${exitCode}\n`);
-                    this.channel.append(`It took approximately ${(endTime - startTime) / 1000} seconds\n`);
-                };
-
-                const onUnexpectedlyEnded = (error?: Error) => {
-                    this.hideSpinner();
-
-                    this.currentTask = null;
-
-                    // No error means the task has been interrupted
-                    if (!error) {
-                        return;
-                    }
-
-                    if (error.message !== 'ENOENT') {
-                        return;
-                    }
-
-                    vscode.window.showInformationMessage('The "cargo" command is not available. Make sure it is installed.');
-                };
-
-                this.currentTask.execute(args, cwd, onStart, onStdoutLine, onStderrLine).then(onGracefullyEnded, onUnexpectedlyEnded);
-            } else {
-                vscode.window.showErrorMessage(value.message);
+                return;
+            } else if (this.currentTask) {
+                return;
             }
+
+            this.diagnostics.clear();
+
+            this.currentTask = new CargoTask();
+
+            {
+                const configuration = getConfiguration();
+
+                if (configuration['showOutput']) {
+                    this.channel.show();
+                }
+            }
+
+            this.showSpinner();
+
+            const cwd = value;
+
+            let startTime: number;
+
+            const onStart = () => {
+                startTime = Date.now();
+
+                this.channel.clear();
+                this.channel.append(`Started cargo ${args.join(' ')}\n`);
+            };
+
+            const errors: RustError[] = [];
+
+            const onStdoutLine = (line: string) => {
+                if (line.startsWith('{')) {
+                    const newErrors: RustError[] = [];
+
+                    if (this.parseJsonLine(newErrors, line)) {
+                        /* tslint:disable:max-line-length */
+                        // Print any errors as best we can match to Rust's format.
+                        // TODO: Add support for child errors/text highlights.
+                        // TODO: The following line will currently be printed fine, but the two lines after will not.
+                        // src\main.rs:5:5: 5:8 error: expected one of `!`, `.`, `::`, `;`, `?`, `{`, `}`, or an operator, found `let`
+                        // src\main.rs:5     let mut a = 4;
+                        //                   ^~~
+                        /* tslint:enable:max-line-length */
+                        for (const error of newErrors) {
+                            this.channel.append(`${error.filename}:${error.startLine}:${error.startCharacter}:` +
+                                ` ${error.severity}: ${error.message}\n`);
+                        }
+
+                        errors.push(...newErrors);
+                        this.updateDiagnostics(cwd, errors);
+                    }
+                } else {
+                    this.channel.append(`${line}\n`);
+                }
+            };
+
+            const onStderrLine = (line: string) => {
+                this.channel.append(`${line}\n`);
+            };
+
+            const onGracefullyEnded = (exitCode: ExitCode) => {
+                this.hideSpinner();
+
+                this.currentTask = null;
+
+                const endTime = Date.now();
+
+                this.channel.append(`Completed with code ${exitCode}\n`);
+                this.channel.append(`It took approximately ${(endTime - startTime) / 1000} seconds\n`);
+            };
+
+            const onUnexpectedlyEnded = (error?: Error) => {
+                this.hideSpinner();
+
+                this.currentTask = null;
+
+                // No error means the task has been interrupted
+                if (!error) {
+                    return;
+                }
+
+                if (error.message !== 'ENOENT') {
+                    return;
+                }
+
+                vscode.window.showInformationMessage('The "cargo" command is not available. Make sure it is installed.');
+            };
+
+            this.currentTask.execute(args, cwd, onStart, onStdoutLine, onStderrLine).then(onGracefullyEnded, onUnexpectedlyEnded);
+        }).catch((error) => {
+            vscode.window.showErrorMessage(error.message);
         });
     }
 
