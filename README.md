@@ -1,8 +1,15 @@
 [![Build Status](https://api.travis-ci.org/KalitaAlexey/vscode-rust.svg)](https://travis-ci.org/KalitaAlexey/vscode-rust)
+[![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/vscode-rust/Lobby)
 
-# Rust for Visual Studio Code (Latest: 0.1.3)
+# Rust for Visual Studio Code (Latest: 0.2.3)
+
+**0.2.0** introduces breaking changes.
+
+On update please look at the change log.
 
 [Changelog](CHANGELOG.md)
+
+[Contributing](CONTRIBUTING.md)
 
 [Roadmap](ROADMAP.md)
 
@@ -14,7 +21,6 @@ This extension adds advanced language support for the Rust language to VS Code, 
 - Format (using `rustfmt`)
 - Linter. Linting can be done via:
 	- `check`. This is the default. Runs rust compiler but skips codegen pass.
-	- `check-lib`. As above, but is limited only to library if project has library + multiple binaries
 	- `clippy` if `cargo-clippy` is installed
 	- `build`
 - Cargo tasks (Open Command Pallete and they will be there)
@@ -81,9 +87,6 @@ code .
 
 You can now go to the Debug viewlet and select `Launch Extension` then hit run (`F5`).
 If you make edits in the extension `.ts` files, just reload (`cmd-r`) the `[Extension Development Host]` instance of Code to load in the new extension code.  The debugging instance will automatically reattach.
-
-## Contribution
-Before commit, please run `npm run gulp`.
 
 ## License
 [MIT](LICENSE)

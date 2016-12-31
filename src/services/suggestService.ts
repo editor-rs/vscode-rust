@@ -8,6 +8,7 @@ import * as fs from 'fs';
 import * as vscode from 'vscode';
 import * as tmp from 'tmp';
 
+import {ChildLogger} from '../logging/mod';
 import PathService from './pathService';
 import FilterService from './filterService';
 
@@ -50,6 +51,8 @@ class StatusBarItem {
 }
 
 export default class SuggestService {
+    private logger: ChildLogger;
+
     private racerDaemon: cp.ChildProcess;
     private commandCallbacks: ((lines: string[]) => void)[];
     private linesBuffer: string[];
@@ -82,9 +85,13 @@ export default class SuggestService {
     };
     private statusBarItem: StatusBarItem;
 
-    constructor() {
+    constructor(logger: ChildLogger) {
+        this.logger = logger;
+
         this.listeners = [];
+
         this.statusBarItem = new StatusBarItem();
+
         let tmpFile = tmp.fileSync();
         this.tmpFile = tmpFile.name;
     }
@@ -96,6 +103,8 @@ export default class SuggestService {
     }
 
     public start(): vscode.Disposable {
+        this.logger.debug('start');
+
         this.commandCallbacks = [];
         this.linesBuffer = [];
         this.dataBuffer = '';
@@ -131,12 +140,16 @@ export default class SuggestService {
     }
 
     public stop(): void {
+        this.logger.debug('stop');
+
         this.stopDaemon(0);
         this.stopListeners();
         this.clearCommandCallbacks();
     }
 
     public restart(): void {
+        this.logger.debug('restart');
+
         this.stop();
         this.start();
     }
@@ -218,25 +231,21 @@ export default class SuggestService {
                 return null;
             }
 
+            let results = lines.slice(1).map(x => x.split('\t'));
             let result =
                 isFunction
-                ? lines.slice(1).find(x => x.split('\t')[6] === 'Function')
-                : lines[1];
-
-            let parts = result.split('\t');
-            let match = parts[2];
-            let type = parts[6];
-            let definition = type === 'Module' ? 'module ' + match : parts[7];
-            let docs = JSON.parse(parts[8].replace(/\\'/g, "'")).split('\n');
+                    ? results.find(parts => parts[2].startsWith(word + '(') && parts[6] === 'Function')
+                    : results.find(parts => parts[2] === word);
 
             // We actually found a completion instead of a definition, so we won't show the returned info.
-            if (type === 'Function') {
-                if (!match.startsWith(word + '(')) {
-                    return null;
-                }
-            } else if (match !== word) {
+            if (result == null) {
                 return null;
             }
+
+            let match = result[2];
+            let type = result[6];
+            let definition = type === 'Module' ? 'module ' + match : result[7];
+            let docs = JSON.parse(result[8].replace(/\\'/g, "'")).split('\n');
 
             let bracketIndex = definition.indexOf('{');
             if (bracketIndex !== -1) {
@@ -281,7 +290,9 @@ export default class SuggestService {
                 }
 
                 if (codeBlock) {
-                    currentBlock.push(docLine.slice(extraIndent));
+                    if (!docLine.trim().startsWith('# ')) {
+                        currentBlock.push(docLine.slice(extraIndent));
+                    }
                     continue;
                 }
 

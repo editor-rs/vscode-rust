@@ -7,14 +7,15 @@ import FilterService from './services/filterService';
 import StatusBarService from './services/statusBarService';
 import SuggestService from './services/suggestService';
 import PathService from './services/pathService';
-import {BuildType, CheckTarget, CommandService} from './services/commandService';
+import {CommandService} from './services/commandService';
+import {ChildLogger, RootLogger} from './logging/mod';
 import WorkspaceSymbolService from './services/workspaceSymbolService';
 import DocumentSymbolService from './services/documentSymbolService';
 import {Installator as MissingToolsInstallator} from './installTools';
 
-function initializeSuggestService(ctx: vscode.ExtensionContext): void {
+function initializeSuggestService(ctx: vscode.ExtensionContext, logger: ChildLogger): void {
     // Initialize suggestion service
-    let suggestService = new SuggestService();
+    let suggestService = new SuggestService(logger);
 
     // Set path to Rust language sources
     let rustSrcPath = PathService.getRustLangSrcPath();
@@ -49,7 +50,13 @@ function initializeSuggestService(ctx: vscode.ExtensionContext): void {
 }
 
 export function activate(ctx: vscode.ExtensionContext): void {
-    initializeSuggestService(ctx);
+    const logger = new RootLogger('');
+
+    logger.setLogFunction((message: string) => {
+        console.log(message);
+    });
+
+    initializeSuggestService(ctx, logger.createChildLogger('Suggest Service: '));
 
     // Initialize format service
     let formatService = new FormatService();
@@ -92,26 +99,35 @@ export function activate(ctx: vscode.ExtensionContext): void {
             });
         }
 
-        if (rustConfig['checkOnSave']) {
-            formatPromise.then(() => {
-                switch (rustConfig['checkWith']) {
-                    case 'clippy':
-                        vscode.commands.executeCommand('rust.cargo.clippy');
-                        break;
-                    case 'build':
-                        vscode.commands.executeCommand('rust.cargo.build.debug');
-                        break;
-                    case 'check-lib':
-                        vscode.commands.executeCommand('rust.cargo.check.lib');
-                        break;
-                    case 'test':
-                        vscode.commands.executeCommand('rust.cargo.test.debug');
-                        break;
-                    default:
-                        vscode.commands.executeCommand('rust.cargo.check');
-                }
-            });
+        const actionOnSave: string | null = rustConfig['actionOnSave'];
+
+        if (actionOnSave === null) {
+            return;
         }
+
+        let command: string;
+
+        switch (actionOnSave) {
+            case 'build':
+                command = 'rust.cargo.build.default';
+            break;
+            case 'check':
+                command = 'rust.cargo.check.default';
+            break;
+            case 'clippy':
+                command = 'rust.cargo.clippy.default';
+            break;
+            case 'run':
+                command = 'rust.cargo.run.default';
+            break;
+            case 'test':
+                command = 'rust.cargo.test.default';
+            break;
+        }
+
+        formatPromise.then(() => {
+            vscode.commands.executeCommand(command);
+        });
     }));
 
     // Watch for configuration changes for ENV
@@ -128,37 +144,50 @@ export function activate(ctx: vscode.ExtensionContext): void {
     }
 
     // Commands
+    const commandService = new CommandService();
+
     // Cargo new
-    ctx.subscriptions.push(CommandService.createProjectCommand('rust.cargo.new.bin', true));
-    ctx.subscriptions.push(CommandService.createProjectCommand('rust.cargo.new.lib', false));
+    ctx.subscriptions.push(commandService.registerCommandHelpingCreateProject('rust.cargo.new.bin', true));
+
+    ctx.subscriptions.push(commandService.registerCommandHelpingCreateProject('rust.cargo.new.lib', false));
+
     // Cargo build
-    ctx.subscriptions.push(CommandService.createBuildCommand('rust.cargo.build.debug', BuildType.Debug));
-    ctx.subscriptions.push(CommandService.createBuildCommand('rust.cargo.build.release', BuildType.Release));
-    ctx.subscriptions.push(CommandService.buildExampleCommand('rust.cargo.build.example.debug', false));
-    ctx.subscriptions.push(CommandService.buildExampleCommand('rust.cargo.build.example.release', true));
-    ctx.subscriptions.push(CommandService.runExampleCommand('rust.cargo.run.example.debug', false));
-    ctx.subscriptions.push(CommandService.runExampleCommand('rust.cargo.run.example.release', true));
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoBuildUsingBuildArgs('rust.cargo.build.default'));
+
+    ctx.subscriptions.push(commandService.registerCommandHelpingChooseArgsAndInvokingCargoBuild('rust.cargo.build.custom'));
+
     // Cargo run
-    ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.run.debug', 'run'));
-    ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.run.release', 'run', '--release'));
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoRunUsingRunArgs('rust.cargo.run.default'));
+
+    ctx.subscriptions.push(commandService.registerCommandHelpingChooseArgsAndInvokingCargoRun('rust.cargo.run.custom'));
+
     // Cargo test
-    ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.test.debug', 'test'));
-    ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.test.release', 'test', '--release'));
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoTestUsingTestArgs('rust.cargo.test.default'));
+
+    ctx.subscriptions.push(commandService.registerCommandHelpingChooseArgsAndInvokingCargoTest('rust.cargo.test.custom'));
+
     // Cargo bench
-    ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.bench', 'bench'));
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoWithArgs('rust.cargo.bench', 'bench'));
+
     // Cargo doc
-    ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.doc', 'doc'));
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoWithArgs('rust.cargo.doc', 'doc'));
+
     // Cargo update
-    ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.update', 'update'));
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoWithArgs('rust.cargo.update', 'update'));
+
     // Cargo clean
-    ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.clean', 'clean'));
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoWithArgs('rust.cargo.clean', 'clean'));
+
     // Cargo check
-    ctx.subscriptions.push(CommandService.checkCommand(CheckTarget.Application));
-    // Cargo check lib
-    ctx.subscriptions.push(CommandService.checkCommand(CheckTarget.Library));
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoCheckUsingCheckArgs('rust.cargo.check.default'));
+
+    ctx.subscriptions.push(commandService.registerCommandHelpingChooseArgsAndInvokingCargoCheck('rust.cargo.check.custom'));
+
     // Cargo clippy
-    ctx.subscriptions.push(CommandService.formatCommand('rust.cargo.clippy', 'clippy'));
+    ctx.subscriptions.push(commandService.registerCommandInvokingCargoClippyUsingClippyArgs('rust.cargo.clippy.default'));
+
+    ctx.subscriptions.push(commandService.registerCommandHelpingChooseArgsAndInvokingCargoClippy('rust.cargo.clippy.custom'));
 
     // Cargo terminate
-    ctx.subscriptions.push(CommandService.stopCommand('rust.cargo.terminate'));
+    ctx.subscriptions.push(commandService.registerCommandStoppingCargoTask('rust.cargo.terminate'));
 }

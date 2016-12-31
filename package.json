@@ -2,7 +2,7 @@
   "name": "vscode-rust",
   "displayName": "Rust",
   "description": "Rust language integration for VSCode",
-  "version": "0.1.3",
+  "version": "0.2.3",
   "publisher": "kalitaalexey",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -27,24 +27,21 @@
     "onLanguage:rust",
     "onCommand:rust.cargo.new.bin",
     "onCommand:rust.cargo.new.lib",
-    "onCommand:rust.cargo.build.example.debug",
-    "onCommand:rust.cargo.build.example.release",
-    "onCommand:rust.cargo.run.example.debug",
-    "onCommand:rust.cargo.run.example.release",
-    "onCommand:rust.cargo.build.debug",
-    "onCommand:rust.cargo.build.release",
-    "onCommand:rust.cargo.run.debug",
-    "onCommand:rust.cargo.run.release",
+    "onCommand:rust.cargo.build.default",
+    "onCommand:rust.cargo.build.custom",
+    "onCommand:rust.cargo.clippy.default",
+    "onCommand:rust.cargo.clippy.custom",
+    "onCommand:rust.cargo.run.default",
+    "onCommand:rust.cargo.run.custom",
     "onCommand:rust.cargo.doc",
-    "onCommand:rust.cargo.test.debug",
-    "onCommand:rust.cargo.test.release",
+    "onCommand:rust.cargo.test.default",
+    "onCommand:rust.cargo.test.custom",
     "onCommand:rust.cargo.bench",
     "onCommand:rust.cargo.update",
     "onCommand:rust.cargo.clean",
-    "onCommand:rust.cargo.check",
-    "onCommand:rust.cargo.check.lib",
-    "onCommand:rust.cargo.terminate",
-    "onCommand:rust.cargo.clippy"
+    "onCommand:rust.cargo.check.default",
+    "onCommand:rust.cargo.check.custom",
+    "onCommand:rust.cargo.terminate"
   ],
   "main": "./out/src/extension",
   "contributes": {
@@ -77,44 +74,24 @@
         "description": "Creating a new library project"
       },
       {
-        "command": "rust.cargo.build.example.debug",
-        "title": "Cargo: Build example, Debug",
-        "description": "Compile the current example"
-      },
-      {
-        "command": "rust.cargo.build.example.release",
-        "title": "Cargo: Build example, Release",
-        "description": "Compile the current example with \"--release\" flag"
-      },
-      {
-        "command": "rust.cargo.run.example.debug",
-        "title": "Cargo: Run example, Debug",
-        "description": "Compile the current example and execute it"
-      },
-      {
-        "command": "rust.cargo.run.example.release",
-        "title": "Cargo: Run example, Release",
-        "description": "Compile the current example with \"--release\" flag and execute it"
-      },
-      {
-        "command": "rust.cargo.build.debug",
-        "title": "Cargo: Build Debug",
+        "command": "rust.cargo.build.default",
+        "title": "Cargo: Build",
         "description": "Compile the current project"
       },
       {
-        "command": "rust.cargo.build.release",
-        "title": "Cargo: Build Release",
-        "description": "Compile the current project with \"--release\" flag"
+        "command": "rust.cargo.build.custom",
+        "title": "Cargo: Build using custom configuration",
+        "description": "Compile the current project using custom configuration"
       },
       {
-        "command": "rust.cargo.run.debug",
-        "title": "Cargo: Run Debug",
+        "command": "rust.cargo.run.default",
+        "title": "Cargo: Run",
         "description": "Build and execute src/main.rs"
       },
       {
-        "command": "rust.cargo.run.release",
-        "title": "Cargo: Run Release",
-        "description": "Build with \"--release\" flag and execute src/main.rs"
+        "command": "rust.cargo.run.custom",
+        "title": "Cargo: Run using custom configuration",
+        "description": "Build and execute src/main.rs using custom configuration"
       },
       {
         "command": "rust.cargo.doc",
@@ -122,14 +99,14 @@
         "description": "Build this project's and its dependencies' documentation"
       },
       {
-        "command": "rust.cargo.test.debug",
-        "title": "Cargo: Test Debug",
+        "command": "rust.cargo.test.default",
+        "title": "Cargo: Test",
         "description": "Run the tests"
       },
       {
-        "command": "rust.cargo.test.release",
-        "title": "Cargo: Test Release",
-        "description": "Run the tests with --release"
+        "command": "rust.cargo.test.custom",
+        "title": "Cargo: Test using custom configuration",
+        "description": "Run the tests using custom configuration"
       },
       {
         "command": "rust.cargo.bench",
@@ -147,19 +124,24 @@
         "description": "Remove the target directory"
       },
       {
-        "command": "rust.cargo.check",
+        "command": "rust.cargo.check.default",
         "title": "Cargo: Check",
         "description": "Check the project for warnings and errors"
       },
       {
-        "command": "rust.cargo.check.lib",
-        "title": "Cargo: Check Library",
-        "description": "Check the main library of the project for warnings and errors"
+        "command": "rust.cargo.check.custom",
+        "title": "Cargo: Check using custom configuration",
+        "description": "Check the main library of the project for warnings and errors using custom configuration"
       },
       {
-        "command": "rust.cargo.clippy",
+        "command": "rust.cargo.clippy.default",
         "title": "Cargo: Clippy",
         "description": "Check project with clippy."
+      },
+      {
+        "command": "rust.cargo.clippy.custom",
+        "title": "Cargo: Clippy using custom configuration",
+        "description": "Check project with clippy using custom configuration"
       },
       {
         "command": "rust.cargo.terminate",
@@ -239,52 +221,169 @@
           "default": false,
           "description": "Turn on/off autoformatting file on save"
         },
-        "rust.checkOnSave": {
-          "type": "boolean",
-          "default": false,
-          "description": "Turn on/off autochecking file on save using cargo check"
-        },
-        "rust.checkWith": {
+        "rust.actionOnSave": {
           "type": "string",
-          "default": "check",
-          "description": "Choose between check, check-lib, clippy, build and test to lint"
+          "default": null,
+          "enum": [
+            "build",
+            "check",
+            "clippy",
+            "run",
+            "test",
+            null
+          ]
         },
-        "rust.features": {
+        "rust.buildArgs": {
           "type": "array",
           "default": [],
-          "description": "List of feature flags passed to cargo"
+          "description": "Arguments which is passed to cargo build"
+        },
+        "rust.checkArgs": {
+          "type": "array",
+          "default": [],
+          "description": "Arguments which is passed to cargo check"
+        },
+        "rust.clippyArgs": {
+          "type": "array",
+          "default": [],
+          "description": "Arguments which is passed to cargo clippy"
+        },
+        "rust.runArgs": {
+          "type": "array",
+          "default": [],
+          "description": "Arguments which is passed to cargo run"
+        },
+        "rust.testArgs": {
+          "type": "array",
+          "default": [],
+          "description": "Arguments which is passed to cargo test"
+        },
+        "rust.customBuildConfigurations": {
+          "default": [],
+          "description": "Custom configurations for cargo build",
+          "items": {
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": ["title", "args"]
+          },
+          "type": "array"
+        },
+        "rust.customCheckConfigurations": {
+          "default": [],
+          "description": "Custom configurations for cargo check",
+          "items": {
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": ["title", "args"]
+          },
+          "type": "array"
+        },
+        "rust.customClippyConfigurations": {
+          "default": [],
+          "description": "Custom configurations for cargo clippy",
+          "items": {
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": ["title", "args"]
+          },
+          "type": "array"
+        },
+        "rust.customRunConfigurations": {
+          "default": [],
+          "description": "Custom configurations for cargo run",
+          "items": {
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": ["title", "args"]
+          },
+          "type": "array"
+        },
+        "rust.customTestConfigurations": {
+          "default": [],
+          "description": "Custom configurations for cargo test",
+          "items": {
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": ["title", "args"]
+          },
+          "type": "array"
         }
       }
     },
     "keybindings": [
       {
         "key": "ctrl+shift+b",
-        "command": "rust.cargo.build.debug",
+        "command": "rust.cargo.build.default",
         "when": "editorLangId == 'rust'"
       },
       {
         "key": "ctrl+shift+t",
-        "command": "rust.cargo.test.debug",
+        "command": "rust.cargo.test.default",
         "when": "editorLangId == 'rust'"
       },
       {
         "key": "ctrl+shift+r",
-        "command": "rust.cargo.run.debug",
+        "command": "rust.cargo.run.default",
         "when": "editorLangId == 'rust'"
       },
       {
         "key": "ctrl+shift+alt+b",
-        "command": "rust.cargo.build.release",
+        "command": "rust.cargo.build.custom",
         "when": "editorLangId == 'rust'"
       },
       {
         "key": "ctrl+shift+alt+t",
-        "command": "rust.cargo.test.release",
+        "command": "rust.cargo.test.custom",
         "when": "editorLangId == 'rust'"
       },
       {
         "key": "ctrl+shift+alt+r",
-        "command": "rust.cargo.run.release",
+        "command": "rust.cargo.run.custom",
         "when": "editorLangId == 'rust'"
       }
     ]
