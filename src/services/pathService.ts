@@ -50,20 +50,20 @@ export default class PathService {
         return cargoHomePath || process.env['CARGO_HOME'] || '';
     }
 
-    public static cwd(): Promise<string|Error> {
+    public static cwd(): Promise<string> {
         if (!vscode.window.activeTextEditor) {
-            return Promise.resolve(new Error('No active document'));
+            return Promise.reject(new Error('No active document'));
         }
 
         const fileName = vscode.window.activeTextEditor.document.fileName;
         if (!fileName.startsWith(vscode.workspace.rootPath)) {
-            return Promise.resolve(new Error('Current document not in the workspace'));
+            return Promise.reject(new Error('Current document not in the workspace'));
         }
         return findUp('Cargo.toml', {cwd: path.dirname(fileName)}).then((value: string) => {
             if (value === null) {
-                return new Error('There is no Cargo.toml near active document');
+                return Promise.reject(new Error('There is no Cargo.toml near active document'));
             } else {
-                return path.dirname(value);
+                return Promise.resolve(path.dirname(value));
             }
         });
     }
