@@ -12,6 +12,7 @@ import {ChildLogger, RootLogger} from './logging/mod';
 import WorkspaceSymbolService from './services/workspaceSymbolService';
 import DocumentSymbolService from './services/documentSymbolService';
 import {Installator as MissingToolsInstallator} from './installTools';
+import RustToolsService from './services/rustToolsService';
 
 function initializeSuggestService(ctx: vscode.ExtensionContext, logger: ChildLogger): void {
     // Initialize suggestion service
@@ -55,6 +56,9 @@ export function activate(ctx: vscode.ExtensionContext): void {
     logger.setLogFunction((message: string) => {
         console.log(message);
     });
+
+    let rustToolsService = new RustToolsService();
+    rustToolsService.showToolsStatusBar();
 
     initializeSuggestService(ctx, logger.createChildLogger('Suggest Service: '));
 
