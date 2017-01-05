@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1
+
+### Features
+
+* Added an output channel "Rust logging". Messages in the channel ease debugging
+
 ## 0.3.0
 
 ### Features
