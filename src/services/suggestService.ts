@@ -103,7 +103,9 @@ export default class SuggestService {
     }
 
     public start(): vscode.Disposable {
-        this.logger.debug('start');
+        const logger = this.logger.createChildLogger('start(): ');
+
+        logger.debug('enter');
 
         this.commandCallbacks = [];
         this.linesBuffer = [];
@@ -113,9 +115,12 @@ export default class SuggestService {
         this.providers = [];
 
         this.racerPath = PathService.getRacerPath();
+
+        logger.debug(`racerPath=${this.racerPath}`);
+
         this.statusBarItem.showTurnedOn();
         const cargoHomePath = PathService.getCargoHomePath();
-        const racerSpawnOptions: cp.SpawnOptions = { stdio: 'pipe' };
+        const racerSpawnOptions: cp.SpawnOptions = { stdio: 'pipe', shell: true };
         if (cargoHomePath !== '') {
             const racerEnv = Object.assign({}, process.env, {'CARGO_HOME': cargoHomePath});
             racerSpawnOptions.env = racerEnv;
@@ -131,7 +136,7 @@ export default class SuggestService {
 
         this.listeners.push(vscode.workspace.onDidChangeConfiguration(() => {
             let newPath = PathService.getRacerPath();
-            if (this.racerPath !== newPath) {
+             if (this.racerPath !== newPath) {
                 this.restart();
             }
         }));

@@ -8,9 +8,10 @@ import StatusBarService from './services/statusBarService';
 import SuggestService from './services/suggestService';
 import PathService from './services/pathService';
 import {CommandService} from './services/commandService';
-import {ChildLogger, RootLogger} from './logging/mod';
+import {ChildLogger} from './logging/mod';
 import WorkspaceSymbolService from './services/workspaceSymbolService';
 import DocumentSymbolService from './services/documentSymbolService';
+import LoggingManager from './services/logging_manager';
 import {Installator as MissingToolsInstallator} from './installTools';
 
 function initializeSuggestService(ctx: vscode.ExtensionContext, logger: ChildLogger): void {
@@ -50,13 +51,11 @@ function initializeSuggestService(ctx: vscode.ExtensionContext, logger: ChildLog
 }
 
 export function activate(ctx: vscode.ExtensionContext): void {
-    const logger = new RootLogger('');
+    const loggingManager = new LoggingManager();
 
-    logger.setLogFunction((message: string) => {
-        console.log(message);
-    });
+    const logger = loggingManager.getLogger();
 
-    initializeSuggestService(ctx, logger.createChildLogger('Suggest Service: '));
+    initializeSuggestService(ctx, logger.createChildLogger('SuggestService: '));
 
     // Initialize format service
     let formatService = new FormatService();
@@ -139,12 +138,12 @@ export function activate(ctx: vscode.ExtensionContext): void {
     }));
 
     {
-        let installator = new MissingToolsInstallator();
+        let installator = new MissingToolsInstallator(logger.createChildLogger('MissingToolsInstallator: '));
         installator.addStatusBarItemIfSomeToolsAreMissing();
     }
 
     // Commands
-    const commandService = new CommandService(logger.createChildLogger('Command Service: '));
+    const commandService = new CommandService(logger.createChildLogger('CommandService: '));
 
     // Cargo init
     ctx.subscriptions.push(commandService.registerCommandHelpingCreatePlayground('rust.cargo.new.playground'));

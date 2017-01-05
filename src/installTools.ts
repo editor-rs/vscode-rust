@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import fs = require('fs');
 import path = require('path');
+import {ChildLogger} from './logging/mod';
 import PathService from './services/pathService';
 import StatusBarService from './services/statusBarService';
 
@@ -11,23 +12,34 @@ let tools = {
 };
 
 export class Installator {
+    private logger: ChildLogger;
+
+    public constructor(logger: ChildLogger) {
+        this.logger = logger;
+    }
+
     public addStatusBarItemIfSomeToolsAreMissing(): void {
-        this.getMissingTools().then(missingTools => {
-            if (missingTools.length !== 0) {
-                this.addStatusBarItemWhichOffersToInstallMissingTools(missingTools);
-            }
-        });
+        const missingTools = this.getMissingTools();
+
+        if (missingTools.length === 0) {
+            return;
+        }
+
+        this.addStatusBarItemWhichOffersToInstallMissingTools(missingTools);
     }
 
     private addStatusBarItemWhichOffersToInstallMissingTools(missingTools: string[]): void {
         vscode.commands.registerCommand('rust.install_tools', () => this.offerToInstallMissingTools(missingTools));
+
         StatusBarService.showStatus('Rust Tools Missing', 'rust.install_tools', 'Missing Rust tools');
     }
 
     private offerToInstallMissingTools(missingTools: string[]): void {
         // Plurality is important. :')
         const group = missingTools.length > 1 ? 'them' : 'it';
+
         const message = `You are missing ${missingTools.join(', ')}. Would you like to install ${group}?`;
+
         const option = { title: 'Install' };
 
         vscode.window.showInformationMessage(message, option).then(selection => {
@@ -51,10 +63,16 @@ export class Installator {
         StatusBarService.hideStatus();
     }
 
-    private getMissingTools(): Promise<string[]> {
+    private getMissingTools(): string[] {
+        const logger = this.logger.createChildLogger('getMissingTools(): ');
+
+        const pathDirectories: string[] = (process.env.PATH || '').split(path.delimiter);
+
+        logger.debug(`pathDirectories=${JSON.stringify(pathDirectories)}`);
+
         const keys = Object.keys(tools);
 
-        const promises: Promise<string>[] = keys.map(tool => {
+        const missingTools: (string | null)[] = keys.map(tool => {
             // Check if the path exists as-is.
             let userPath = tools[tool];
             if (fs.existsSync(userPath)) {
@@ -69,18 +87,20 @@ export class Installator {
             }
 
             // Check if the tool exists on the PATH
-            let parts = (process.env.PATH || '').split(path.delimiter);
-            for (const part of parts) {
+            for (const part of pathDirectories) {
                 let binPath = path.join(part, userPath);
+
                 if (fs.existsSync(binPath)) {
                     return null;
                 }
             }
 
             // The tool wasn't found, we should install it
-            return Promise.resolve(tool);
-        }).filter(p => p !== null);
+            return tool;
+        }).filter(tool => tool !== null);
 
-        return Promise.all(promises);
+        logger.debug(`missingTools=${JSON.stringify(missingTools)}`);
+
+        return missingTools;
     }
 }
