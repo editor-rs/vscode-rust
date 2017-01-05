@@ -1,12 +1,32 @@
 # Changelog
 
+## 0.3.0
+
+### Features
+
+* Changed current working directory resolution strategy. Issue: [#36](https://github.com/KalitaAlexey/vscode-rust/issues/36)
+
+* Added ability to create a playground. Issue: [#32](https://github.com/KalitaAlexey/vscode-rust/issues/32)
+
+### Bug fixes
+
+* Fixed exception when a cargo command is executed if there is no opened document. Issue: [#29](https://github.com/KalitaAlexey/vscode-rust/issues/29)
+
+### Breaking changes
+
+* Removed all specific commands (Cargo Build: Release, Cargo Run: Release). Added ability to defined a custom configurations
+
+  For motivation look at [the issue #22](https://github.com/KalitaAlexey/vscode-rust/issues/22)
+
+* Made process killing use SIGTERM instead of SIGINT. Issue: [#23](https://github.com/KalitaAlexey/vscode-rust/issues/23)
+
 ## 0.2.3
 
 ### Bug fixes
 
 * `cargo clippy` outputs messages in JSON.
 
-### features
+### Features
 
 * Lines starting with "# " in code block in documentation isn't shown in hover. This is same how cargo doc renders code block.
 
