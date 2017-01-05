@@ -27,6 +27,7 @@
     "onLanguage:rust",
     "onCommand:rust.cargo.new.bin",
     "onCommand:rust.cargo.new.lib",
+    "onCommand:rust.cargo.new.playground",
     "onCommand:rust.cargo.build.default",
     "onCommand:rust.cargo.build.custom",
     "onCommand:rust.cargo.clippy.default",
@@ -72,6 +73,11 @@
         "command": "rust.cargo.new.lib",
         "title": "Cargo: Create new library project",
         "description": "Creating a new library project"
+      },
+      {
+        "command": "rust.cargo.new.playground",
+        "title": "Cargo: Create playground",
+        "description": "Creating a project in a temporary directory"
       },
       {
         "command": "rust.cargo.build.default",

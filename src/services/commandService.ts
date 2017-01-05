@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as readline from 'readline';
 import * as path from 'path';
+import * as tmp from 'tmp';
+import {ChildLogger} from '../logging/mod';
 import kill = require('tree-kill');
 import PathService from './pathService';
 
@@ -84,6 +86,11 @@ interface RustError {
 export enum BuildType {
     Debug,
     Release
+}
+
+enum CrateType {
+    Application,
+    Library
 }
 
 class ChannelWrapper {
@@ -269,6 +276,49 @@ class CargoManager {
     private currentTask: CargoTask;
     private statusBarItem: vscode.StatusBarItem;
     private spinnerUpdate: any;
+
+    public invokeCargoInit(crateType: CrateType, name: string, cwd: string): Thenable<void> {
+        const args = ['init', '--name', name];
+
+        switch (crateType) {
+            case CrateType.Application:
+                args.push('--bin');
+            break;
+
+            case CrateType.Library:
+                args.push('--lib');
+            break;
+
+            default:
+                throw new Error(`Unhandled crate type=${crateType}`);
+        }
+
+        this.currentTask = new CargoTask();
+
+        this.channel.clear();
+
+        {
+            const configuration = getConfiguration();
+
+            if (configuration['showOutput']) {
+                this.channel.show();
+            }
+        }
+
+        const onLine = (line: string) => {
+            this.channel.append(`${line}\n`);
+        };
+
+        const onStart = undefined;
+
+        const onStdoutLine = onLine;
+
+        const onStderrLine = onLine;
+
+        return this.currentTask.execute(args, cwd, onStart, onStdoutLine, onStderrLine).then(() => {
+            this.currentTask = null;
+        });
+    }
 
     public invokeCargoBuildWithArgs(additionalArgs: string[]): void {
         const argsBuilder = new CargoTaskArgs('build');
@@ -753,8 +803,18 @@ class CustomConfigurationManager {
 export class CommandService {
     private cargoManager: CargoManager;
 
-    public constructor() {
+    private logger: ChildLogger;
+
+    public constructor(logger: ChildLogger) {
         this.cargoManager = new CargoManager();
+
+        this.logger = logger;
+    }
+
+    public registerCommandHelpingCreatePlayground(commandName: string): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            this.helpCreatePlayground();
+        });
     }
 
     public registerCommandHelpingChooseArgsAndInvokingCargoCheck(commandName: string): vscode.Disposable {
@@ -859,6 +919,42 @@ export class CommandService {
     public registerCommandStoppingCargoTask(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
             this.cargoManager.stopTask();
+        });
+    }
+
+    private helpCreatePlayground(): void {
+        const logger = this.logger.createChildLogger('helpCreatePlayground: ');
+
+        const playgroundProjectTypes = ['application', 'library'];
+
+        vscode.window.showQuickPick(playgroundProjectTypes)
+        .then((playgroundProjectType: string | undefined) => {
+            if (playgroundProjectType === undefined) {
+                logger.debug('quick pick has been cancelled');
+
+                return;
+            }
+
+            tmp.dir((err, path) => {
+                if (err) {
+                    this.logger.error(`Temporary directory creation failed: ${err}`);
+
+                    vscode.window.showErrorMessage('Temporary directory creation failed');
+
+                    return;
+                }
+
+                const crateType = playgroundProjectType === 'application' ? CrateType.Application : CrateType.Library;
+
+                const name = `playground_${playgroundProjectType}`;
+
+                this.cargoManager.invokeCargoInit(crateType, name, path)
+                .then(() => {
+                    const uri = vscode.Uri.parse(path);
+
+                    vscode.commands.executeCommand('vscode.openFolder', uri);
+                });
+            });
         });
     }
 }

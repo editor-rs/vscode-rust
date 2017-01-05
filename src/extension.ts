@@ -144,7 +144,10 @@ export function activate(ctx: vscode.ExtensionContext): void {
     }
 
     // Commands
-    const commandService = new CommandService();
+    const commandService = new CommandService(logger.createChildLogger('Command Service: '));
+
+    // Cargo init
+    ctx.subscriptions.push(commandService.registerCommandHelpingCreatePlayground('rust.cargo.new.playground'));
 
     // Cargo new
     ctx.subscriptions.push(commandService.registerCommandHelpingCreateProject('rust.cargo.new.bin', true));
