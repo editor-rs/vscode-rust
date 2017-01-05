@@ -1,6 +1,14 @@
 There are several sections.
 Choose one of them and follow the instructions.
 
+# Open an issue
+Use this section if you want to open an issue describing a problem.
+
+Please follow the instructions:
+
+* Check that there is no issue describing the problem
+* Fill the issue
+
 # Fix an opened issue
 Use this section if you want to fix a problem or add a feature and there is an opened issue for that.
 
