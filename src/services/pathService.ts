@@ -1,4 +1,5 @@
 import vscode = require('vscode');
+import expandTilde = require('expand-tilde');
 import findUp = require('find-up');
 import * as cp from 'child_process';
 import * as fs from 'fs';
@@ -26,19 +27,15 @@ export default class PathService {
     }
 
     public static getRacerPath(): string {
-        const racerPath = vscode.workspace.getConfiguration('rust')['racerPath'];
-        return racerPath || 'racer';
+        return PathService.getPathFromConfiguration('racerPath', 'racer');
     }
 
     public static getRustfmtPath(): string {
-        const rusfmtPath = vscode.workspace.getConfiguration('rust')['rustfmtPath'];
-        return rusfmtPath || 'rustfmt';
+        return PathService.getPathFromConfiguration('rustfmtPath', 'rustfmt');
     }
 
     public static getRustsymPath(): string {
-        const rustsymPath = vscode.workspace.getConfiguration('rust')['rustsymPath'];
-
-        return rustsymPath || 'rustsym';
+        return PathService.getPathFromConfiguration('rustsymPath', 'rustsym');
     }
 
     public static getRustLangSrcPath(): string {
@@ -89,6 +86,18 @@ export default class PathService {
                 }
             });
         });
+    }
+
+    private static getPathFromConfiguration(propertyName: string, defaultValue: string): string {
+        const configuration = vscode.workspace.getConfiguration('rust');
+
+        const path: string | undefined = configuration[propertyName];
+
+        if (path === undefined) {
+            return defaultValue;
+        }
+
+        return expandTilde(path);
     }
 
     private static checkWorkspaceCanBeUsedAsCwd(): Promise<boolean> {

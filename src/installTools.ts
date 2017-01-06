@@ -76,6 +76,8 @@ export class Installator {
             // Check if the path exists as-is.
             let userPath = tools[tool];
             if (fs.existsSync(userPath)) {
+                logger.debug(`${tool}'s path=${userPath}`);
+
                 return null;
             }
 
