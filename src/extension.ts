@@ -25,7 +25,7 @@ function initializeSuggestService(ctx: vscode.ExtensionContext, logger: ChildLog
 
         ctx.subscriptions.push(suggestService.start());
     } else {
-        PathService.getRustcSysroot().then(sysroot => {
+        const onFulfilled = (sysroot: string) => {
             rustSrcPath = path.join(sysroot, 'lib', 'rustlib', 'src', 'rust', 'src');
             fs.access(rustSrcPath, err => {
                 if (!err) {
@@ -43,7 +43,11 @@ function initializeSuggestService(ctx: vscode.ExtensionContext, logger: ChildLog
                 }
                 ctx.subscriptions.push(suggestService.start());
             });
-        });
+        };
+        const onRejected = () => {
+            ctx.subscriptions.push(suggestService.start());
+        };
+        PathService.getRustcSysroot().then(onFulfilled, onRejected);
     }
 
     // Racer crash error

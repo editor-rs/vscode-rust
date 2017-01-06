@@ -7,16 +7,19 @@ import * as path from 'path';
 export default class PathService {
     private static previousCwd: string | undefined;
 
-    public static getRustcSysroot(): Thenable<string> {
+    public static getRustcSysroot(): Promise<string> {
         const options: cp.SpawnOptions = { cwd: process.cwd() };
         const spawnedProcess = cp.spawn('rustc', ['--print', 'sysroot'], options);
         return new Promise((resolve, reject) => {
+            spawnedProcess.on('error', () => {
+                reject();
+            });
             spawnedProcess.on('exit', code => {
                 if (code === 0) {
                     const sysroot = spawnedProcess.stdout.read().toString().trim();
                     resolve(sysroot);
                 } else {
-                    reject(code);
+                    reject();
                 }
             });
         });
