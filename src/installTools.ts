@@ -5,12 +5,6 @@ import {ChildLogger} from './logging/mod';
 import PathService from './services/pathService';
 import StatusBarService from './services/statusBarService';
 
-let tools = {
-    'racer': PathService.getRacerPath(),
-    'rustfmt': PathService.getRustfmtPath(),
-    'rustsym': PathService.getRustsymPath()
-};
-
 export class Installator {
     private logger: ChildLogger;
 
@@ -69,6 +63,14 @@ export class Installator {
         const pathDirectories: string[] = (process.env.PATH || '').split(path.delimiter);
 
         logger.debug(`pathDirectories=${JSON.stringify(pathDirectories)}`);
+
+        const tools = {
+            'racer': PathService.getRacerPath(),
+            'rustfmt': PathService.getRustfmtPath(),
+            'rustsym': PathService.getRustsymPath()
+        };
+
+        logger.debug(`tools=${JSON.stringify(tools)}`);
 
         const keys = Object.keys(tools);
 
