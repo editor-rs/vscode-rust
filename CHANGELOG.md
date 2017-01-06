@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.5
+
+### Bug fixes
+
+* Fixed another activation failure
+
 ## 0.3.4
 
 ### Bug fixes
