@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.2
+
+### Bug fixes
+
+* Made ~ be expanded for `racerPath`, `rustfmtPath`, `rustsymPath`
+
+* Fixed an unhandled exception if rustc wasn't installed 
+
 ## 0.3.1
 
 ### Features
