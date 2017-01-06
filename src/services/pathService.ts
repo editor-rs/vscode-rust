@@ -91,9 +91,9 @@ export default class PathService {
     private static getPathFromConfiguration(propertyName: string, defaultValue: string): string {
         const configuration = vscode.workspace.getConfiguration('rust');
 
-        const path: string | undefined = configuration[propertyName];
+        const path: string | null = configuration[propertyName];
 
-        if (path === undefined) {
+        if (path === null) {
             return defaultValue;
         }
 
