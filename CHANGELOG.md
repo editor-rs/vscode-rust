@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.3
+
+### Bug fixes
+
+* Fixed the extension activation failure when any of 'racerPath', 'rustfmtPath', 'rustsymPath' was null
+
 ## 0.3.2
 
 ### Bug fixes
