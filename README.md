@@ -1,6 +1,8 @@
 [![Build Status](https://api.travis-ci.org/KalitaAlexey/vscode-rust.svg)](https://travis-ci.org/KalitaAlexey/vscode-rust)
 [![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/vscode-rust/Lobby)
 
+[The extension on VSCode marketplace](https://marketplace.visualstudio.com/items?itemName=kalitaalexey.vscode-rust)
+
 # Rust for Visual Studio Code (Latest: 0.3.3)
 
 On update please look at the change log.
