@@ -128,14 +128,14 @@
     "format": {
         "prefix": "format",
         "body": [
-            "format!(\"${1:{${2::?}}}\")"
+            "format!(\"${1}\")"
         ],
         "description": "format!(…)"
     },
     "format_args": {
         "prefix": "format_args",
         "body": [
-            "format_args!(\"${1:{${2::?}}}\")"
+            "format_args!(\"${1}\")"
         ],
         "description": "format_args!(…)"
     },
@@ -184,21 +184,21 @@
     "panic": {
         "prefix": "panic",
         "body": [
-            "panic!(\"${1:{${2::?}}}\");"
+            "panic!(\"${1}\");"
         ],
         "description": "panic!(…);"
     },
     "print": {
         "prefix": "print",
         "body": [
-            "print!(\"${1:\\{${2::?}\\}}\");"
+            "print!(\"${1}\");"
         ],
         "description": "print!(…);"
     },
     "println": {
         "prefix": "println",
         "body": [
-            "println!(\"${1:{${2::?}}}\");"
+            "println!(\"${1}\");"
         ],
         "description": "println!(…);"
     },
@@ -247,14 +247,14 @@
     "write": {
         "prefix": "write",
         "body": [
-            "write!(${1}, \"${2:\\{${3::?}\\}}\")"
+            "write!(${1}, \"${2}\")"
         ],
         "description": "write!(…)"
     },
     "writeln": {
         "prefix": "writeln",
         "body": [
-            "writeln!(${1}, \"${2:\\{${3::?}\\}}\")"
+            "writeln!(${1}, \"${2}\")"
         ],
         "description": "writeln!(…, …)"
     },
