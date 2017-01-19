@@ -5,6 +5,12 @@
 
 # Rust for Visual Studio Code (Latest: 0.3.5)
 
+## Why this fork
+The maintainer of RustyCode doesn't answer.
+
+The repo contains a lot of bug fixes and new features.
+
+## Extension
 On update please look at the change log.
 
 [Changelog](CHANGELOG.md)
