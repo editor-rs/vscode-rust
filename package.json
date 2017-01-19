@@ -266,7 +266,7 @@
         },
         "rust.customBuildConfigurations": {
           "default": [],
-          "description": "Custom configurations for cargo build",
+          "description": "Custom configurations for cargo build. Array of objects with `title` (string) and `args` (array of strings) which will be passed to `cargo build`.",
           "items": {
             "properties": {
               "title": {
@@ -285,7 +285,7 @@
         },
         "rust.customCheckConfigurations": {
           "default": [],
-          "description": "Custom configurations for cargo check",
+          "description": "Custom configurations for cargo check. Array of objects with `title` (string) and `args` (array of strings) which will be passed to `cargo check`.",
           "items": {
             "properties": {
               "title": {
@@ -304,7 +304,7 @@
         },
         "rust.customClippyConfigurations": {
           "default": [],
-          "description": "Custom configurations for cargo clippy",
+          "description": "Custom configurations for cargo clippy. Array of objects with `title` (string) and `args` (array of strings) which will be passed to `cargo clippy`.",
           "items": {
             "properties": {
               "title": {
@@ -323,7 +323,7 @@
         },
         "rust.customRunConfigurations": {
           "default": [],
-          "description": "Custom configurations for cargo run",
+          "description": "Custom configurations for cargo run. Array of objects with `title` (string) and `args` (array of strings) which will be passed to `cargo run`.",
           "items": {
             "properties": {
               "title": {
@@ -342,7 +342,7 @@
         },
         "rust.customTestConfigurations": {
           "default": [],
-          "description": "Custom configurations for cargo test",
+          "description": "Custom configurations for cargo test. Array of objects with `title` (string) and `args` (array of strings) which will be passed to `cargo test`.",
           "items": {
             "properties": {
               "title": {
