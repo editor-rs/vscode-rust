@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.6
+
+### Features
+
+* Added information describing custom configurations
+
+* Added default custom configurations
+
+* Added the "Stop" button to the status bar, which stops the current running cargo task on click
+
+* Made "Cargo: Create Playground" create a playground in a new window
+
 ## 0.3.5
 
 ### Bug fixes
