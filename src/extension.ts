@@ -7,7 +7,7 @@ import FilterService from './services/filterService';
 import StatusBarService from './services/statusBarService';
 import SuggestService from './services/suggestService';
 import PathService from './services/pathService';
-import {CommandService} from './services/commandService';
+import {CommandService, CommandServiceCommands} from './services/commandService';
 import {ChildLogger} from './logging/mod';
 import WorkspaceSymbolService from './services/workspaceSymbolService';
 import DocumentSymbolService from './services/documentSymbolService';
@@ -147,7 +147,15 @@ export function activate(ctx: vscode.ExtensionContext): void {
     }
 
     // Commands
-    const commandService = new CommandService(logger.createChildLogger('CommandService: '));
+    const commandService = (() => {
+        const childLogger = logger.createChildLogger('CommandService: ');
+
+        const commands: CommandServiceCommands = {
+            stop: 'rust.cargo.terminate'
+        };
+
+        return new CommandService(childLogger, commands);
+    })();
 
     // Cargo init
     ctx.subscriptions.push(commandService.registerCommandHelpingCreatePlayground('rust.cargo.new.playground'));
@@ -195,5 +203,5 @@ export function activate(ctx: vscode.ExtensionContext): void {
     ctx.subscriptions.push(commandService.registerCommandHelpingChooseArgsAndInvokingCargoClippy('rust.cargo.clippy.custom'));
 
     // Cargo terminate
-    ctx.subscriptions.push(commandService.registerCommandStoppingCargoTask('rust.cargo.terminate'));
+    ctx.subscriptions.push(commandService.registerCommandStoppingCargoTask());
 }

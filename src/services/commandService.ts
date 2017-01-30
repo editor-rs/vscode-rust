@@ -270,12 +270,60 @@ class UserDefinedArgs {
     }
 }
 
+class CargoTaskStatusBarManager {
+    private stopStatusBarItem: vscode.StatusBarItem;
+
+    private spinnerStatusBarItem: vscode.StatusBarItem;
+
+    private interval: NodeJS.Timer | null;
+
+    public constructor(commands: CommandServiceCommands) {
+        this.stopStatusBarItem = vscode.window.createStatusBarItem();
+        this.stopStatusBarItem.command = commands.stop;
+        this.stopStatusBarItem.text = 'Stop';
+        this.stopStatusBarItem.tooltip = 'Click to stop running cargo task';
+
+        this.spinnerStatusBarItem = vscode.window.createStatusBarItem();
+        this.spinnerStatusBarItem.tooltip = 'Cargo task is running';
+
+        this.interval = null;
+    }
+
+    public show(): void {
+        this.stopStatusBarItem.show();
+
+        this.spinnerStatusBarItem.show();
+
+        const update = () => {
+            this.spinnerStatusBarItem.text = spinner();
+        };
+
+        this.interval = setInterval(update, 100);
+    }
+
+    public hide(): void {
+        clearInterval(this.interval);
+
+        this.interval = null;
+
+        this.stopStatusBarItem.hide();
+
+        this.spinnerStatusBarItem.hide();
+    }
+}
+
 class CargoManager {
     private diagnostics: vscode.DiagnosticCollection = vscode.languages.createDiagnosticCollection('rust');
+
     private channel: ChannelWrapper = new ChannelWrapper(vscode.window.createOutputChannel('Cargo'));
+
     private currentTask: CargoTask;
-    private statusBarItem: vscode.StatusBarItem;
-    private spinnerUpdate: any;
+
+    private cargoTaskStatusBarManager: CargoTaskStatusBarManager;
+
+    public constructor(commands: CommandServiceCommands) {
+        this.cargoTaskStatusBarManager = new CargoTaskStatusBarManager(commands);
+    }
 
     public invokeCargoInit(crateType: CrateType, name: string, cwd: string): Thenable<void> {
         const args = ['init', '--name', name];
@@ -568,36 +616,6 @@ class CargoManager {
         return true;
     }
 
-    private showSpinner(): void {
-        if (this.statusBarItem == null) {
-            this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
-            this.statusBarItem.text = spinner();
-            this.statusBarItem.tooltip = 'Running Cargo Task';
-        }
-
-        this.statusBarItem.show();
-
-        if (this.spinnerUpdate == null) {
-            const callback = () => {
-                this.statusBarItem.text = spinner();
-            };
-
-            this.spinnerUpdate = setInterval(callback, 50);
-        }
-    }
-
-    private hideSpinner(): void {
-        if (this.spinnerUpdate != null) {
-            clearInterval(this.spinnerUpdate);
-
-            this.spinnerUpdate = null;
-        }
-
-        if (this.statusBarItem != null) {
-            this.statusBarItem.hide();
-        }
-    }
-
     private runCargo(args: string[], force = false): void {
         PathService.cwd().then((value: string) => {
             if (force && this.currentTask) {
@@ -622,7 +640,7 @@ class CargoManager {
                 }
             }
 
-            this.showSpinner();
+            this.cargoTaskStatusBarManager.show();
 
             const cwd = value;
 
@@ -668,7 +686,7 @@ class CargoManager {
             };
 
             const onGracefullyEnded = (exitCode: ExitCode) => {
-                this.hideSpinner();
+                this.cargoTaskStatusBarManager.hide();
 
                 this.currentTask = null;
 
@@ -679,7 +697,7 @@ class CargoManager {
             };
 
             const onUnexpectedlyEnded = (error?: Error) => {
-                this.hideSpinner();
+                this.cargoTaskStatusBarManager.hide();
 
                 this.currentTask = null;
 
@@ -800,15 +818,23 @@ class CustomConfigurationManager {
     }
 }
 
+export interface CommandServiceCommands {
+    stop: string;
+}
+
 export class CommandService {
     private cargoManager: CargoManager;
 
     private logger: ChildLogger;
 
-    public constructor(logger: ChildLogger) {
-        this.cargoManager = new CargoManager();
+    private commands: CommandServiceCommands;
+
+    public constructor(logger: ChildLogger, commands: CommandServiceCommands) {
+        this.cargoManager = new CargoManager(commands);
 
         this.logger = logger;
+
+        this.commands = commands;
     }
 
     public registerCommandHelpingCreatePlayground(commandName: string): vscode.Disposable {
@@ -916,8 +942,8 @@ export class CommandService {
         });
     }
 
-    public registerCommandStoppingCargoTask(commandName: string): vscode.Disposable {
-        return vscode.commands.registerCommand(commandName, () => {
+    public registerCommandStoppingCargoTask(): vscode.Disposable {
+        return vscode.commands.registerCommand(this.commands.stop, () => {
             this.cargoManager.stopTask();
         });
     }
