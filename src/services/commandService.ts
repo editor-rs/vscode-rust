@@ -978,7 +978,7 @@ export class CommandService {
                 .then(() => {
                     const uri = vscode.Uri.parse(path);
 
-                    vscode.commands.executeCommand('vscode.openFolder', uri);
+                    vscode.commands.executeCommand('vscode.openFolder', uri, true);
                 });
             });
         });
