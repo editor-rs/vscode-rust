@@ -265,7 +265,12 @@
           "description": "Arguments which is passed to cargo test"
         },
         "rust.customBuildConfigurations": {
-          "default": [],
+          "default": [
+            {
+              "title": "Release",
+              "args": ["--release"]
+            }
+          ],
           "description": "Custom configurations for cargo build. Array of objects with `title` (string) and `args` (array of strings) which will be passed to `cargo build`.",
           "items": {
             "properties": {
@@ -284,7 +289,12 @@
           "type": "array"
         },
         "rust.customCheckConfigurations": {
-          "default": [],
+          "default": [
+            {
+              "title": "Release",
+              "args": ["--release"]
+            }
+          ],
           "description": "Custom configurations for cargo check. Array of objects with `title` (string) and `args` (array of strings) which will be passed to `cargo check`.",
           "items": {
             "properties": {
@@ -322,7 +332,12 @@
           "type": "array"
         },
         "rust.customRunConfigurations": {
-          "default": [],
+          "default": [
+            {
+              "title": "Release",
+              "args": ["--release"]
+            }
+          ],
           "description": "Custom configurations for cargo run. Array of objects with `title` (string) and `args` (array of strings) which will be passed to `cargo run`.",
           "items": {
             "properties": {
@@ -341,7 +356,12 @@
           "type": "array"
         },
         "rust.customTestConfigurations": {
-          "default": [],
+          "default": [
+            {
+              "title": "Release",
+              "args": ["--release"]
+            }
+          ],
           "description": "Custom configurations for cargo test. Array of objects with `title` (string) and `args` (array of strings) which will be passed to `cargo test`.",
           "items": {
             "properties": {
