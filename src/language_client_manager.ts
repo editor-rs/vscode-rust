@@ -48,7 +48,7 @@ export default class LanguageClientManager {
 
     public start(): void {
         this.logger.debug('start');
-        
+
         this.languageClient.outputChannel.show();
 
         this.context.subscriptions.push(this.languageClient.start());

@@ -37,7 +37,7 @@ export default class ConfigurationManager {
 
     public getRustcSysroot(): Promise<string> {
         const args = ['--print', 'sysroot'];
-        
+
         const options: SpawnOptions = { cwd: process.cwd() };
 
         const spawnedProcess = spawn('rustc', args, options);

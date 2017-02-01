@@ -1,12 +1,4 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import {
-    ExtensionContext,
-    WorkspaceConfiguration,
-    languages,
-    window,
-    workspace
-} from 'vscode';
+import { ExtensionContext } from 'vscode';
 
 import ConfigurationManager from './components/configuration/configuration_manager';
 

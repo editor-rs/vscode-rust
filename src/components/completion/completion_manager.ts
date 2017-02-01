@@ -171,12 +171,12 @@ export default class CompletionManager {
         );
         this.racerDaemon.on('error', (err: Error) => {
             this.logger.error(`racer failed: err = ${err}`);
-            
+
             this.stopDaemon(err);
         });
         this.racerDaemon.on('close', (code: number, signal: string) => {
             this.logger.warning(`racer closed: code = ${code}, signal = ${signal}`);
-            
+
             this.stopDaemon(code);
         });
 
@@ -185,7 +185,7 @@ export default class CompletionManager {
         });
 
         this.racerDaemon.stderr.on('data', (data: Buffer) => {
-            this.errorBuffer += data.toString()
+            this.errorBuffer += data.toString();
         });
 
         this.hookCapabilities();
@@ -575,8 +575,6 @@ export default class CompletionManager {
     }
 
     private hookCapabilities(): void {
-        const logger = this.logger.createChildLogger('hookCapabilities: ');
-
         let definitionProvider = { provideDefinition: this.definitionProvider.bind(this) };
         this.providers.push(
             languages.registerDefinitionProvider(getDocumentFilter(), definitionProvider)

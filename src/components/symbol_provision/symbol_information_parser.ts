@@ -52,7 +52,7 @@ export default class SymbolInformationParser {
         return symbolInformationList;
     }
 
-    private getSymbolKind(kind: string) {
+    private getSymbolKind(kind: string): SymbolKind | null {
         if (kind === '') {
             return null;
         } else {

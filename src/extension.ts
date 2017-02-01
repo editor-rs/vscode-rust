@@ -45,12 +45,12 @@ export function activate(ctx: ExtensionContext): void {
 
         languageClientManager.start();
     } else {
-const legacyModeManager = new LegacyModeManager(
-        ctx,
-        configurationManager,
-        currentWorkingDirectoryManager,
-        logger.createChildLogger('Legacy Mode Manager: ')
-    );
+        new LegacyModeManager(
+            ctx,
+            configurationManager,
+            currentWorkingDirectoryManager,
+            logger.createChildLogger('Legacy Mode Manager: ')
+        );
     }
 
     addExecutingActionOnSave(ctx, configurationManager, cargoManager);
@@ -85,23 +85,23 @@ function addExecutingActionOnSave(
         switch (actionOnSave) {
             case 'build':
                 cargoManager.executeBuildTask();
-            break;
+                break;
 
             case 'check':
                 cargoManager.executeCheckTask();
-            break;
+                break;
 
             case 'clippy':
                 cargoManager.executeClippyTask();
-            break;
+                break;
 
             case 'run':
                 cargoManager.executeRunTask();
-            break;
+                break;
 
             case 'test':
                 cargoManager.executeTestTask();
-            break;
+                break;
         }
     }));
 }

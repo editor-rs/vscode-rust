@@ -10,7 +10,7 @@ interface CustomConfiguration {
 
 class CustomConfigurationQuickPickItem implements QuickPickItem {
     public label: string;
-    
+
     public description: string;
 
     public args: string[];
@@ -26,7 +26,7 @@ class CustomConfigurationQuickPickItem implements QuickPickItem {
 
 export default class CustomConfigurationChooser {
     private configurationManager: ConfigurationManager;
-    
+
     public constructor(configurationManager: ConfigurationManager) {
         this.configurationManager = configurationManager;
     }
