@@ -4,6 +4,14 @@ import { ExtensionContext, WorkspaceConfiguration, workspace } from 'vscode';
 
 import expandTilde = require('expand-tilde');
 
+export interface RlsConfiguration {
+    executable: string;
+
+    args?: string[];
+
+    env?: any;
+}
+
 export default class ConfigurationManager {
     public constructor(context: ExtensionContext) {
         context.subscriptions.push(
@@ -11,6 +19,14 @@ export default class ConfigurationManager {
                 this.updateRustLangSrcInEnvironmentIfRequired();
             })
         );
+    }
+
+    public getRlsConfiguration(): RlsConfiguration | null {
+        const configuration = this.getConfiguration();
+
+        const rlsConfiguration: RlsConfiguration | null = configuration['rls'];
+
+        return rlsConfiguration;
     }
 
     public getActionOnSave(): string | null {

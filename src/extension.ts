@@ -2,6 +2,8 @@ import { ExtensionContext, window, workspace } from 'vscode';
 
 import CargoManager from './components/cargo/cargo_manager';
 
+import { RlsConfiguration } from './components/configuration/configuration_manager';
+
 import ConfigurationManager from './components/configuration/configuration_manager';
 
 import CurrentWorkingDirectoryManager from './components/configuration/current_working_directory_manager';
@@ -28,12 +30,28 @@ export function activate(ctx: ExtensionContext): void {
         logger.createChildLogger('Cargo Manager: ')
     );
 
-    const legacyModeManager = new LegacyModeManager(
+    const rlsConfiguration: RlsConfiguration | null = configurationManager.getRlsConfiguration();
+
+    if (rlsConfiguration) {
+        const { executable, args, env } = rlsConfiguration;
+
+        const languageClientManager = new LanguageClientManager(
+            ctx,
+            logger.createChildLogger('Language Client Manager: '),
+            executable,
+            args,
+            env
+        );
+
+        languageClientManager.start();
+    } else {
+const legacyModeManager = new LegacyModeManager(
         ctx,
         configurationManager,
         currentWorkingDirectoryManager,
         logger.createChildLogger('Legacy Mode Manager: ')
     );
+    }
 
     addExecutingActionOnSave(ctx, configurationManager, cargoManager);
 }

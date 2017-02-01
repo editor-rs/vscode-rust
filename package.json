@@ -378,6 +378,29 @@
             "required": ["title", "args"]
           },
           "type": "array"
+        },
+        "rust.rls": {
+          "default": null,
+          "description": "Rust Language Server configuration",
+          "properties": {
+            "executable": {
+              "default": "rls",
+              "description": "An executable to run as a language server",
+              "type": "string"
+            },
+            "args": {
+              "default": null,
+              "description": "Arguments to pass to the executable",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "env": {
+              "default": null,
+              "description": "An environment to run the executable in"
+            }
+          }
         }
       }
     },
