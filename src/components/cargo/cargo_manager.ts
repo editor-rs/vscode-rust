@@ -3,11 +3,22 @@ import * as cp from 'child_process';
 import * as readline from 'readline';
 import * as path from 'path';
 import * as tmp from 'tmp';
-import {ChildLogger} from '../logging/mod';
 import kill = require('tree-kill');
-import PathService from './pathService';
+
+import { ChildProcess } from 'child_process';
+
+import { ExtensionContext } from 'vscode';
 
 import elegantSpinner = require('elegant-spinner');
+
+import ConfigurationManager from '../configuration/configuration_manager';
+
+import CurrentWorkingDirectoryManager from '../configuration/current_working_directory_manager';
+
+import ChildLogger from '../logging/child_logger';
+
+import CustomConfigurationChooser from './custom_configuration_chooser';
+
 const spinner = elegantSpinner();
 
 interface CompilerMessageSpanText {
@@ -121,8 +132,19 @@ export enum CheckTarget {
 type ExitCode = number;
 
 class CargoTask {
-    private process: cp.ChildProcess;
-    private interrupted: boolean = false;
+    private configurationManager: ConfigurationManager;
+
+    private process: ChildProcess | null;
+
+    private interrupted: boolean;
+
+    public constructor(configurationManager: ConfigurationManager) {
+        this.configurationManager = configurationManager;
+
+        this.process = null;
+
+        this.interrupted = false;
+    }
 
     public execute(
         args: string[],
@@ -132,7 +154,7 @@ class CargoTask {
         onStderrLine?: (data: string) => void
     ): Thenable<ExitCode> {
         return new Promise<ExitCode>((resolve, reject) => {
-            const cargoPath = PathService.getCargoPath();
+            const cargoPath = this.configurationManager.getCargoPath();
 
             if (onStart) {
                 onStart();
@@ -277,9 +299,9 @@ class CargoTaskStatusBarManager {
 
     private interval: NodeJS.Timer | null;
 
-    public constructor(commands: CommandServiceCommands) {
+    public constructor(stopCommandName: string) {
         this.stopStatusBarItem = vscode.window.createStatusBarItem();
-        this.stopStatusBarItem.command = commands.stop;
+        this.stopStatusBarItem.command = stopCommandName;
         this.stopStatusBarItem.text = 'Stop';
         this.stopStatusBarItem.tooltip = 'Click to stop running cargo task';
 
@@ -312,7 +334,11 @@ class CargoTaskStatusBarManager {
     }
 }
 
-class CargoManager {
+class CargoTaskManager {
+    private configurationManager: ConfigurationManager;
+
+    private currentWorkingDirectoryManager: CurrentWorkingDirectoryManager;
+
     private diagnostics: vscode.DiagnosticCollection = vscode.languages.createDiagnosticCollection('rust');
 
     private channel: ChannelWrapper = new ChannelWrapper(vscode.window.createOutputChannel('Cargo'));
@@ -321,8 +347,16 @@ class CargoManager {
 
     private cargoTaskStatusBarManager: CargoTaskStatusBarManager;
 
-    public constructor(commands: CommandServiceCommands) {
-        this.cargoTaskStatusBarManager = new CargoTaskStatusBarManager(commands);
+    public constructor(
+        configurationManager: ConfigurationManager,
+        currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
+        stopCommandName: string
+    ) {
+        this.configurationManager = configurationManager;
+
+        this.currentWorkingDirectoryManager = currentWorkingDirectoryManager;
+
+        this.cargoTaskStatusBarManager = new CargoTaskStatusBarManager(stopCommandName);
     }
 
     public invokeCargoInit(crateType: CrateType, name: string, cwd: string): Thenable<void> {
@@ -331,17 +365,17 @@ class CargoManager {
         switch (crateType) {
             case CrateType.Application:
                 args.push('--bin');
-            break;
+                break;
 
             case CrateType.Library:
                 args.push('--lib');
-            break;
+                break;
 
             default:
                 throw new Error(`Unhandled crate type=${crateType}`);
         }
 
-        this.currentTask = new CargoTask();
+        this.currentTask = new CargoTask(this.configurationManager);
 
         this.channel.clear();
 
@@ -422,7 +456,7 @@ class CargoManager {
     }
 
     public invokeCargoNew(projectName: string, isBin: boolean, cwd: string): void {
-        this.currentTask = new CargoTask();
+        this.currentTask = new CargoTask(this.configurationManager);
 
         this.channel.clear();
 
@@ -557,9 +591,12 @@ class CargoManager {
 
     private checkCargoCheckAvailability(): Thenable<boolean> {
         const args = ['check', '--help'];
+
         const cwd = '/'; // Doesn't matter.
 
-        return (new CargoTask).execute(args, cwd).then((exitCode: ExitCode) => {
+        const task = new CargoTask(this.configurationManager);
+
+        return task.execute(args, cwd).then((exitCode: ExitCode) => {
             return exitCode === 0;
         });
     }
@@ -617,7 +654,7 @@ class CargoManager {
     }
 
     private runCargo(args: string[], force = false): void {
-        PathService.cwd().then((value: string) => {
+        this.currentWorkingDirectoryManager.cwd().then((value: string) => {
             if (force && this.currentTask) {
                 this.currentTask.kill().then(() => {
                     this.runCargo(args, force);
@@ -630,7 +667,7 @@ class CargoManager {
 
             this.diagnostics.clear();
 
-            this.currentTask = new CargoTask();
+            this.currentTask = new CargoTask(this.configurationManager);
 
             {
                 const configuration = getConfiguration();
@@ -749,92 +786,102 @@ class CargoManager {
     }
 }
 
-interface CustomConfiguration {
-    title: string;
-    args: string[];
-}
+export default class CargoManager {
+    private cargoManager: CargoTaskManager;
 
-class CustomConfigurationQuickPickItem implements vscode.QuickPickItem {
-    public label: string;
-    public description: string;
-    public args: string[];
-
-    public constructor(configuration: CustomConfiguration) {
-        this.label = configuration.title;
-        this.description = '';
-        this.args = configuration.args;
-    }
-}
-
-class CustomConfigurationManager {
-    public static showQuickPickOrChooseSingleCustomConfigurationArgsForCargoBuild(): Thenable<string[]> {
-        return CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgs('customBuildConfigurations');
-    }
-
-    public static showQuickPickOrChooseSingleCustomConfigurationArgsForCargoCheck(): Thenable<string[]> {
-        return CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgs('customCheckConfigurations');
-    }
-
-    public static showQuickPickOrChooseSingleCustomConfigurationArgsForCargoClippy(): Thenable<string[]> {
-        return CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgs('customClippyConfigurations');
-    }
-
-    public static showQuickPickOrChooseSingleCustomConfigurationArgsForCargoRun(): Thenable<string[]> {
-        return CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgs('customRunConfigurations');
-    }
-
-    public static showQuickPickOrChooseSingleCustomConfigurationArgsForCargoTest(): Thenable<string[]> {
-        return CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgs('customTestConfigurations');
-    }
-
-    private static showQuickPickOrChooseSingleCustomConfigurationArgs(property: string): Thenable<string[]> {
-        const configuration = getConfiguration();
-
-        const customConfigurations = configuration.get<CustomConfiguration[]>(property);
-
-        if (customConfigurations.length === 0) {
-            vscode.window.showErrorMessage('There are no defined custom configurations');
-
-            return Promise.reject(null);
-        }
-
-        if (customConfigurations.length === 1) {
-            const customConfiguration = customConfigurations[0];
-
-            const args = customConfiguration.args;
-
-            return Promise.resolve(args);
-        }
-
-        const quickPickItems = customConfigurations.map(c => new CustomConfigurationQuickPickItem(c));
-
-        return vscode.window.showQuickPick(quickPickItems).then(item => {
-            if (!item) {
-                return Promise.reject(null);
-            }
-
-            return Promise.resolve(item.args);
-        });
-    }
-}
-
-export interface CommandServiceCommands {
-    stop: string;
-}
-
-export class CommandService {
-    private cargoManager: CargoManager;
+    private customConfigurationChooser: CustomConfigurationChooser;
 
     private logger: ChildLogger;
 
-    private commands: CommandServiceCommands;
+    public constructor(
+        context: ExtensionContext,
+        configurationManager: ConfigurationManager,
+        currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
+        logger: ChildLogger
+    ) {
+        const stopCommandName = 'rust.cargo.terminate';
 
-    public constructor(logger: ChildLogger, commands: CommandServiceCommands) {
-        this.cargoManager = new CargoManager(commands);
+        this.cargoManager = new CargoTaskManager(
+            configurationManager,
+            currentWorkingDirectoryManager,
+            stopCommandName
+        );
+
+        this.customConfigurationChooser = new CustomConfigurationChooser(configurationManager);
 
         this.logger = logger;
 
-        this.commands = commands;
+        this.registerCommands(context, stopCommandName);
+    }
+
+    public executeBuildTask(): void {
+        this.cargoManager.invokeCargoBuildUsingBuildArgs();
+    }
+
+    public executeCheckTask(): void {
+        this.cargoManager.invokeCargoCheckUsingCheckArgs();
+    }
+
+    public executeClippyTask(): void {
+        this.cargoManager.invokeCargoClippyUsingClippyArgs();
+    }
+
+    public executeRunTask(): void {
+        this.cargoManager.invokeCargoRunUsingRunArgs();
+    }
+
+    public executeTestTask(): void {
+        this.cargoManager.invokeCargoTestUsingTestArgs();
+    }
+
+    private registerCommands(context: ExtensionContext, stopCommandName: string): void {
+        // Cargo init
+        context.subscriptions.push(this.registerCommandHelpingCreatePlayground('rust.cargo.new.playground'));
+
+        // Cargo new
+        context.subscriptions.push(this.registerCommandHelpingCreateProject('rust.cargo.new.bin', true));
+
+        context.subscriptions.push(this.registerCommandHelpingCreateProject('rust.cargo.new.lib', false));
+
+        // Cargo build
+        context.subscriptions.push(this.registerCommandInvokingCargoBuildUsingBuildArgs('rust.cargo.build.default'));
+
+        context.subscriptions.push(this.registerCommandHelpingChooseArgsAndInvokingCargoBuild('rust.cargo.build.custom'));
+
+        // Cargo run
+        context.subscriptions.push(this.registerCommandInvokingCargoRunUsingRunArgs('rust.cargo.run.default'));
+
+        context.subscriptions.push(this.registerCommandHelpingChooseArgsAndInvokingCargoRun('rust.cargo.run.custom'));
+
+        // Cargo test
+        context.subscriptions.push(this.registerCommandInvokingCargoTestUsingTestArgs('rust.cargo.test.default'));
+
+        context.subscriptions.push(this.registerCommandHelpingChooseArgsAndInvokingCargoTest('rust.cargo.test.custom'));
+
+        // Cargo bench
+        context.subscriptions.push(this.registerCommandInvokingCargoWithArgs('rust.cargo.bench', 'bench'));
+
+        // Cargo doc
+        context.subscriptions.push(this.registerCommandInvokingCargoWithArgs('rust.cargo.doc', 'doc'));
+
+        // Cargo update
+        context.subscriptions.push(this.registerCommandInvokingCargoWithArgs('rust.cargo.update', 'update'));
+
+        // Cargo clean
+        context.subscriptions.push(this.registerCommandInvokingCargoWithArgs('rust.cargo.clean', 'clean'));
+
+        // Cargo check
+        context.subscriptions.push(this.registerCommandInvokingCargoCheckUsingCheckArgs('rust.cargo.check.default'));
+
+        context.subscriptions.push(this.registerCommandHelpingChooseArgsAndInvokingCargoCheck('rust.cargo.check.custom'));
+
+        // Cargo clippy
+        context.subscriptions.push(this.registerCommandInvokingCargoClippyUsingClippyArgs('rust.cargo.clippy.default'));
+
+        context.subscriptions.push(this.registerCommandHelpingChooseArgsAndInvokingCargoClippy('rust.cargo.clippy.custom'));
+
+        // Cargo terminate
+        context.subscriptions.push(this.registerCommandStoppingCargoTask(stopCommandName));
     }
 
     public registerCommandHelpingCreatePlayground(commandName: string): vscode.Disposable {
@@ -845,7 +892,7 @@ export class CommandService {
 
     public registerCommandHelpingChooseArgsAndInvokingCargoCheck(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
-            CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgsForCargoCheck().then(args => {
+            this.customConfigurationChooser.choose('customCheckConfigurations').then(args => {
                 this.cargoManager.invokeCargoCheckWithArgs(args);
             }, () => undefined);
         });
@@ -853,13 +900,13 @@ export class CommandService {
 
     public registerCommandInvokingCargoCheckUsingCheckArgs(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
-            this.cargoManager.invokeCargoCheckUsingCheckArgs();
+            this.executeCheckTask();
         });
     }
 
     public registerCommandHelpingChooseArgsAndInvokingCargoClippy(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
-            CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgsForCargoClippy().then(args => {
+            this.customConfigurationChooser.choose('customClippyConfigurations').then(args => {
                 this.cargoManager.invokeCargoClippyWithArgs(args);
             }, () => undefined);
         });
@@ -867,7 +914,7 @@ export class CommandService {
 
     public registerCommandInvokingCargoClippyUsingClippyArgs(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
-            this.cargoManager.invokeCargoClippyUsingClippyArgs();
+            this.executeClippyTask();
         });
     }
 
@@ -896,7 +943,7 @@ export class CommandService {
 
     public registerCommandHelpingChooseArgsAndInvokingCargoBuild(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
-            CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgsForCargoBuild().then(args => {
+            this.customConfigurationChooser.choose('customBuildConfigurations').then(args => {
                 this.cargoManager.invokeCargoBuildWithArgs(args);
             }, () => undefined);
         });
@@ -904,13 +951,13 @@ export class CommandService {
 
     public registerCommandInvokingCargoBuildUsingBuildArgs(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
-            this.cargoManager.invokeCargoBuildUsingBuildArgs();
+            this.executeBuildTask();
         });
     }
 
     public registerCommandHelpingChooseArgsAndInvokingCargoRun(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
-            CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgsForCargoRun().then(args => {
+            this.customConfigurationChooser.choose('customRunConfigurations').then(args => {
                 this.cargoManager.invokeCargoRunWithArgs(args);
             }, () => undefined);
         });
@@ -918,13 +965,13 @@ export class CommandService {
 
     public registerCommandInvokingCargoRunUsingRunArgs(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
-            this.cargoManager.invokeCargoRunUsingRunArgs();
+            this.executeRunTask();
         });
     }
 
     public registerCommandHelpingChooseArgsAndInvokingCargoTest(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
-            CustomConfigurationManager.showQuickPickOrChooseSingleCustomConfigurationArgsForCargoTest().then(args => {
+            this.customConfigurationChooser.choose('customTestConfigurations').then(args => {
                 this.cargoManager.invokeCargoTestWithArgs(args);
             }, () => undefined);
         });
@@ -932,7 +979,7 @@ export class CommandService {
 
     public registerCommandInvokingCargoTestUsingTestArgs(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
-            this.cargoManager.invokeCargoTestUsingTestArgs();
+            this.executeTestTask();
         });
     }
 
@@ -942,8 +989,8 @@ export class CommandService {
         });
     }
 
-    public registerCommandStoppingCargoTask(): vscode.Disposable {
-        return vscode.commands.registerCommand(this.commands.stop, () => {
+    public registerCommandStoppingCargoTask(commandName: string): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
             this.cargoManager.stopTask();
         });
     }
@@ -954,34 +1001,34 @@ export class CommandService {
         const playgroundProjectTypes = ['application', 'library'];
 
         vscode.window.showQuickPick(playgroundProjectTypes)
-        .then((playgroundProjectType: string | undefined) => {
-            if (playgroundProjectType === undefined) {
-                logger.debug('quick pick has been cancelled');
-
-                return;
-            }
-
-            tmp.dir((err, path) => {
-                if (err) {
-                    this.logger.error(`Temporary directory creation failed: ${err}`);
-
-                    vscode.window.showErrorMessage('Temporary directory creation failed');
+            .then((playgroundProjectType: string | undefined) => {
+                if (playgroundProjectType === undefined) {
+                    logger.debug('quick pick has been cancelled');
 
                     return;
                 }
 
-                const crateType = playgroundProjectType === 'application' ? CrateType.Application : CrateType.Library;
+                tmp.dir((err, path) => {
+                    if (err) {
+                        this.logger.error(`Temporary directory creation failed: ${err}`);
 
-                const name = `playground_${playgroundProjectType}`;
+                        vscode.window.showErrorMessage('Temporary directory creation failed');
 
-                this.cargoManager.invokeCargoInit(crateType, name, path)
-                .then(() => {
-                    const uri = vscode.Uri.parse(path);
+                        return;
+                    }
 
-                    vscode.commands.executeCommand('vscode.openFolder', uri, true);
+                    const crateType = playgroundProjectType === 'application' ? CrateType.Application : CrateType.Library;
+
+                    const name = `playground_${playgroundProjectType}`;
+
+                    this.cargoManager.invokeCargoInit(crateType, name, path)
+                        .then(() => {
+                            const uri = vscode.Uri.parse(path);
+
+                            vscode.commands.executeCommand('vscode.openFolder', uri, true);
+                        });
                 });
             });
-        });
     }
 }
 

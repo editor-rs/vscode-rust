@@ -1,13 +1,14 @@
-import {RootLogger} from '../logging/mod';
-import * as vscode from 'vscode';
+import { OutputChannel, window } from 'vscode';
+
+import RootLogger from './root_logger';
 
 export default class LoggingManager {
-    private channel: vscode.OutputChannel;
+    private channel: OutputChannel;
 
     private logger: RootLogger;
 
     public constructor() {
-        this.channel = vscode.window.createOutputChannel('Rust logging');
+        this.channel = window.createOutputChannel('Rust logging');
 
         this.logger = new RootLogger('');
 

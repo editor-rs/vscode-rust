@@ -1,5 +1,6 @@
-import {ChildLogger} from './child_logger';
-import {Logger} from './logger';
+import ChildLogger from './child_logger';
+
+import { Logger } from './logger';
 
 export const DEBUG_MESSAGE_PREFIX = 'DEBUG: ';
 
@@ -7,7 +8,7 @@ export const ERROR_MESSAGE_PREFIX = 'ERROR: ';
 
 export const WARNING_MESSAGE_PREFIX = 'WARNING: ';
 
-export class RootLogger extends Logger {
+export default class RootLogger extends Logger {
     private logFunction: ((message: string) => void) | undefined;
 
     public createChildLogger(loggingMessagePrefix: (() => string) | string): ChildLogger {

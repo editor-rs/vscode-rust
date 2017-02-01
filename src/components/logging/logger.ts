@@ -1,4 +1,4 @@
-import {CapturedMessage, CapturedMessageSeverity} from './captured_message';
+import { CapturedMessage, CapturedMessageSeverity } from './captured_message';
 
 export abstract class Logger {
     private loggingMessagePrefix: (() => string) | string;
@@ -46,15 +46,15 @@ export abstract class Logger {
             switch (message.severity) {
                 case CapturedMessageSeverity.Debug:
                     this.debug(message.message);
-                break;
+                    break;
 
                 case CapturedMessageSeverity.Error:
                     this.error(message.message);
-                break;
+                    break;
 
                 case CapturedMessageSeverity.Warning:
                     this.warning(message.message);
-                break;
+                    break;
 
                 default:
                     throw new Error(`Unhandled severity=${message.severity}`);
