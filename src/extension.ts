@@ -4,7 +4,7 @@ import CargoManager from './components/cargo/cargo_manager';
 
 import { RlsConfiguration } from './components/configuration/configuration_manager';
 
-import ConfigurationManager from './components/configuration/configuration_manager';
+import { ConfigurationManager } from './components/configuration/configuration_manager';
 
 import CurrentWorkingDirectoryManager from './components/configuration/current_working_directory_manager';
 

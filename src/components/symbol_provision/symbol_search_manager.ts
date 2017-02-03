@@ -2,7 +2,7 @@ import { execFile } from 'child_process';
 
 import { SymbolInformation, window } from 'vscode';
 
-import ConfigurationManager from '../configuration/configuration_manager';
+import { ConfigurationManager } from '../configuration/configuration_manager';
 
 import SymbolInformationParser from './symbol_information_parser';
 

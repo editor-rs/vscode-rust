@@ -12,7 +12,7 @@ export interface RlsConfiguration {
     env?: any;
 }
 
-export default class ConfigurationManager {
+export class ConfigurationManager {
     public constructor(context: ExtensionContext) {
         context.subscriptions.push(
             workspace.onDidChangeConfiguration(() => {

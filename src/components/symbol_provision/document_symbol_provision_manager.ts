@@ -6,7 +6,7 @@ import {
     languages
 } from 'vscode';
 
-import ConfigurationManager from '../configuration/configuration_manager';
+import { ConfigurationManager } from '../configuration/configuration_manager';
 
 import getDocumentFilter from '../configuration/mod';
 

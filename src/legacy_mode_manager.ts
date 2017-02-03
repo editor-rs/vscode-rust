@@ -1,6 +1,6 @@
 import { ExtensionContext } from 'vscode';
 
-import ConfigurationManager from './components/configuration/configuration_manager';
+import { ConfigurationManager } from './components/configuration/configuration_manager';
 
 import CurrentWorkingDirectoryManager
     from './components/configuration/current_working_directory_manager';

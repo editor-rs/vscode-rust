@@ -10,7 +10,7 @@ import { ExtensionContext } from 'vscode';
 
 import elegantSpinner = require('elegant-spinner');
 
-import ConfigurationManager from '../configuration/configuration_manager';
+import { ConfigurationManager } from '../configuration/configuration_manager';
 
 import CurrentWorkingDirectoryManager from '../configuration/current_working_directory_manager';
 

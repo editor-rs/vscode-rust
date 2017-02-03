@@ -4,7 +4,7 @@ import * as path from 'path';
 
 import { ExtensionContext, commands, window } from 'vscode';
 
-import ConfigurationManager from '../configuration/configuration_manager';
+import { ConfigurationManager } from '../configuration/configuration_manager';
 
 import ChildLogger from '../logging/child_logger';
 

@@ -1,6 +1,6 @@
 import { QuickPickItem, window } from 'vscode';
 
-import ConfigurationManager from '../configuration/configuration_manager';
+import { ConfigurationManager } from '../configuration/configuration_manager';
 
 interface CustomConfiguration {
     title: string;
