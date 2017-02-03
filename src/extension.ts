@@ -33,6 +33,8 @@ export function activate(ctx: ExtensionContext): void {
     const rlsConfiguration: RlsConfiguration | null = configurationManager.getRlsConfiguration();
 
     if (rlsConfiguration) {
+        cargoManager.setDiagnosticParsingEnabled(false);
+
         const { executable, args, env } = rlsConfiguration;
 
         const languageClientManager = new LanguageClientManager(
