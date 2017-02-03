@@ -34,7 +34,15 @@ export function activate(ctx: ExtensionContext): void {
         if (rlsConfiguration) {
             cargoManager.setDiagnosticParsingEnabled(false);
 
-            const { executable, args, env } = rlsConfiguration;
+            let { executable, args, env } = rlsConfiguration;
+
+            if (!env) {
+                env = {};
+            }
+
+            if (!env.RUST_SRC_PATH) {
+                env.RUST_SRC_PATH = configurationManager.getRustSourcePath();
+            }
 
             const languageClientManager = new LanguageClientManager(
                 ctx,

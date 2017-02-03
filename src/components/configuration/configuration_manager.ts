@@ -161,7 +161,7 @@ export class ConfigurationManager {
             return envPath;
         }
 
-        if (rustcSysRoot.includes('.rustup')) {
+        if (!rustcSysRoot.includes('.rustup')) {
             return undefined;
         }
 
