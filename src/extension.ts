@@ -8,11 +8,11 @@ import ConfigurationManager from './components/configuration/configuration_manag
 
 import CurrentWorkingDirectoryManager from './components/configuration/current_working_directory_manager';
 
+import { Manager as LanguageClientManager } from './components/language_client/manager';
+
 import LoggingManager from './components/logging/logging_manager';
 
 import LegacyModeManager from './legacy_mode_manager';
-
-import LanguageClientManager from './language_client_manager';
 
 export function activate(ctx: ExtensionContext): void {
     const loggingManager = new LoggingManager();

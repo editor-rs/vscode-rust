@@ -1,11 +1,15 @@
 import { ExtensionContext } from 'vscode';
 
-import { LanguageClientOptions, LanguageClient, ServerOptions } from 'vscode-languageclient';
+import { LanguageClientOptions, LanguageClient, ServerOptions, State } from 'vscode-languageclient';
 
-import ChildLogger from './components/logging/child_logger';
+import ChildLogger from '../logging/child_logger';
 
-export default class LanguageClientManager {
+import { StatusBarItem } from './status_bar_item';
+
+export class Manager {
     private languageClient: LanguageClient;
+
+    private statusBarItem: StatusBarItem;
 
     private context: ExtensionContext;
 
@@ -19,6 +23,8 @@ export default class LanguageClientManager {
         env?: any
     ) {
         this.context = context;
+
+        this.statusBarItem = new StatusBarItem(context);
 
         this.logger = logger;
 
@@ -51,6 +57,20 @@ export default class LanguageClientManager {
 
         this.languageClient.outputChannel.show();
 
+        this.languageClient.onDidChangeState(event => {
+            if (event.newState === State.Running) {
+                this.languageClient.onNotification('rustDocument/diagnosticsBegin', () => {
+                    this.statusBarItem.setText('Analysis started');
+                });
+
+                this.languageClient.onNotification('rustDocument/diagnosticsEnd', () => {
+                    this.statusBarItem.setText('Analysis finished');
+                });
+            }
+        });
+
         this.context.subscriptions.push(this.languageClient.start());
+
+        this.statusBarItem.updateVisibility();
     }
 }
