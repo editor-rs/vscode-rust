@@ -32,7 +32,7 @@ export default class CustomConfigurationChooser {
     }
 
     public choose(propertyName: string): Thenable<string[]> {
-        const configuration = this.configurationManager.getConfiguration();
+        const configuration = ConfigurationManager.getConfiguration();
 
         const customConfigurations = configuration.get<CustomConfiguration[]>(propertyName);
 

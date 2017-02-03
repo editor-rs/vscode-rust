@@ -1,6 +1,10 @@
 import { SpawnOptions, spawn } from 'child_process';
 
-import { ExtensionContext, WorkspaceConfiguration, workspace } from 'vscode';
+import { access } from 'fs';
+
+import { join } from 'path';
+
+import { WorkspaceConfiguration, workspace } from 'vscode';
 
 import expandTilde = require('expand-tilde');
 
@@ -13,16 +17,20 @@ export interface RlsConfiguration {
 }
 
 export class ConfigurationManager {
-    public constructor(context: ExtensionContext) {
-        context.subscriptions.push(
-            workspace.onDidChangeConfiguration(() => {
-                this.updateRustLangSrcInEnvironmentIfRequired();
-            })
-        );
+    private rustcSysRoot: string | undefined;
+
+    private rustSourcePath: string | undefined;
+
+    public static async create(): Promise<ConfigurationManager> {
+        const rustcSysRoot = await this.loadRustcSysRoot();
+
+        const rustSourcePath = await this.loadRustSourcePath(rustcSysRoot);
+
+        return new ConfigurationManager(rustcSysRoot, rustSourcePath);
     }
 
     public getRlsConfiguration(): RlsConfiguration | null {
-        const configuration = this.getConfiguration();
+        const configuration = ConfigurationManager.getConfiguration();
 
         const rlsConfiguration: RlsConfiguration | null = configuration['rls'];
 
@@ -30,36 +38,17 @@ export class ConfigurationManager {
     }
 
     public getActionOnSave(): string | null {
-        const actionOnSave = this.getStringParameter('actionOnSave');
+        const actionOnSave = ConfigurationManager.getStringParameter('actionOnSave');
 
         return actionOnSave;
     }
 
-    public getRustcSysroot(): Promise<string> {
-        const args = ['--print', 'sysroot'];
-
-        const options: SpawnOptions = { cwd: process.cwd() };
-
-        const spawnedProcess = spawn('rustc', args, options);
-
-        return new Promise((resolve, reject) => {
-            spawnedProcess.on('error', () => {
-                reject();
-            });
-            spawnedProcess.on('exit', code => {
-                if (code === 0) {
-                    const sysroot = spawnedProcess.stdout.read().toString().trim();
-
-                    resolve(sysroot);
-                } else {
-                    reject();
-                }
-            });
-        });
+    public getRustcSysRoot(): string {
+        return this.rustcSysRoot;
     }
 
     public shouldShowRunningCargoTaskOutputChannel(): boolean {
-        const configuration = this.getConfiguration();
+        const configuration = ConfigurationManager.getConfiguration();
 
         const shouldShowRunningCargoTaskOutputChannel = configuration['showOutput'];
 
@@ -67,7 +56,7 @@ export class ConfigurationManager {
     }
 
     public isFormatOnSaveEnabled(): boolean {
-        const configuration = this.getConfiguration();
+        const configuration = ConfigurationManager.getConfiguration();
 
         const isFormatOnSaveEnabled = configuration['formatOnSave'];
 
@@ -75,7 +64,7 @@ export class ConfigurationManager {
     }
 
     public getCargoEnv(): any {
-        const configuration = this.getConfiguration();
+        const configuration = ConfigurationManager.getConfiguration();
 
         const cargoEnv = configuration['cargoEnv'];
 
@@ -83,48 +72,131 @@ export class ConfigurationManager {
     }
 
     public getCargoPath(): string {
-        const rustsymPath = this.getPathParameter('cargoPath');
+        const rustsymPath = ConfigurationManager.getPathConfigParameter('cargoPath');
 
         return rustsymPath || 'cargo';
     }
 
-    public getCargoHomePath(): string {
-        const cargoHomePath = this.getPathParameter('cargoHomePath');
+    public getCargoHomePath(): string | undefined {
+        const configPath = ConfigurationManager.getPathConfigParameter('cargoHomePath');
 
-        return cargoHomePath || process.env['CARGO_HOME'] || '';
+        const envPath = ConfigurationManager.getPathEnvParameter('CARGO_HOME');
+
+        return configPath || envPath || undefined;
     }
 
     public getRacerPath(): string {
-        const racerPath = this.getPathParameter('racerPath');
+        const racerPath = ConfigurationManager.getPathConfigParameter('racerPath');
 
         return racerPath || 'racer';
     }
 
     public getRustfmtPath(): string {
-        const rustfmtPath = this.getPathParameter('rustfmtPath');
+        const rustfmtPath = ConfigurationManager.getPathConfigParameter('rustfmtPath');
 
         return rustfmtPath || 'rustfmt';
     }
 
     public getRustsymPath(): string {
-        const rustsymPath = this.getPathParameter('rustsymPath');
+        const rustsymPath = ConfigurationManager.getPathConfigParameter('rustsymPath');
 
         return rustsymPath || 'rustsym';
     }
 
-    public getRustLangSrcPath(): string {
-        const rustLangSrcPath = this.getPathParameter('rustLangSrcPath');
-
-        return rustLangSrcPath || '';
+    public getRustSourcePath(): string | undefined {
+        return this.rustSourcePath;
     }
 
-    public getConfiguration(): WorkspaceConfiguration {
+    public static getConfiguration(): WorkspaceConfiguration {
         const configuration = workspace.getConfiguration('rust');
 
         return configuration;
     }
 
-    public getStringParameter(parameterName: string): string | null {
+    private static async loadRustcSysRoot(): Promise<string | undefined> {
+        const args = ['--print', 'sysroot'];
+
+        const options: SpawnOptions = { cwd: process.cwd() };
+
+        const spawnedProcess = spawn('rustc', args, options);
+
+        return new Promise<string | undefined>(resolve => {
+            spawnedProcess.on('error', () => {
+                resolve(undefined);
+            });
+            spawnedProcess.on('exit', code => {
+                if (code === 0) {
+                    const sysroot = spawnedProcess.stdout.read().toString().trim();
+
+                    resolve(sysroot);
+                } else {
+                    resolve(undefined);
+                }
+            });
+        });
+    }
+
+    /**
+     * Loads the path of the Rust's source code.
+     * It tries to load from different places.
+     * These places sorted by priority (the first item has the highest priority):
+     * * User/Workspace configuration
+     * * Environment
+     * * Rustup
+     */
+    private static async loadRustSourcePath(rustcSysRoot: string | undefined): Promise<string | undefined> {
+        const configPath = this.getPathConfigParameter('rustLangSrcPath');
+
+        const configPathExists = await this.checkPathExists(configPath);
+
+        if (configPathExists) {
+            return configPath;
+        }
+
+        const envPath = this.getPathEnvParameter('RUST_SRC_PATH');
+
+        const envPathExists = await this.checkPathExists(envPath);
+
+        if (envPathExists) {
+            return envPath;
+        }
+
+        if (rustcSysRoot.includes('.rustup')) {
+            return undefined;
+        }
+
+        const rustupPath = join(rustcSysRoot, 'lib', 'rustlib', 'src', 'rust', 'src');
+
+        const rustupPathExists = this.checkPathExists(rustupPath);
+
+        if (rustupPathExists) {
+            return rustupPath;
+        } else {
+            return undefined;
+        }
+    }
+
+    private static checkPathExists(path: string | undefined): Promise<boolean> {
+        if (!path) {
+            return Promise.resolve(false);
+        }
+
+        return new Promise<boolean>(resolve => {
+            access(path, err => {
+                const pathExists = !err;
+
+                resolve(pathExists);
+            });
+        });
+    }
+
+    private constructor(rustcSysRoot: string | undefined, rustSourcePath: string | undefined) {
+        this.rustcSysRoot = rustcSysRoot;
+
+        this.rustSourcePath = rustSourcePath;
+    }
+
+    private static getStringParameter(parameterName: string): string | null {
         const configuration = workspace.getConfiguration('rust');
 
         const parameter: string | null = configuration[parameterName];
@@ -132,21 +204,23 @@ export class ConfigurationManager {
         return parameter;
     }
 
-    public getPathParameter(parameterName: string): string | null {
+    private static getPathConfigParameter(parameterName: string): string | undefined {
         const parameter = this.getStringParameter(parameterName);
 
         if (parameter) {
             return expandTilde(parameter);
         } else {
-            return null;
+            return undefined;
         }
     }
 
-    private updateRustLangSrcInEnvironmentIfRequired(): void {
-        const rustLangSrcPath = this.getRustLangSrcPath();
+    private static getPathEnvParameter(parameterName: string): string | undefined {
+        const parameter = process.env[parameterName];
 
-        if (process.env['RUST_SRC_PATH'] !== rustLangSrcPath) {
-            process.env['RUST_SRC_PATH'] = rustLangSrcPath;
+        if (parameter) {
+            return expandTilde(parameter);
+        } else {
+            return undefined;
         }
     }
 }

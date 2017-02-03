@@ -5,9 +5,7 @@
 
 import { ChildProcess, SpawnOptions, spawn } from 'child_process';
 
-import { access, writeFileSync } from 'fs';
-
-import { join } from 'path';
+import { writeFileSync } from 'fs';
 
 import {
     CompletionItem,
@@ -101,45 +99,27 @@ export default class CompletionManager {
 
         let tmpFile = fileSync();
         this.tmpFile = tmpFile.name;
-
-        // Set path to Rust language sources
-        let rustSrcPath = configurationManager.getRustLangSrcPath();
-        if (rustSrcPath) {
-            process.env['RUST_SRC_PATH'] = rustSrcPath;
-
-            context.subscriptions.push(this.start());
-        } else {
-            const onFulfilled = (sysroot: string) => {
-                rustSrcPath = join(sysroot, 'lib', 'rustlib', 'src', 'rust', 'src');
-                access(rustSrcPath, err => {
-                    if (!err) {
-                        process.env['RUST_SRC_PATH'] = rustSrcPath;
-                    } else if (rustSrcPath.includes('.rustup')) {
-                        // tslint:disable-next-line
-                        const message = 'You are using rustup, but don\'t have installed source code. Do you want to install it?';
-                        window.showErrorMessage(message, 'Yes').then(chosenItem => {
-                            if (chosenItem === 'Yes') {
-                                const terminal = window.createTerminal('Rust source code installation');
-                                terminal.sendText('rustup component add rust-src');
-                                terminal.show();
-                            }
-                        });
-                    }
-                    context.subscriptions.push(this.start());
-                });
-            };
-            const onRejected = () => {
-                context.subscriptions.push(this.start());
-            };
-            configurationManager.getRustcSysroot().then(onFulfilled, onRejected);
-        }
-
-        context.subscriptions.push(
-            this.start()
-        );
     }
 
     public start(): Disposable {
+        if (!this.configurationManager.getRustSourcePath()) {
+            const rustcSysRoot = this.configurationManager.getRustcSysRoot();
+
+            if (rustcSysRoot && rustcSysRoot.includes('.rustup')) {
+                // tslint:disable-next-line
+                const message = 'You are using rustup, but don\'t have installed source code. Do you want to install it?';
+                window.showErrorMessage(message, 'Yes').then(chosenItem => {
+                    if (chosenItem === 'Yes') {
+                        const terminal = window.createTerminal('Rust source code installation');
+                        terminal.sendText('rustup component add rust-src');
+                        terminal.show();
+                    }
+                });
+            }
+
+            return;
+        }
+
         const logger = this.logger.createChildLogger('start: ');
 
         logger.debug('enter');
@@ -158,6 +138,13 @@ export default class CompletionManager {
         this.racerStatusBarItem.showTurnedOn();
         const cargoHomePath = this.configurationManager.getCargoHomePath();
         const racerSpawnOptions: SpawnOptions = { stdio: 'pipe', shell: true, env: process.env };
+
+        const rustSourcePath = this.configurationManager.getRustSourcePath();
+
+        if (rustSourcePath) {
+            racerSpawnOptions.env.RUST_SRC_PATH = rustSourcePath;
+        }
+
         if (cargoHomePath !== '') {
             racerSpawnOptions.env.CARGO_HOME = cargoHomePath;
         }

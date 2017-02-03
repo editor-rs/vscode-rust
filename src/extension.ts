@@ -19,43 +19,45 @@ export function activate(ctx: ExtensionContext): void {
 
     const logger = loggingManager.getLogger();
 
-    const configurationManager = new ConfigurationManager(ctx);
+    ConfigurationManager.create().then(configurationManager => {
+        const currentWorkingDirectoryManager = new CurrentWorkingDirectoryManager();
 
-    const currentWorkingDirectoryManager = new CurrentWorkingDirectoryManager();
-
-    const cargoManager = new CargoManager(
-        ctx,
-        configurationManager,
-        currentWorkingDirectoryManager,
-        logger.createChildLogger('Cargo Manager: ')
-    );
-
-    const rlsConfiguration: RlsConfiguration | null = configurationManager.getRlsConfiguration();
-
-    if (rlsConfiguration) {
-        cargoManager.setDiagnosticParsingEnabled(false);
-
-        const { executable, args, env } = rlsConfiguration;
-
-        const languageClientManager = new LanguageClientManager(
-            ctx,
-            logger.createChildLogger('Language Client Manager: '),
-            executable,
-            args,
-            env
-        );
-
-        languageClientManager.start();
-    } else {
-        new LegacyModeManager(
+        const cargoManager = new CargoManager(
             ctx,
             configurationManager,
             currentWorkingDirectoryManager,
-            logger.createChildLogger('Legacy Mode Manager: ')
+            logger.createChildLogger('Cargo Manager: ')
         );
-    }
 
-    addExecutingActionOnSave(ctx, configurationManager, cargoManager);
+        const rlsConfiguration: RlsConfiguration | null = configurationManager.getRlsConfiguration();
+
+        if (rlsConfiguration) {
+            cargoManager.setDiagnosticParsingEnabled(false);
+
+            const { executable, args, env } = rlsConfiguration;
+
+            const languageClientManager = new LanguageClientManager(
+                ctx,
+                logger.createChildLogger('Language Client Manager: '),
+                executable,
+                args,
+                env
+            );
+
+            languageClientManager.start();
+        } else {
+            const legacyModeManager = new LegacyModeManager(
+                ctx,
+                configurationManager,
+                currentWorkingDirectoryManager,
+                logger.createChildLogger('Legacy Mode Manager: ')
+            );
+
+            legacyModeManager.start();
+        }
+
+        addExecutingActionOnSave(ctx, configurationManager, cargoManager);
+    });
 }
 
 function addExecutingActionOnSave(
