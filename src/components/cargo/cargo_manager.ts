@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as readline from 'readline';
-import * as path from 'path';
 import * as tmp from 'tmp';
 import kill = require('tree-kill');
 
@@ -19,80 +18,11 @@ import ChildLogger from '../logging/child_logger';
 
 import CustomConfigurationChooser from './custom_configuration_chooser';
 
+import { DiagnosticParser } from './diagnostic_parser';
+
+import { DiagnosticPublisher } from './diagnostic_publisher';
+
 const spinner = elegantSpinner();
-
-interface CompilerMessageSpanText {
-    highlight_end: number;
-    highlight_start: number;
-    text: string;
-}
-
-interface CompilerMessageCode {
-    code: string;
-    explanation: string;
-}
-
-interface CompilerMessageSpanExpansion {
-    def_site_span: CompilerMessageSpan;
-    macro_decl_name: string;
-    span: CompilerMessageSpan;
-}
-
-interface CompilerMessageSpan {
-    byte_end: number;
-    byte_start: number;
-    column_end: number;
-    column_start: number;
-    expansion?: CompilerMessageSpanExpansion;
-    file_name: string;
-    is_primary: boolean;
-    label: string;
-    line_end: number;
-    line_start: number;
-    suggested_replacement?: any; // I don't know what type it has
-    text: CompilerMessageSpanText[];
-}
-
-interface CompilerMessage {
-    children: any[]; // I don't know what type it has
-    code?: CompilerMessageCode;
-    level: string;
-    message: string;
-    rendered?: any; // I don't know what type it has
-    spans: CompilerMessageSpan[];
-}
-
-interface CargoMessageTarget {
-    kind: string[];
-    name: string;
-    src_path: string;
-}
-
-interface CargoMessageWithCompilerMessage {
-    message: CompilerMessage;
-    package_id: string;
-    reason: 'compiler-message';
-    target: CargoMessageTarget;
-}
-
-interface CargoMessageWithCompilerArtifact {
-    features: any[];
-    filenames: string[];
-    package_id: string;
-    profile: any;
-    reason: 'compiler-artifact';
-    target: CargoMessageTarget;
-}
-
-interface RustError {
-    filename: string;
-    startLine: number;
-    startCharacter: number;
-    endLine: number;
-    endCharacter: number;
-    severity: string;
-    message: string;
-}
 
 export enum BuildType {
     Debug,
@@ -339,13 +269,17 @@ class CargoTaskManager {
 
     private currentWorkingDirectoryManager: CurrentWorkingDirectoryManager;
 
-    private diagnostics: vscode.DiagnosticCollection = vscode.languages.createDiagnosticCollection('rust');
+    private diagnosticParser: DiagnosticParser;
+
+    private diagnosticPublisher: DiagnosticPublisher;
 
     private channel: ChannelWrapper = new ChannelWrapper(vscode.window.createOutputChannel('Cargo'));
 
     private currentTask: CargoTask;
 
     private cargoTaskStatusBarManager: CargoTaskStatusBarManager;
+
+    private diagnosticPublishingEnabled: boolean;
 
     public constructor(
         configurationManager: ConfigurationManager,
@@ -356,7 +290,17 @@ class CargoTaskManager {
 
         this.currentWorkingDirectoryManager = currentWorkingDirectoryManager;
 
+        this.diagnosticParser = new DiagnosticParser();
+
+        this.diagnosticPublisher = new DiagnosticPublisher();
+
         this.cargoTaskStatusBarManager = new CargoTaskStatusBarManager(stopCommandName);
+
+        this.diagnosticPublishingEnabled = true;
+    }
+
+    public setDiagnosticPublishingEnabled(diagnosticPublishingEnabled: boolean): void {
+        this.diagnosticPublishingEnabled = diagnosticPublishingEnabled;
     }
 
     public invokeCargoInit(crateType: CrateType, name: string, cwd: string): Thenable<void> {
@@ -523,72 +467,6 @@ class CargoTaskManager {
         }
     }
 
-    private updateDiagnostics(cwd: string, errors: RustError[]): void {
-        const mapSeverityToVsCode = (severity) => {
-            if (severity === 'warning') {
-                return vscode.DiagnosticSeverity.Warning;
-            } else if (severity === 'error') {
-                return vscode.DiagnosticSeverity.Error;
-            } else if (severity === 'note') {
-                return vscode.DiagnosticSeverity.Information;
-            } else if (severity === 'help') {
-                return vscode.DiagnosticSeverity.Hint;
-            } else {
-                return vscode.DiagnosticSeverity.Error;
-            }
-        };
-
-        const diagnosticMap: Map<string, vscode.Diagnostic[]> = new Map();
-
-        errors.forEach(error => {
-            const filePath = path.join(cwd, error.filename);
-            // VSCode starts its lines and columns at 0, so subtract 1 off
-            const range = new vscode.Range(error.startLine - 1, error.startCharacter - 1, error.endLine - 1, error.endCharacter - 1);
-            const severity = mapSeverityToVsCode(error.severity);
-
-            const diagnostic = new vscode.Diagnostic(range, error.message, severity);
-            let diagnostics = diagnosticMap.get(filePath);
-
-            if (!diagnostics) {
-                diagnostics = [];
-            }
-
-            diagnostics.push(diagnostic);
-
-            diagnosticMap.set(filePath, diagnostics);
-        });
-
-        diagnosticMap.forEach((diags, uri) => {
-            const uniqueDiagnostics = this.getUniqueDiagnostics(diags);
-
-            this.diagnostics.set(vscode.Uri.file(uri), uniqueDiagnostics);
-        });
-    }
-
-    private getUniqueDiagnostics(diagnostics: vscode.Diagnostic[]): vscode.Diagnostic[] {
-        const uniqueDiagnostics: vscode.Diagnostic[] = [];
-
-        for (const diagnostic of diagnostics) {
-            const uniqueDiagnostic = uniqueDiagnostics.find(uniqueDiagnostic => {
-                if (!diagnostic.range.isEqual(uniqueDiagnostic.range)) {
-                    return false;
-                }
-
-                if (diagnostic.message !== uniqueDiagnostic.message) {
-                    return false;
-                }
-
-                return true;
-            });
-
-            if (uniqueDiagnostic === undefined) {
-                uniqueDiagnostics.push(diagnostic);
-            }
-        }
-
-        return uniqueDiagnostics;
-    }
-
     private checkCargoCheckAvailability(): Thenable<boolean> {
         const args = ['check', '--help'];
 
@@ -599,58 +477,6 @@ class CargoTaskManager {
         return task.execute(args, cwd).then((exitCode: ExitCode) => {
             return exitCode === 0;
         });
-    }
-
-    public parseJsonLine(errors: RustError[], line: string): boolean {
-        const errorJson: CargoMessageWithCompilerArtifact | CargoMessageWithCompilerMessage = JSON.parse(line);
-
-        if (errorJson.reason !== 'compiler-message') {
-            return false;
-        }
-
-        return this.parseCargoMessage(errors, errorJson);
-    }
-
-    private parseCargoMessage(errors: RustError[], cargoMessage: CargoMessageWithCompilerMessage): boolean {
-        const compilerMessage = cargoMessage.message;
-        const spans = compilerMessage.spans;
-
-        if (spans.length === 0) {
-            return false;
-        }
-
-        // Only add the primary span, as VSCode orders the problem window by the
-        // error's range, which causes a lot of confusion if there are duplicate messages.
-        let primarySpan = spans.find(span => span.is_primary);
-
-        if (!primarySpan) {
-            return false;
-        }
-
-        // Following macro expansion to get correct file name and range.
-        while (primarySpan.expansion && primarySpan.expansion.span) {
-            primarySpan = primarySpan.expansion.span;
-        }
-
-        const error: RustError = {
-            filename: primarySpan.file_name,
-            startLine: primarySpan.line_start,
-            startCharacter: primarySpan.column_start,
-            endLine: primarySpan.line_end,
-            endCharacter: primarySpan.column_end,
-            severity: compilerMessage.level,
-            message: compilerMessage.message
-        };
-
-        if (compilerMessage.code) {
-            error.message = `${compilerMessage.code.code}: ${error.message}`;
-        }
-
-
-        error.message = this.addNotesToMessage(error.message, compilerMessage.children, 1);
-        errors.push(error);
-
-        return true;
     }
 
     private runCargo(args: string[], force = false): void {
@@ -665,7 +491,7 @@ class CargoTaskManager {
                 return;
             }
 
-            this.diagnostics.clear();
+            this.diagnosticPublisher.clearDiagnostics();
 
             this.currentTask = new CargoTask(this.configurationManager);
 
@@ -690,28 +516,14 @@ class CargoTaskManager {
                 this.channel.append(`Started cargo ${args.join(' ')}\n`);
             };
 
-            const errors: RustError[] = [];
-
             const onStdoutLine = (line: string) => {
                 if (line.startsWith('{')) {
-                    const newErrors: RustError[] = [];
+                    const fileDiagnostics = this.diagnosticParser.parseLine(line);
 
-                    if (this.parseJsonLine(newErrors, line)) {
-                        /* tslint:disable:max-line-length */
-                        // Print any errors as best we can match to Rust's format.
-                        // TODO: Add support for child errors/text highlights.
-                        // TODO: The following line will currently be printed fine, but the two lines after will not.
-                        // src\main.rs:5:5: 5:8 error: expected one of `!`, `.`, `::`, `;`, `?`, `{`, `}`, or an operator, found `let`
-                        // src\main.rs:5     let mut a = 4;
-                        //                   ^~~
-                        /* tslint:enable:max-line-length */
-                        for (const error of newErrors) {
-                            this.channel.append(`${error.filename}:${error.startLine}:${error.startCharacter}:` +
-                                ` ${error.severity}: ${error.message}\n`);
+                    for (const fileDiagnostic of fileDiagnostics) {
+                        if (this.diagnosticPublishingEnabled) {
+                            this.diagnosticPublisher.publishDiagnostic(fileDiagnostic, cwd);
                         }
-
-                        errors.push(...newErrors);
-                        this.updateDiagnostics(cwd, errors);
                     }
                 } else {
                     this.channel.append(`${line}\n`);
@@ -755,35 +567,6 @@ class CargoTaskManager {
             vscode.window.showErrorMessage(error.message);
         });
     }
-
-    private addNotesToMessage(msg: string, children: any[], level: number): string {
-        const ident = '   '.repeat(level);
-
-        for (const child of children) {
-            msg += `\n${ident}${child.message}`;
-
-            if (child.spans && child.spans.length > 0) {
-                msg += ': ';
-                const lines = [];
-
-                for (const span of child.spans) {
-                    if (!span.file_name || !span.line_start) {
-                        continue;
-                    }
-
-                    lines.push(`${span.file_name}(${span.line_start})`);
-                }
-
-                msg += lines.join(', ');
-            }
-
-            if (child.children) {
-                msg = this.addNotesToMessage(msg, child.children, level + 1);
-            }
-        }
-
-        return msg;
-    }
 }
 
 export default class CargoManager {
@@ -812,6 +595,10 @@ export default class CargoManager {
         this.logger = logger;
 
         this.registerCommands(context, stopCommandName);
+    }
+
+    public setDiagnosticParsingEnabled(diagnosticParsingEnabled: boolean): void {
+        this.cargoManager.setDiagnosticPublishingEnabled(diagnosticParsingEnabled);
     }
 
     public executeBuildTask(): void {
