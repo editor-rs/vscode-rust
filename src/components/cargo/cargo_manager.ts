@@ -17,7 +17,7 @@ import { DiagnosticParser } from './diagnostic_parser';
 
 import { DiagnosticPublisher } from './diagnostic_publisher';
 
-import { Task } from './task';
+import { ExitCode, Task } from './task';
 
 const spinner = elegantSpinner();
 
@@ -54,40 +54,6 @@ class ChannelWrapper {
 export enum CheckTarget {
     Library,
     Application
-}
-
-type ExitCode = number;
-
-class CargoTaskArgs {
-    private args: string[];
-
-    public constructor(command: string) {
-        this.args = [command];
-    }
-
-    public setMessageFormatToJson(): void {
-        this.args.push('--message-format', 'json');
-    }
-
-    public setBuildTypeToReleaseIfRequired(buildType: BuildType): void {
-        if (buildType !== BuildType.Release) {
-            return;
-        }
-
-        this.args.push('--release');
-    }
-
-    public addArg(arg: string): void {
-        this.args.push(arg);
-    }
-
-    public addArgs(args: string[]): void {
-        this.args.push(...args);
-    }
-
-    public getArgs(): string[] {
-        return this.args;
-    }
 }
 
 class UserDefinedArgs {
@@ -251,38 +217,27 @@ class CargoTaskManager {
         await currentTask.execute();
     }
 
-    public invokeCargoBuildWithArgs(additionalArgs: string[]): void {
-        const argsBuilder = new CargoTaskArgs('build');
-        argsBuilder.setMessageFormatToJson();
-        argsBuilder.addArgs(additionalArgs);
-
-        const args = argsBuilder.getArgs();
-
-        this.runCargo(args, true);
+    public invokeCargoBuildWithArgs(args: string[]): void {
+        this.runCargo('build', args, true);
     }
 
     public invokeCargoBuildUsingBuildArgs(): void {
         this.invokeCargoBuildWithArgs(UserDefinedArgs.getBuildArgs());
     }
 
-    public invokeCargoCheckWithArgs(additionalArgs: string[]): void {
+    public invokeCargoCheckWithArgs(args: string[]): void {
         this.checkCargoCheckAvailability().then(isAvailable => {
-            let argsBuilder: CargoTaskArgs;
+            let command;
 
             if (isAvailable) {
-                argsBuilder = new CargoTaskArgs('check');
-                argsBuilder.setMessageFormatToJson();
-                argsBuilder.addArgs(additionalArgs);
+                command = 'check';
             } else {
-                argsBuilder = new CargoTaskArgs('rustc');
-                argsBuilder.setMessageFormatToJson();
-                argsBuilder.addArgs(additionalArgs);
-                argsBuilder.addArgs(['--', '-Zno-trans']);
+                command = 'rustc';
+
+                args.push('--', '-Zno-trans');
             }
 
-            const args = argsBuilder.getArgs();
-
-            this.runCargo(args, true);
+            this.runCargo(command, args, true);
         });
     }
 
@@ -290,14 +245,8 @@ class CargoTaskManager {
         this.invokeCargoCheckWithArgs(UserDefinedArgs.getCheckArgs());
     }
 
-    public invokeCargoClippyWithArgs(additionalArgs: string[]): void {
-        const argsBuilder = new CargoTaskArgs('clippy');
-        argsBuilder.setMessageFormatToJson();
-        argsBuilder.addArgs(additionalArgs);
-
-        const args = argsBuilder.getArgs();
-
-        this.runCargo(args, true);
+    public invokeCargoClippyWithArgs(args: string[]): void {
+        this.runCargo('clippy', args, true);
     }
 
     public invokeCargoClippyUsingClippyArgs(): void {
@@ -330,36 +279,24 @@ class CargoTaskManager {
         await currentTask.execute();
     }
 
-    public invokeCargoRunWithArgs(additionalArgs: string[]): void {
-        const argsBuilder = new CargoTaskArgs('run');
-        argsBuilder.setMessageFormatToJson();
-        argsBuilder.addArgs(additionalArgs);
-
-        const args = argsBuilder.getArgs();
-
-        this.runCargo(args, true);
+    public invokeCargoRunWithArgs(args: string[]): void {
+        this.runCargo('run', args, true);
     }
 
     public invokeCargoRunUsingRunArgs(): void {
         this.invokeCargoRunWithArgs(UserDefinedArgs.getRunArgs());
     }
 
-    public invokeCargoTestWithArgs(additionalArgs: string[]): void {
-        const argsBuilder = new CargoTaskArgs('test');
-        argsBuilder.setMessageFormatToJson();
-        argsBuilder.addArgs(additionalArgs);
-
-        const args = argsBuilder.getArgs();
-
-        this.runCargo(args, true);
+    public invokeCargoTestWithArgs(args: string[]): void {
+        this.runCargo('test', args, true);
     }
 
     public invokeCargoTestUsingTestArgs(): void {
         this.invokeCargoTestWithArgs(UserDefinedArgs.getTestArgs());
     }
 
-    public invokeCargoWithArgs(args: string[]): void {
-        this.runCargo(args, true);
+    public invokeCargo(command: string, args: string[]): void {
+        this.runCargo(command, args, true);
     }
 
     public stopTask(): void {
@@ -376,11 +313,11 @@ class CargoTaskManager {
         return exitCode === 0;
     }
 
-    private async runCargo(args: string[], force = false): Promise<void> {
+    private async runCargo(command: string, args: string[], force = false): Promise<void> {
         if (force && this.currentTask) {
             await this.currentTask.kill();
 
-            this.runCargo(args, force);
+            this.runCargo(command, args, force);
 
             return;
         } else if (this.currentTask) {
@@ -397,15 +334,29 @@ class CargoTaskManager {
             return;
         }
 
-        this.runCargoWithCwd(args, cwd);
+        this.runCargoWithCwd(command, args, cwd);
     }
 
-    private runCargoWithCwd(args: string[], cwd: string): void {
+    private runCargoWithCwd(command: string, args: string[], cwd: string): void {
         this.diagnosticPublisher.clearDiagnostics();
 
         if (this.configurationManager.shouldShowRunningCargoTaskOutputChannel()) {
             this.channel.show();
         }
+
+        // Prepend arguments with arguments making cargo print output in JSON.
+        switch (command) {
+            case 'build':
+            case 'check':
+            case 'clippy':
+            case 'test':
+            case 'run':
+                args = ['--message-format', 'json'].concat(args);
+                break;
+        }
+
+        // Prepare arguments with a command
+        args = [command].concat(args);
 
         this.currentTask = new Task(this.configurationManager, args, cwd);
 
@@ -671,9 +622,9 @@ export default class CargoManager {
         });
     }
 
-    public registerCommandInvokingCargoWithArgs(commandName: string, ...args: string[]): vscode.Disposable {
+    public registerCommandInvokingCargoWithArgs(commandName: string, command: string, ...args: string[]): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
-            this.cargoManager.invokeCargoWithArgs(args);
+            this.cargoManager.invokeCargo(command, args);
         });
     }
 
