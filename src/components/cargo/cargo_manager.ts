@@ -479,94 +479,101 @@ class CargoTaskManager {
         });
     }
 
-    private runCargo(args: string[], force = false): void {
+    private async runCargo(args: string[], force = false): Promise<void> {
         if (force && this.currentTask) {
-            this.currentTask.kill().then(() => {
-                this.runCargo(args, force);
-            });
+            await this.currentTask.kill();
+
+            this.runCargo(args, force);
 
             return;
         } else if (this.currentTask) {
             return;
         }
 
-        this.currentWorkingDirectoryManager.cwd().then((value: string) => {
+        let cwd;
 
-            this.diagnosticPublisher.clearDiagnostics();
+        try {
+            cwd = this.currentWorkingDirectoryManager.cwd();
+        } catch (error) {
+            vscode.window.showErrorMessage(error.message);
 
-            this.currentTask = new CargoTask(this.configurationManager);
+            return;
+        }
 
-            {
-                const configuration = getConfiguration();
+        this.runCargoWithCwd(args, cwd);
+    }
 
-                if (configuration['showOutput']) {
-                    this.channel.show();
+    private runCargoWithCwd(args: string[], cwd: string): void {
+        this.diagnosticPublisher.clearDiagnostics();
+
+        this.currentTask = new CargoTask(this.configurationManager);
+
+        {
+            const configuration = getConfiguration();
+
+            if (configuration['showOutput']) {
+                this.channel.show();
+            }
+        }
+
+        this.cargoTaskStatusBarManager.show();
+
+        let startTime: number;
+
+        const onStart = () => {
+            startTime = Date.now();
+
+            this.channel.clear();
+            this.channel.append(`Started cargo ${args.join(' ')}\n`);
+        };
+
+        const onStdoutLine = (line: string) => {
+            if (line.startsWith('{')) {
+                const fileDiagnostics = this.diagnosticParser.parseLine(line);
+
+                for (const fileDiagnostic of fileDiagnostics) {
+                    if (this.diagnosticPublishingEnabled) {
+                        this.diagnosticPublisher.publishDiagnostic(fileDiagnostic, cwd);
+                    }
                 }
+            } else {
+                this.channel.append(`${line}\n`);
+            }
+        };
+
+        const onStderrLine = (line: string) => {
+            this.channel.append(`${line}\n`);
+        };
+
+        const onGracefullyEnded = (exitCode: ExitCode) => {
+            this.cargoTaskStatusBarManager.hide();
+
+            this.currentTask = null;
+
+            const endTime = Date.now();
+
+            this.channel.append(`Completed with code ${exitCode}\n`);
+            this.channel.append(`It took approximately ${(endTime - startTime) / 1000} seconds\n`);
+        };
+
+        const onUnexpectedlyEnded = (error?: Error) => {
+            this.cargoTaskStatusBarManager.hide();
+
+            this.currentTask = null;
+
+            // No error means the task has been interrupted
+            if (!error) {
+                return;
             }
 
-            this.cargoTaskStatusBarManager.show();
+            if (error.message !== 'ENOENT') {
+                return;
+            }
 
-            const cwd = value;
+            vscode.window.showInformationMessage('The "cargo" command is not available. Make sure it is installed.');
+        };
 
-            let startTime: number;
-
-            const onStart = () => {
-                startTime = Date.now();
-
-                this.channel.clear();
-                this.channel.append(`Started cargo ${args.join(' ')}\n`);
-            };
-
-            const onStdoutLine = (line: string) => {
-                if (line.startsWith('{')) {
-                    const fileDiagnostics = this.diagnosticParser.parseLine(line);
-
-                    for (const fileDiagnostic of fileDiagnostics) {
-                        if (this.diagnosticPublishingEnabled) {
-                            this.diagnosticPublisher.publishDiagnostic(fileDiagnostic, cwd);
-                        }
-                    }
-                } else {
-                    this.channel.append(`${line}\n`);
-                }
-            };
-
-            const onStderrLine = (line: string) => {
-                this.channel.append(`${line}\n`);
-            };
-
-            const onGracefullyEnded = (exitCode: ExitCode) => {
-                this.cargoTaskStatusBarManager.hide();
-
-                this.currentTask = null;
-
-                const endTime = Date.now();
-
-                this.channel.append(`Completed with code ${exitCode}\n`);
-                this.channel.append(`It took approximately ${(endTime - startTime) / 1000} seconds\n`);
-            };
-
-            const onUnexpectedlyEnded = (error?: Error) => {
-                this.cargoTaskStatusBarManager.hide();
-
-                this.currentTask = null;
-
-                // No error means the task has been interrupted
-                if (!error) {
-                    return;
-                }
-
-                if (error.message !== 'ENOENT') {
-                    return;
-                }
-
-                vscode.window.showInformationMessage('The "cargo" command is not available. Make sure it is installed.');
-            };
-
-            this.currentTask.execute(args, cwd, onStart, onStdoutLine, onStderrLine).then(onGracefullyEnded, onUnexpectedlyEnded);
-        }).catch((error: Error) => {
-            vscode.window.showErrorMessage(error.message);
-        });
+        this.currentTask.execute(args, cwd, onStart, onStdoutLine, onStderrLine).then(onGracefullyEnded, onUnexpectedlyEnded);
     }
 }
 
