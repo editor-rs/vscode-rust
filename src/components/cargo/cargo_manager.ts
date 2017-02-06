@@ -480,16 +480,17 @@ class CargoTaskManager {
     }
 
     private runCargo(args: string[], force = false): void {
-        this.currentWorkingDirectoryManager.cwd().then((value: string) => {
-            if (force && this.currentTask) {
-                this.currentTask.kill().then(() => {
-                    this.runCargo(args, force);
-                });
+        if (force && this.currentTask) {
+            this.currentTask.kill().then(() => {
+                this.runCargo(args, force);
+            });
 
-                return;
-            } else if (this.currentTask) {
-                return;
-            }
+            return;
+        } else if (this.currentTask) {
+            return;
+        }
+
+        this.currentWorkingDirectoryManager.cwd().then((value: string) => {
 
             this.diagnosticPublisher.clearDiagnostics();
 
