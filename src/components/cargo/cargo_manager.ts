@@ -1,10 +1,5 @@
 import * as vscode from 'vscode';
-import * as cp from 'child_process';
-import * as readline from 'readline';
 import * as tmp from 'tmp';
-import kill = require('tree-kill');
-
-import { ChildProcess } from 'child_process';
 
 import { ExtensionContext } from 'vscode';
 
@@ -21,6 +16,8 @@ import CustomConfigurationChooser from './custom_configuration_chooser';
 import { DiagnosticParser } from './diagnostic_parser';
 
 import { DiagnosticPublisher } from './diagnostic_publisher';
+
+import { Task } from './task';
 
 const spinner = elegantSpinner();
 
@@ -60,96 +57,6 @@ export enum CheckTarget {
 }
 
 type ExitCode = number;
-
-class CargoTask {
-    private configurationManager: ConfigurationManager;
-
-    private process: ChildProcess | null;
-
-    private interrupted: boolean;
-
-    public constructor(configurationManager: ConfigurationManager) {
-        this.configurationManager = configurationManager;
-
-        this.process = null;
-
-        this.interrupted = false;
-    }
-
-    public execute(
-        args: string[],
-        cwd: string,
-        onStart?: () => void,
-        onStdoutLine?: (data: string) => void,
-        onStderrLine?: (data: string) => void
-    ): Thenable<ExitCode> {
-        return new Promise<ExitCode>((resolve, reject) => {
-            const cargoPath = this.configurationManager.getCargoPath();
-
-            if (onStart) {
-                onStart();
-            }
-
-            let newEnv = Object.assign({}, process.env);
-
-            const configuration = getConfiguration();
-            const customEnv = configuration['cargoEnv'];
-
-            if (customEnv) {
-                newEnv = Object.assign(newEnv, customEnv);
-            }
-
-            this.process = cp.spawn(cargoPath, args, { cwd, env: newEnv });
-
-            const stdout = readline.createInterface({ input: this.process.stdout });
-
-            stdout.on('line', line => {
-                if (!onStdoutLine) {
-                    return;
-                }
-
-                onStdoutLine(line);
-            });
-
-            const stderr = readline.createInterface({ input: this.process.stderr });
-
-            stderr.on('line', line => {
-                if (!onStderrLine) {
-                    return;
-                }
-
-                onStderrLine(line);
-            });
-
-            this.process.on('error', error => {
-                reject(error);
-            });
-
-            this.process.on('exit', code => {
-                this.process.removeAllListeners();
-                this.process = null;
-
-                if (this.interrupted) {
-                    reject();
-
-                    return;
-                }
-
-                resolve(code);
-            });
-        });
-    }
-
-    public kill(): Thenable<any> {
-        return new Promise(resolve => {
-            if (!this.interrupted && this.process) {
-                kill(this.process.pid, 'SIGTERM', resolve);
-
-                this.interrupted = true;
-            }
-        });
-    }
-}
 
 class CargoTaskArgs {
     private args: string[];
@@ -275,7 +182,7 @@ class CargoTaskManager {
 
     private channel: ChannelWrapper = new ChannelWrapper(vscode.window.createOutputChannel('Cargo'));
 
-    private currentTask: CargoTask;
+    private currentTask: Task | undefined;
 
     private cargoTaskStatusBarManager: CargoTaskStatusBarManager;
 
@@ -294,6 +201,8 @@ class CargoTaskManager {
 
         this.diagnosticPublisher = new DiagnosticPublisher();
 
+        this.currentTask = undefined;
+
         this.cargoTaskStatusBarManager = new CargoTaskStatusBarManager(stopCommandName);
 
         this.diagnosticPublishingEnabled = true;
@@ -303,7 +212,7 @@ class CargoTaskManager {
         this.diagnosticPublishingEnabled = diagnosticPublishingEnabled;
     }
 
-    public invokeCargoInit(crateType: CrateType, name: string, cwd: string): Thenable<void> {
+    public async invokeCargoInit(crateType: CrateType, name: string, cwd: string): Promise<void> {
         const args = ['init', '--name', name];
 
         switch (crateType) {
@@ -319,8 +228,6 @@ class CargoTaskManager {
                 throw new Error(`Unhandled crate type=${crateType}`);
         }
 
-        this.currentTask = new CargoTask(this.configurationManager);
-
         this.channel.clear();
 
         {
@@ -331,19 +238,17 @@ class CargoTaskManager {
             }
         }
 
-        const onLine = (line: string) => {
+        const currentTask = new Task(this.configurationManager, args, cwd);
+
+        currentTask.setLineReceivedInStdout(line => {
             this.channel.append(`${line}\n`);
-        };
-
-        const onStart = undefined;
-
-        const onStdoutLine = onLine;
-
-        const onStderrLine = onLine;
-
-        return this.currentTask.execute(args, cwd, onStart, onStdoutLine, onStderrLine).then(() => {
-            this.currentTask = null;
         });
+
+        currentTask.setLineReceivedInStderr(line => {
+            this.channel.append(`${line}\n`);
+        });
+
+        await currentTask.execute();
     }
 
     public invokeCargoBuildWithArgs(additionalArgs: string[]): void {
@@ -399,9 +304,7 @@ class CargoTaskManager {
         this.invokeCargoClippyWithArgs(UserDefinedArgs.getClippyArgs());
     }
 
-    public invokeCargoNew(projectName: string, isBin: boolean, cwd: string): void {
-        this.currentTask = new CargoTask(this.configurationManager);
-
+    public async invokeCargoNew(projectName: string, isBin: boolean, cwd: string): Promise<void> {
         this.channel.clear();
 
         const args = ['new', projectName, isBin ? '--bin' : '--lib'];
@@ -414,19 +317,17 @@ class CargoTaskManager {
             }
         }
 
-        const onLine = (line: string) => {
+        const currentTask = new Task(this.configurationManager, args, cwd);
+
+        currentTask.setLineReceivedInStdout(line => {
             this.channel.append(`${line}\n`);
-        };
-
-        const onStart = undefined;
-
-        const onStdoutLine = onLine;
-
-        const onStderrLine = onLine;
-
-        this.currentTask.execute(args, cwd, onStart, onStdoutLine, onStderrLine).then(() => {
-            this.currentTask = null;
         });
+
+        currentTask.setLineReceivedInStderr(line => {
+            this.channel.append(`${line}\n`);
+        });
+
+        await currentTask.execute();
     }
 
     public invokeCargoRunWithArgs(additionalArgs: string[]): void {
@@ -467,16 +368,12 @@ class CargoTaskManager {
         }
     }
 
-    private checkCargoCheckAvailability(): Thenable<boolean> {
-        const args = ['check', '--help'];
+    private async checkCargoCheckAvailability(): Promise<boolean> {
+        const task = new Task(this.configurationManager, ['check', '--help'], '/');
 
-        const cwd = '/'; // Doesn't matter.
+        const exitCode = await task.execute();
 
-        const task = new CargoTask(this.configurationManager);
-
-        return task.execute(args, cwd).then((exitCode: ExitCode) => {
-            return exitCode === 0;
-        });
+        return exitCode === 0;
     }
 
     private async runCargo(args: string[], force = false): Promise<void> {
@@ -506,28 +403,22 @@ class CargoTaskManager {
     private runCargoWithCwd(args: string[], cwd: string): void {
         this.diagnosticPublisher.clearDiagnostics();
 
-        this.currentTask = new CargoTask(this.configurationManager);
-
-        {
-            const configuration = getConfiguration();
-
-            if (configuration['showOutput']) {
-                this.channel.show();
-            }
+        if (this.configurationManager.shouldShowRunningCargoTaskOutputChannel()) {
+            this.channel.show();
         }
 
-        this.cargoTaskStatusBarManager.show();
+        this.currentTask = new Task(this.configurationManager, args, cwd);
 
         let startTime: number;
 
-        const onStart = () => {
+        this.currentTask.setStarted(() => {
             startTime = Date.now();
 
             this.channel.clear();
             this.channel.append(`Started cargo ${args.join(' ')}\n`);
-        };
+        });
 
-        const onStdoutLine = (line: string) => {
+        this.currentTask.setLineReceivedInStdout(line => {
             if (line.startsWith('{')) {
                 const fileDiagnostics = this.diagnosticParser.parseLine(line);
 
@@ -539,11 +430,13 @@ class CargoTaskManager {
             } else {
                 this.channel.append(`${line}\n`);
             }
-        };
+        });
 
-        const onStderrLine = (line: string) => {
+        this.currentTask.setLineReceivedInStderr(line => {
             this.channel.append(`${line}\n`);
-        };
+        });
+
+        this.cargoTaskStatusBarManager.show();
 
         const onGracefullyEnded = (exitCode: ExitCode) => {
             this.cargoTaskStatusBarManager.hide();
@@ -573,7 +466,7 @@ class CargoTaskManager {
             vscode.window.showInformationMessage('The "cargo" command is not available. Make sure it is installed.');
         };
 
-        this.currentTask.execute(args, cwd, onStart, onStdoutLine, onStderrLine).then(onGracefullyEnded, onUnexpectedlyEnded);
+        this.currentTask.execute().then(onGracefullyEnded, onUnexpectedlyEnded);
     }
 }
 
