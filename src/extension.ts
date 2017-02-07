@@ -14,57 +14,57 @@ import LoggingManager from './components/logging/logging_manager';
 
 import LegacyModeManager from './legacy_mode_manager';
 
-export function activate(ctx: ExtensionContext): void {
+export async function activate(ctx: ExtensionContext): Promise<void> {
     const loggingManager = new LoggingManager();
 
     const logger = loggingManager.getLogger();
 
-    ConfigurationManager.create().then(configurationManager => {
-        const currentWorkingDirectoryManager = new CurrentWorkingDirectoryManager();
+    const configurationManager = await ConfigurationManager.create();
 
-        const rlsConfiguration: RlsConfiguration | null = configurationManager.getRlsConfiguration();
+    const currentWorkingDirectoryManager = new CurrentWorkingDirectoryManager();
 
-        const cargoManager = new CargoManager(
+    const rlsConfiguration: RlsConfiguration | null = configurationManager.getRlsConfiguration();
+
+    const cargoManager = new CargoManager(
+        ctx,
+        configurationManager,
+        currentWorkingDirectoryManager,
+        logger.createChildLogger('Cargo Manager: '),
+        !!rlsConfiguration
+    );
+
+    if (rlsConfiguration) {
+        let { executable, args, env } = rlsConfiguration;
+
+        if (!env) {
+            env = {};
+        }
+
+        if (!env.RUST_SRC_PATH) {
+            env.RUST_SRC_PATH = configurationManager.getRustSourcePath();
+        }
+
+        const languageClientManager = new LanguageClientManager(
+            ctx,
+            logger.createChildLogger('Language Client Manager: '),
+            executable,
+            args,
+            env
+        );
+
+        languageClientManager.start();
+    } else {
+        const legacyModeManager = new LegacyModeManager(
             ctx,
             configurationManager,
             currentWorkingDirectoryManager,
-            logger.createChildLogger('Cargo Manager: '),
-            !!rlsConfiguration
+            logger.createChildLogger('Legacy Mode Manager: ')
         );
 
-        if (rlsConfiguration) {
-            let { executable, args, env } = rlsConfiguration;
+        legacyModeManager.start();
+    }
 
-            if (!env) {
-                env = {};
-            }
-
-            if (!env.RUST_SRC_PATH) {
-                env.RUST_SRC_PATH = configurationManager.getRustSourcePath();
-            }
-
-            const languageClientManager = new LanguageClientManager(
-                ctx,
-                logger.createChildLogger('Language Client Manager: '),
-                executable,
-                args,
-                env
-            );
-
-            languageClientManager.start();
-        } else {
-            const legacyModeManager = new LegacyModeManager(
-                ctx,
-                configurationManager,
-                currentWorkingDirectoryManager,
-                logger.createChildLogger('Legacy Mode Manager: ')
-            );
-
-            legacyModeManager.start();
-        }
-
-        addExecutingActionOnSave(ctx, configurationManager, cargoManager);
-    });
+    addExecutingActionOnSave(ctx, configurationManager, cargoManager);
 }
 
 function addExecutingActionOnSave(
