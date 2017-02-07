@@ -109,7 +109,11 @@ export class DiagnosticParser {
             primarySpan.column_end - 1
         );
 
-        let message = `${compilerMessage.code.code}: ${compilerMessage.message}`;
+        let message = compilerMessage.message;
+
+        if (compilerMessage.code) {
+            message = `${compilerMessage.code.code}: ${message}`;
+        }
 
         this.addNotesToMessage(message, compilerMessage.children, 1);
 

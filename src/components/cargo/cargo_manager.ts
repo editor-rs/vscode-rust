@@ -3,7 +3,6 @@ import * as tmp from 'tmp';
 
 import { ExtensionContext } from 'vscode';
 
-import elegantSpinner = require('elegant-spinner');
 
 import { ConfigurationManager } from '../configuration/configuration_manager';
 
@@ -13,13 +12,10 @@ import ChildLogger from '../logging/child_logger';
 
 import CustomConfigurationChooser from './custom_configuration_chooser';
 
-import { DiagnosticParser } from './diagnostic_parser';
+import { OutputChannelTaskManager } from './output_channel_task_manager';
 
-import { DiagnosticPublisher } from './diagnostic_publisher';
+import { Task } from './task';
 
-import { ExitCode, Task } from './task';
-
-const spinner = elegantSpinner();
 
 export enum BuildType {
     Debug,
@@ -29,26 +25,6 @@ export enum BuildType {
 enum CrateType {
     Application,
     Library
-}
-
-class ChannelWrapper {
-    private channel: vscode.OutputChannel;
-
-    constructor(channel: vscode.OutputChannel) {
-        this.channel = channel;
-    }
-
-    public append(message: string): void {
-        this.channel.append(message);
-    }
-
-    public clear(): void {
-        this.channel.clear();
-    }
-
-    public show(): void {
-        this.channel.show(true);
-    }
 }
 
 export enum CheckTarget {
@@ -95,62 +71,12 @@ class UserDefinedArgs {
     }
 }
 
-class CargoTaskStatusBarManager {
-    private stopStatusBarItem: vscode.StatusBarItem;
-
-    private spinnerStatusBarItem: vscode.StatusBarItem;
-
-    private interval: NodeJS.Timer | null;
-
-    public constructor(stopCommandName: string) {
-        this.stopStatusBarItem = vscode.window.createStatusBarItem();
-        this.stopStatusBarItem.command = stopCommandName;
-        this.stopStatusBarItem.text = 'Stop';
-        this.stopStatusBarItem.tooltip = 'Click to stop running cargo task';
-
-        this.spinnerStatusBarItem = vscode.window.createStatusBarItem();
-        this.spinnerStatusBarItem.tooltip = 'Cargo task is running';
-
-        this.interval = null;
-    }
-
-    public show(): void {
-        this.stopStatusBarItem.show();
-
-        this.spinnerStatusBarItem.show();
-
-        const update = () => {
-            this.spinnerStatusBarItem.text = spinner();
-        };
-
-        this.interval = setInterval(update, 100);
-    }
-
-    public hide(): void {
-        clearInterval(this.interval);
-
-        this.interval = null;
-
-        this.stopStatusBarItem.hide();
-
-        this.spinnerStatusBarItem.hide();
-    }
-}
-
 class CargoTaskManager {
     private configurationManager: ConfigurationManager;
 
     private currentWorkingDirectoryManager: CurrentWorkingDirectoryManager;
 
-    private diagnosticParser: DiagnosticParser;
-
-    private diagnosticPublisher: DiagnosticPublisher;
-
-    private channel: ChannelWrapper = new ChannelWrapper(vscode.window.createOutputChannel('Cargo'));
-
-    private currentTask: Task | undefined;
-
-    private cargoTaskStatusBarManager: CargoTaskStatusBarManager;
+    private outputChannelTaskManager: OutputChannelTaskManager;
 
     private diagnosticPublishingEnabled: boolean;
 
@@ -163,13 +89,8 @@ class CargoTaskManager {
 
         this.currentWorkingDirectoryManager = currentWorkingDirectoryManager;
 
-        this.diagnosticParser = new DiagnosticParser();
-
-        this.diagnosticPublisher = new DiagnosticPublisher();
-
-        this.currentTask = undefined;
-
-        this.cargoTaskStatusBarManager = new CargoTaskStatusBarManager(stopCommandName);
+        this.outputChannelTaskManager =
+            new OutputChannelTaskManager(configurationManager, stopCommandName);
 
         this.diagnosticPublishingEnabled = true;
     }
@@ -179,7 +100,7 @@ class CargoTaskManager {
     }
 
     public async invokeCargoInit(crateType: CrateType, name: string, cwd: string): Promise<void> {
-        const args = ['init', '--name', name];
+        const args = ['--name', name];
 
         switch (crateType) {
             case CrateType.Application:
@@ -194,27 +115,7 @@ class CargoTaskManager {
                 throw new Error(`Unhandled crate type=${crateType}`);
         }
 
-        this.channel.clear();
-
-        {
-            const configuration = getConfiguration();
-
-            if (configuration['showOutput']) {
-                this.channel.show();
-            }
-        }
-
-        const currentTask = new Task(this.configurationManager, args, cwd);
-
-        currentTask.setLineReceivedInStdout(line => {
-            this.channel.append(`${line}\n`);
-        });
-
-        currentTask.setLineReceivedInStderr(line => {
-            this.channel.append(`${line}\n`);
-        });
-
-        await currentTask.execute();
+        this.outputChannelTaskManager.startTask('init', args, cwd, false);
     }
 
     public invokeCargoBuildWithArgs(args: string[]): void {
@@ -254,29 +155,9 @@ class CargoTaskManager {
     }
 
     public async invokeCargoNew(projectName: string, isBin: boolean, cwd: string): Promise<void> {
-        this.channel.clear();
+        const args = [projectName, isBin ? '--bin' : '--lib'];
 
-        const args = ['new', projectName, isBin ? '--bin' : '--lib'];
-
-        {
-            const configuration = getConfiguration();
-
-            if (configuration['showOutput']) {
-                this.channel.show();
-            }
-        }
-
-        const currentTask = new Task(this.configurationManager, args, cwd);
-
-        currentTask.setLineReceivedInStdout(line => {
-            this.channel.append(`${line}\n`);
-        });
-
-        currentTask.setLineReceivedInStderr(line => {
-            this.channel.append(`${line}\n`);
-        });
-
-        await currentTask.execute();
+        await this.outputChannelTaskManager.startTask('new', args, cwd, false);
     }
 
     public invokeCargoRunWithArgs(args: string[]): void {
@@ -300,8 +181,8 @@ class CargoTaskManager {
     }
 
     public stopTask(): void {
-        if (this.currentTask) {
-            this.currentTask.kill();
+        if (this.outputChannelTaskManager.hasRunningTask()) {
+            this.outputChannelTaskManager.stopRunningTask();
         }
     }
 
@@ -314,110 +195,26 @@ class CargoTaskManager {
     }
 
     private async runCargo(command: string, args: string[], force = false): Promise<void> {
-        if (force && this.currentTask) {
-            await this.currentTask.kill();
+        if (this.outputChannelTaskManager.hasRunningTask()) {
+            if (force) {
+                await this.outputChannelTaskManager.stopRunningTask();
 
-            this.runCargo(command, args, force);
+                await this.runCargo(command, args, force);
+            }
 
-            return;
-        } else if (this.currentTask) {
             return;
         }
-
         let cwd;
 
         try {
-            cwd = this.currentWorkingDirectoryManager.cwd();
+            cwd = await this.currentWorkingDirectoryManager.cwd();
         } catch (error) {
             vscode.window.showErrorMessage(error.message);
 
             return;
         }
 
-        this.runCargoWithCwd(command, args, cwd);
-    }
-
-    private runCargoWithCwd(command: string, args: string[], cwd: string): void {
-        this.diagnosticPublisher.clearDiagnostics();
-
-        if (this.configurationManager.shouldShowRunningCargoTaskOutputChannel()) {
-            this.channel.show();
-        }
-
-        // Prepend arguments with arguments making cargo print output in JSON.
-        switch (command) {
-            case 'build':
-            case 'check':
-            case 'clippy':
-            case 'test':
-            case 'run':
-                args = ['--message-format', 'json'].concat(args);
-                break;
-        }
-
-        // Prepare arguments with a command
-        args = [command].concat(args);
-
-        this.currentTask = new Task(this.configurationManager, args, cwd);
-
-        let startTime: number;
-
-        this.currentTask.setStarted(() => {
-            startTime = Date.now();
-
-            this.channel.clear();
-            this.channel.append(`Started cargo ${args.join(' ')}\n`);
-        });
-
-        this.currentTask.setLineReceivedInStdout(line => {
-            if (line.startsWith('{')) {
-                const fileDiagnostics = this.diagnosticParser.parseLine(line);
-
-                for (const fileDiagnostic of fileDiagnostics) {
-                    if (this.diagnosticPublishingEnabled) {
-                        this.diagnosticPublisher.publishDiagnostic(fileDiagnostic, cwd);
-                    }
-                }
-            } else {
-                this.channel.append(`${line}\n`);
-            }
-        });
-
-        this.currentTask.setLineReceivedInStderr(line => {
-            this.channel.append(`${line}\n`);
-        });
-
-        this.cargoTaskStatusBarManager.show();
-
-        const onGracefullyEnded = (exitCode: ExitCode) => {
-            this.cargoTaskStatusBarManager.hide();
-
-            this.currentTask = null;
-
-            const endTime = Date.now();
-
-            this.channel.append(`Completed with code ${exitCode}\n`);
-            this.channel.append(`It took approximately ${(endTime - startTime) / 1000} seconds\n`);
-        };
-
-        const onUnexpectedlyEnded = (error?: Error) => {
-            this.cargoTaskStatusBarManager.hide();
-
-            this.currentTask = null;
-
-            // No error means the task has been interrupted
-            if (!error) {
-                return;
-            }
-
-            if (error.message !== 'ENOENT') {
-                return;
-            }
-
-            vscode.window.showInformationMessage('The "cargo" command is not available. Make sure it is installed.');
-        };
-
-        this.currentTask.execute().then(onGracefullyEnded, onUnexpectedlyEnded);
+        await this.outputChannelTaskManager.startTask(command, args, cwd, this.diagnosticPublishingEnabled);
     }
 }
 

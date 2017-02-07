@@ -7,11 +7,7 @@ import { window, workspace } from 'vscode';
 import findUp = require('find-up');
 
 export default class CurrentWorkingDirectoryManager {
-    private rememberedCwd: string | null;
-
-    public constructor() {
-        this.rememberedCwd = null;
-    }
+    private rememberedCwd: string | undefined;
 
     public cwd(): Promise<string> {
         // Internal description of the method:
@@ -85,7 +81,7 @@ export default class CurrentWorkingDirectoryManager {
     }
 
     private getPreviousCwd(error: Error): Promise<string> {
-        if (this.rememberedCwd === undefined) {
+        if (!this.rememberedCwd) {
             return Promise.reject(error);
         }
 
