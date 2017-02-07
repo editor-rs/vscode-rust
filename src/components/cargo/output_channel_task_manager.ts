@@ -65,13 +65,9 @@ export class OutputChannelTaskManager {
 
         this.runningTask = new Task(this.configurationManager, args, cwd);
 
-        let startTime: number;
-
         this.runningTask.setStarted(() => {
-            startTime = Date.now();
-
             this.channel.clear();
-            this.channel.append(`Started cargo ${args.join(' ')}\n`);
+            this.channel.append(`Started cargo ${args.join(' ')}\n\n`);
         });
 
         this.runningTask.setLineReceivedInStdout(line => {
@@ -118,10 +114,7 @@ export class OutputChannelTaskManager {
 
         this.runningTask = undefined;
 
-        const endTime = Date.now();
-
-        this.channel.append(`Completed with code ${exitCode}\n`);
-        this.channel.append(`It took approximately ${(endTime - startTime) / 1000} seconds\n`);
+        this.channel.append(`\nCompleted with code ${exitCode}\n`);
     }
 
     public hasRunningTask(): boolean {
