@@ -30,7 +30,6 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
         configurationManager,
         currentWorkingDirectoryManager,
         logger.createChildLogger('Cargo Manager: '),
-        !!rlsConfiguration
     );
 
     if (rlsConfiguration) {

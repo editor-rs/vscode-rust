@@ -37,6 +37,19 @@ export class ConfigurationManager {
         return rlsConfiguration;
     }
 
+    public shouldExecuteCargoCommandInTerminal(): boolean {
+        // When RLS is used any cargo command is executed in an integrated terminal.
+        if (this.getRlsConfiguration()) {
+            return true;
+        }
+
+        const configuration = ConfigurationManager.getConfiguration();
+
+        const shouldExecuteCargoCommandInTerminal = configuration['executeCargoCommandInTerminal'];
+
+        return shouldExecuteCargoCommandInTerminal;
+    }
+
     public getActionOnSave(): string | null {
         const actionOnSave = ConfigurationManager.getStringParameter('actionOnSave');
 

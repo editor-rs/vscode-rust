@@ -80,13 +80,10 @@ class CargoTaskManager {
 
     private terminalTaskManager: TerminalTaskManager;
 
-    private shouldExecuteTaskInTerminal: boolean;
-
     public constructor(
         context: ExtensionContext,
         configurationManager: ConfigurationManager,
         currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
-        shouldExecuteTaskInTerminal: boolean,
         stopCommandName: string
     ) {
         this.configurationManager = configurationManager;
@@ -97,8 +94,6 @@ class CargoTaskManager {
             new OutputChannelTaskManager(configurationManager, stopCommandName);
 
         this.terminalTaskManager = new TerminalTaskManager(context);
-
-        this.shouldExecuteTaskInTerminal = shouldExecuteTaskInTerminal;
     }
 
     public async invokeCargoInit(crateType: CrateType, name: string, cwd: string): Promise<void> {
@@ -207,7 +202,7 @@ class CargoTaskManager {
             return;
         }
 
-        if (this.shouldExecuteTaskInTerminal) {
+        if (this.configurationManager.shouldExecuteCargoCommandInTerminal()) {
             this.terminalTaskManager.execute(command, args, cwd);
         } else {
             if (this.outputChannelTaskManager.hasRunningTask()) {
@@ -234,8 +229,7 @@ export default class CargoManager {
         context: ExtensionContext,
         configurationManager: ConfigurationManager,
         currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
-        logger: ChildLogger,
-        shouldExecuteTaskInTerminal: boolean,
+        logger: ChildLogger
     ) {
         const stopCommandName = 'rust.cargo.terminate';
 
@@ -243,7 +237,6 @@ export default class CargoManager {
             context,
             configurationManager,
             currentWorkingDirectoryManager,
-            shouldExecuteTaskInTerminal,
             stopCommandName
         );
 
