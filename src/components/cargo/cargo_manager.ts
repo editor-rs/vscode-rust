@@ -3,7 +3,6 @@ import * as tmp from 'tmp';
 
 import { ExtensionContext } from 'vscode';
 
-
 import { ConfigurationManager } from '../configuration/configuration_manager';
 
 import CurrentWorkingDirectoryManager from '../configuration/current_working_directory_manager';
@@ -16,6 +15,7 @@ import { OutputChannelTaskManager } from './output_channel_task_manager';
 
 import { Task } from './task';
 
+import { TerminalTaskManager } from './terminal_task_manager';
 
 export enum BuildType {
     Debug,
@@ -78,11 +78,15 @@ class CargoTaskManager {
 
     private outputChannelTaskManager: OutputChannelTaskManager;
 
-    private diagnosticPublishingEnabled: boolean;
+    private terminalTaskManager: TerminalTaskManager;
+
+    private shouldExecuteTaskInTerminal: boolean;
 
     public constructor(
+        context: ExtensionContext,
         configurationManager: ConfigurationManager,
         currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
+        shouldExecuteTaskInTerminal: boolean,
         stopCommandName: string
     ) {
         this.configurationManager = configurationManager;
@@ -92,11 +96,9 @@ class CargoTaskManager {
         this.outputChannelTaskManager =
             new OutputChannelTaskManager(configurationManager, stopCommandName);
 
-        this.diagnosticPublishingEnabled = true;
-    }
+        this.terminalTaskManager = new TerminalTaskManager(context);
 
-    public setDiagnosticPublishingEnabled(diagnosticPublishingEnabled: boolean): void {
-        this.diagnosticPublishingEnabled = diagnosticPublishingEnabled;
+        this.shouldExecuteTaskInTerminal = shouldExecuteTaskInTerminal;
     }
 
     public async invokeCargoInit(crateType: CrateType, name: string, cwd: string): Promise<void> {
@@ -195,15 +197,6 @@ class CargoTaskManager {
     }
 
     private async runCargo(command: string, args: string[], force = false): Promise<void> {
-        if (this.outputChannelTaskManager.hasRunningTask()) {
-            if (force) {
-                await this.outputChannelTaskManager.stopRunningTask();
-
-                await this.runCargo(command, args, force);
-            }
-
-            return;
-        }
         let cwd;
 
         try {
@@ -214,7 +207,19 @@ class CargoTaskManager {
             return;
         }
 
-        await this.outputChannelTaskManager.startTask(command, args, cwd, this.diagnosticPublishingEnabled);
+        if (this.shouldExecuteTaskInTerminal) {
+            this.terminalTaskManager.execute(command, args, cwd);
+        } else {
+            if (this.outputChannelTaskManager.hasRunningTask()) {
+                if (force) {
+                    await this.outputChannelTaskManager.stopRunningTask();
+                } else {
+                    return;
+                }
+            }
+
+            await this.outputChannelTaskManager.startTask(command, args, cwd, true);
+        }
     }
 }
 
@@ -229,13 +234,16 @@ export default class CargoManager {
         context: ExtensionContext,
         configurationManager: ConfigurationManager,
         currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
-        logger: ChildLogger
+        logger: ChildLogger,
+        shouldExecuteTaskInTerminal: boolean,
     ) {
         const stopCommandName = 'rust.cargo.terminate';
 
         this.cargoManager = new CargoTaskManager(
+            context,
             configurationManager,
             currentWorkingDirectoryManager,
+            shouldExecuteTaskInTerminal,
             stopCommandName
         );
 
@@ -244,10 +252,6 @@ export default class CargoManager {
         this.logger = logger;
 
         this.registerCommands(context, stopCommandName);
-    }
-
-    public setDiagnosticParsingEnabled(diagnosticParsingEnabled: boolean): void {
-        this.cargoManager.setDiagnosticPublishingEnabled(diagnosticParsingEnabled);
     }
 
     public executeBuildTask(): void {

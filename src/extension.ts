@@ -22,18 +22,17 @@ export function activate(ctx: ExtensionContext): void {
     ConfigurationManager.create().then(configurationManager => {
         const currentWorkingDirectoryManager = new CurrentWorkingDirectoryManager();
 
+        const rlsConfiguration: RlsConfiguration | null = configurationManager.getRlsConfiguration();
+
         const cargoManager = new CargoManager(
             ctx,
             configurationManager,
             currentWorkingDirectoryManager,
-            logger.createChildLogger('Cargo Manager: ')
+            logger.createChildLogger('Cargo Manager: '),
+            !!rlsConfiguration
         );
 
-        const rlsConfiguration: RlsConfiguration | null = configurationManager.getRlsConfiguration();
-
         if (rlsConfiguration) {
-            cargoManager.setDiagnosticParsingEnabled(false);
-
             let { executable, args, env } = rlsConfiguration;
 
             if (!env) {
