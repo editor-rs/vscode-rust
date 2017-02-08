@@ -1,6 +1,6 @@
-import {Logger} from './logger';
+import { Logger } from './logger';
 
-export class ChildLogger extends Logger {
+export default class ChildLogger extends Logger {
     private parent: Logger;
 
     public createChildLogger(loggingMessagePrefix: (() => string) | string): ChildLogger {

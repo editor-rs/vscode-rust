@@ -3,107 +3,124 @@
  * Licensed under MIT (https://github.com/Draivin/vscode-racer/blob/master/LICENSE).
  */
 
-import * as cp from 'child_process';
-import * as fs from 'fs';
-import * as vscode from 'vscode';
-import * as tmp from 'tmp';
+import { ChildProcess, SpawnOptions, spawn } from 'child_process';
 
-import {ChildLogger} from '../logging/mod';
-import PathService from './pathService';
-import FilterService from './filterService';
+import { writeFileSync } from 'fs';
 
-class StatusBarItem {
-    private statusBarItem: vscode.StatusBarItem;
+import {
+    CompletionItem,
+    CompletionItemKind,
+    Definition,
+    Disposable,
+    ExtensionContext,
+    Hover,
+    Location,
+    MarkedString,
+    ParameterInformation,
+    Position,
+    Range,
+    SignatureHelp,
+    SignatureInformation,
+    TextDocument,
+    Uri,
+    commands,
+    languages,
+    window,
+    workspace
+} from 'vscode';
 
-    constructor() {
-        this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
-    }
+import { fileSync } from 'tmp';
 
-    public showTurnedOn(): void {
-        this.setText('On');
-        this.statusBarItem.command = null;
-        this.statusBarItem.show();
-    }
+import { ConfigurationManager } from '../configuration/configuration_manager';
 
-    public showTurnedOff(): void {
-        this.setText('Off');
-        this.statusBarItem.command = null;
-        this.statusBarItem.show();
-    }
+import getDocumentFilter from '../configuration/mod';
 
-    public showNotFound(): void {
-        this.setText('Not found');
-        this.statusBarItem.tooltip = 'The "racer" command is not available. Make sure it is installed.';
-        this.statusBarItem.command = null;
-        this.statusBarItem.show();
-    }
+import ChildLogger from '../logging/child_logger';
 
-    public showCrashed(): void {
-        this.setText('Crashed');
-        this.statusBarItem.tooltip = 'The racer process has stopped. Click to view error';
-        this.statusBarItem.command = 'rust.racer.showerror';
-        this.statusBarItem.show();
-    }
+import RacerStatusBarItem from './racer_status_bar_item';
 
-    private setText(text: string): void {
-        this.statusBarItem.text = `Racer: ${text}`;
-    }
-}
+export default class CompletionManager {
+    private configurationManager: ConfigurationManager;
 
-export default class SuggestService {
     private logger: ChildLogger;
 
-    private racerDaemon: cp.ChildProcess;
+    private racerDaemon: ChildProcess;
     private commandCallbacks: ((lines: string[]) => void)[];
     private linesBuffer: string[];
     private dataBuffer: string;
     private errorBuffer: string;
     private lastCommand: string;
     private tmpFile: string;
-    private providers: vscode.Disposable[];
-    private listeners: vscode.Disposable[];
+    private providers: Disposable[];
+    private listeners: Disposable[];
     private racerPath: string;
-    private typeMap: { [type: string]: vscode.CompletionItemKind } = {
-        'Struct': vscode.CompletionItemKind.Class,
-        'Module': vscode.CompletionItemKind.Module,
-        'MatchArm': vscode.CompletionItemKind.Variable,
-        'Function': vscode.CompletionItemKind.Function,
-        'Crate': vscode.CompletionItemKind.Module,
-        'Let': vscode.CompletionItemKind.Variable,
-        'IfLet': vscode.CompletionItemKind.Variable,
-        'WhileLet': vscode.CompletionItemKind.Variable,
-        'For': vscode.CompletionItemKind.Variable,
-        'StructField': vscode.CompletionItemKind.Field,
-        'Impl': vscode.CompletionItemKind.Class,
-        'Enum': vscode.CompletionItemKind.Enum,
-        'EnumVariant': vscode.CompletionItemKind.Field,
-        'Type': vscode.CompletionItemKind.Keyword,
-        'FnArg': vscode.CompletionItemKind.Property,
-        'Trait': vscode.CompletionItemKind.Interface,
-        'Const': vscode.CompletionItemKind.Variable,
-        'Static': vscode.CompletionItemKind.Variable
+    private typeMap: { [type: string]: CompletionItemKind } = {
+        'Struct': CompletionItemKind.Class,
+        'Module': CompletionItemKind.Module,
+        'MatchArm': CompletionItemKind.Variable,
+        'Function': CompletionItemKind.Function,
+        'Crate': CompletionItemKind.Module,
+        'Let': CompletionItemKind.Variable,
+        'IfLet': CompletionItemKind.Variable,
+        'WhileLet': CompletionItemKind.Variable,
+        'For': CompletionItemKind.Variable,
+        'StructField': CompletionItemKind.Field,
+        'Impl': CompletionItemKind.Class,
+        'Enum': CompletionItemKind.Enum,
+        'EnumVariant': CompletionItemKind.Field,
+        'Type': CompletionItemKind.Keyword,
+        'FnArg': CompletionItemKind.Property,
+        'Trait': CompletionItemKind.Interface,
+        'Const': CompletionItemKind.Variable,
+        'Static': CompletionItemKind.Variable
     };
-    private statusBarItem: StatusBarItem;
+    private racerStatusBarItem: RacerStatusBarItem;
 
-    constructor(logger: ChildLogger) {
+    public constructor(
+        context: ExtensionContext,
+        configurationManager: ConfigurationManager,
+        logger: ChildLogger
+    ) {
+        this.configurationManager = configurationManager;
+
         this.logger = logger;
 
         this.listeners = [];
 
-        this.statusBarItem = new StatusBarItem();
+        const showErrorCommandName = 'rust.racer.show_error';
 
-        let tmpFile = tmp.fileSync();
+        this.racerStatusBarItem = new RacerStatusBarItem(showErrorCommandName);
+
+        context.subscriptions.push(
+            commands.registerCommand(showErrorCommandName, () => {
+                this.showErrorBuffer();
+            })
+        );
+
+        let tmpFile = fileSync();
         this.tmpFile = tmpFile.name;
     }
 
-    public racerCrashErrorCommand(command: string): vscode.Disposable {
-        return vscode.commands.registerCommand(command, () => {
-            this.showErrorBuffer();
-        });
-    }
+    public start(): Disposable {
+        if (!this.configurationManager.getRustSourcePath()) {
+            const rustcSysRoot = this.configurationManager.getRustcSysRoot();
 
-    public start(): vscode.Disposable {
-        const logger = this.logger.createChildLogger('start(): ');
+            if (rustcSysRoot && rustcSysRoot.includes('.rustup')) {
+                // tslint:disable-next-line
+                const message = 'You are using rustup, but don\'t have installed source code. Do you want to install it?';
+                window.showErrorMessage(message, 'Yes').then(chosenItem => {
+                    if (chosenItem === 'Yes') {
+                        const terminal = window.createTerminal('Rust source code installation');
+                        terminal.sendText('rustup component add rust-src');
+                        terminal.show();
+                    }
+                });
+            }
+
+            return;
+        }
+
+        const logger = this.logger.createChildLogger('start: ');
 
         logger.debug('enter');
 
@@ -114,34 +131,61 @@ export default class SuggestService {
         this.lastCommand = '';
         this.providers = [];
 
-        this.racerPath = PathService.getRacerPath();
+        this.racerPath = this.configurationManager.getRacerPath();
 
         logger.debug(`racerPath=${this.racerPath}`);
 
-        this.statusBarItem.showTurnedOn();
-        const cargoHomePath = PathService.getCargoHomePath();
-        const racerSpawnOptions: cp.SpawnOptions = { stdio: 'pipe', shell: true };
-        if (cargoHomePath !== '') {
-            const racerEnv = Object.assign({}, process.env, {'CARGO_HOME': cargoHomePath});
-            racerSpawnOptions.env = racerEnv;
+        this.racerStatusBarItem.showTurnedOn();
+        const cargoHomePath = this.configurationManager.getCargoHomePath();
+        const racerSpawnOptions: SpawnOptions = { stdio: 'pipe', shell: true, env: process.env };
+
+        const rustSourcePath = this.configurationManager.getRustSourcePath();
+
+        if (rustSourcePath) {
+            racerSpawnOptions.env.RUST_SRC_PATH = rustSourcePath;
         }
 
-        this.racerDaemon = cp.spawn(PathService.getRacerPath(), ['--interface=tab-text', 'daemon'], racerSpawnOptions);
-        this.racerDaemon.on('error', this.stopDaemon.bind(this));
-        this.racerDaemon.on('close', this.stopDaemon.bind(this));
+        if (cargoHomePath !== '') {
+            racerSpawnOptions.env.CARGO_HOME = cargoHomePath;
+        }
 
-        this.racerDaemon.stdout.on('data', this.dataHandler.bind(this));
-        this.racerDaemon.stderr.on('data', (data) => this.errorBuffer += data.toString());
+        logger.debug(`ENV[RUST_SRC_PATH] = ${racerSpawnOptions.env['RUST_SRC_PATH']}`);
+
+        this.racerDaemon = spawn(
+            this.racerPath,
+            ['--interface=tab-text', 'daemon'],
+            racerSpawnOptions
+        );
+        this.racerDaemon.on('error', (err: Error) => {
+            this.logger.error(`racer failed: err = ${err}`);
+
+            this.stopDaemon(err);
+        });
+        this.racerDaemon.on('close', (code: number, signal: string) => {
+            this.logger.warning(`racer closed: code = ${code}, signal = ${signal}`);
+
+            this.stopDaemon(code);
+        });
+
+        this.racerDaemon.stdout.on('data', (data: Buffer) => {
+            this.dataHandler(data);
+        });
+
+        this.racerDaemon.stderr.on('data', (data: Buffer) => {
+            this.errorBuffer += data.toString();
+        });
+
         this.hookCapabilities();
 
-        this.listeners.push(vscode.workspace.onDidChangeConfiguration(() => {
-            let newPath = PathService.getRacerPath();
-             if (this.racerPath !== newPath) {
+        this.listeners.push(workspace.onDidChangeConfiguration(() => {
+            const newPath = this.configurationManager.getRacerPath();
+
+            if (this.racerPath !== newPath) {
                 this.restart();
             }
         }));
 
-        return new vscode.Disposable(this.stop.bind(this));
+        return new Disposable(this.stop.bind(this));
     }
 
     public stop(): void {
@@ -153,7 +197,7 @@ export default class SuggestService {
     }
 
     public restart(): void {
-        this.logger.debug('restart');
+        this.logger.warning('restart');
 
         this.stop();
         this.start();
@@ -168,13 +212,13 @@ export default class SuggestService {
         this.providers.forEach(disposable => disposable.dispose());
         this.providers = [];
         if (!error) {
-            this.statusBarItem.showTurnedOff();
+            this.racerStatusBarItem.showTurnedOff();
             return;
         }
         if (error.code === 'ENOENT') {
-            this.statusBarItem.showNotFound();
+            this.racerStatusBarItem.showNotFound();
         } else {
-            this.statusBarItem.showCrashed();
+            this.racerStatusBarItem.showCrashed();
             setTimeout(this.restart.bind(this), 3000);
         }
     }
@@ -189,7 +233,7 @@ export default class SuggestService {
     }
 
     private showErrorBuffer(): void {
-        let channel = vscode.window.createOutputChannel('Racer Error');
+        let channel = window.createOutputChannel('Racer Error');
         channel.clear();
         channel.append(`Last command: \n${this.lastCommand}\n`);
         channel.append(`Racer Output: \n${this.linesBuffer.join('\n')}\n`);
@@ -197,7 +241,7 @@ export default class SuggestService {
         channel.show(true);
     }
 
-    private definitionProvider(document: vscode.TextDocument, position: vscode.Position): Thenable<vscode.Definition> {
+    private definitionProvider(document: TextDocument, position: Position): Thenable<Definition> {
         let commandArgs = [position.line + 1, position.character, document.fileName, this.tmpFile];
         return this.runCommand(document, 'find-definition', commandArgs).then(lines => {
             if (lines.length === 0) {
@@ -208,13 +252,13 @@ export default class SuggestService {
             let parts = result.split('\t');
             let line = Number(parts[2]) - 1;
             let character = Number(parts[3]);
-            let uri = vscode.Uri.file(parts[4]);
+            let uri = Uri.file(parts[4]);
 
-            return new vscode.Location(uri, new vscode.Position(line, character));
+            return new Location(uri, new Position(line, character));
         });
     }
 
-    private hoverProvider(document: vscode.TextDocument, position: vscode.Position): Thenable<vscode.Hover> {
+    private hoverProvider(document: TextDocument, position: Position): Thenable<Hover> {
         // Could potentially use `document.getWordRangeAtPosition`.
         let line = document.lineAt(position.line);
         let wordStartIndex = line.text.slice(0, position.character + 1).search(/[a-z0-9_]+$/i);
@@ -257,7 +301,7 @@ export default class SuggestService {
                 definition = definition.substring(0, bracketIndex);
             }
 
-            let processedDocs: vscode.MarkedString[] = [{
+            let processedDocs: MarkedString[] = [{
                 language: 'rust',
                 value: definition.trim()
             }];
@@ -322,11 +366,11 @@ export default class SuggestService {
                 pushBlock();
             }
 
-            return new vscode.Hover(processedDocs);
+            return new Hover(processedDocs);
         });
     }
 
-    private completionProvider(document: vscode.TextDocument, position: vscode.Position): Thenable<vscode.CompletionItem[]> {
+    private completionProvider(document: TextDocument, position: Position): Thenable<CompletionItem[]> {
         let commandArgs = [position.line + 1, position.character, document.fileName, this.tmpFile];
         return this.runCommand(document, 'complete-with-snippet', commandArgs).then(lines => {
             lines.shift();
@@ -346,7 +390,7 @@ export default class SuggestService {
                     kind = this.typeMap[type];
                 } else {
                     console.warn('Kind not mapped: ' + type);
-                    kind = vscode.CompletionItemKind.Text;
+                    kind = CompletionItemKind.Text;
                 }
 
                 // Remove trailing bracket
@@ -409,7 +453,7 @@ export default class SuggestService {
         return [parameters, parameterStart, parameterEnd];
     }
 
-    private parseCall(name: string, args: string[], definition: string, callText: string): vscode.SignatureHelp {
+    private parseCall(name: string, args: string[], definition: string, callText: string): SignatureHelp {
         let nameEnd = definition.indexOf(name) + name.length;
         let [params, paramStart, paramEnd] = this.parseParameters(definition, nameEnd);
         let [callParameters] = this.parseParameters(callText, 0);
@@ -422,15 +466,15 @@ export default class SuggestService {
             params = params.slice(1);
         }
 
-        let result = new vscode.SignatureHelp();
+        let result = new SignatureHelp();
         result.activeSignature = 0;
         result.activeParameter = currentParameter;
 
-        let signature = new vscode.SignatureInformation(nameTemplate);
+        let signature = new SignatureInformation(nameTemplate);
         signature.label += '(';
 
         params.forEach((param, i) => {
-            let parameter = new vscode.ParameterInformation(param, '');
+            let parameter = new ParameterInformation(param, '');
             signature.label += parameter.label;
             signature.parameters.push(parameter);
 
@@ -453,7 +497,7 @@ export default class SuggestService {
         return result;
     }
 
-    private firstDanglingParen(document: vscode.TextDocument, position: vscode.Position): vscode.Position {
+    private firstDanglingParen(document: TextDocument, position: Position): Position {
         let text = document.getText();
         let offset = document.offsetAt(position) - 1;
         let currentDepth = 0;
@@ -479,7 +523,7 @@ export default class SuggestService {
         return null;
     }
 
-    private signatureHelpProvider(document: vscode.TextDocument, position: vscode.Position): Thenable<vscode.SignatureHelp> {
+    private signatureHelpProvider(document: TextDocument, position: Position): Thenable<SignatureHelp> {
         // Get the first dangling parenthesis, so we don't stop on a function call used as a previous parameter
         let startPos = this.firstDanglingParen(document, position);
         if (!startPos) {
@@ -512,25 +556,37 @@ export default class SuggestService {
                 return null;
             }
 
-            let callText = document.getText(new vscode.Range(startPos, position));
+            let callText = document.getText(new Range(startPos, position));
             return this.parseCall(name, args, definition, callText);
         });
     }
 
     private hookCapabilities(): void {
         let definitionProvider = { provideDefinition: this.definitionProvider.bind(this) };
-        this.providers.push(vscode.languages.registerDefinitionProvider(FilterService.getRustModeFilter(), definitionProvider));
+        this.providers.push(
+            languages.registerDefinitionProvider(getDocumentFilter(), definitionProvider)
+        );
 
         let completionProvider = { provideCompletionItems: this.completionProvider.bind(this) };
-        this.providers.push(vscode.languages.registerCompletionItemProvider(FilterService.getRustModeFilter(),
-                                                                            completionProvider, ...['.', ':']));
+        this.providers.push(
+            languages.registerCompletionItemProvider(
+                getDocumentFilter(),
+                completionProvider,
+                ...['.', ':']
+            )
+        );
 
         let signatureProvider = { provideSignatureHelp: this.signatureHelpProvider.bind(this) };
-        this.providers.push(vscode.languages.registerSignatureHelpProvider(FilterService.getRustModeFilter(),
-                                                                           signatureProvider, ...['(', ',']));
+        this.providers.push(
+            languages.registerSignatureHelpProvider(
+                getDocumentFilter(),
+                signatureProvider,
+                ...['(', ',']
+            )
+        );
 
         let hoverProvider = { provideHover: this.hoverProvider.bind(this) };
-        this.providers.push(vscode.languages.registerHoverProvider(FilterService.getRustModeFilter(), hoverProvider));
+        this.providers.push(languages.registerHoverProvider(getDocumentFilter(), hoverProvider));
     }
 
     private dataHandler(data: Buffer): void {
@@ -540,6 +596,7 @@ export default class SuggestService {
         // be flushed, we will consider each part of the original line a separate
         // line.
         let dataStr = data.toString();
+
         if (!/\r?\n$/.test(dataStr)) {
             this.dataBuffer += dataStr;
             return;
@@ -561,11 +618,11 @@ export default class SuggestService {
         }
     }
 
-    private updateTmpFile(document: vscode.TextDocument): void {
-        fs.writeFileSync(this.tmpFile, document.getText());
+    private updateTmpFile(document: TextDocument): void {
+        writeFileSync(this.tmpFile, document.getText());
     }
 
-    private runCommand(document: vscode.TextDocument, command: string, args: any[]): Promise<string[]> {
+    private runCommand(document: TextDocument, command: string, args: any[]): Promise<string[]> {
         this.updateTmpFile(document);
 
         let queryString = [command, ...args].join('\t') + '\n';

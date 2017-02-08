@@ -1,8 +1,22 @@
-import * as vscode from 'vscode';
 import * as cp from 'child_process';
+
 import * as fs from 'fs';
 
-import PathService from './pathService';
+import {
+    DocumentFormattingEditProvider,
+    ExtensionContext,
+    Range,
+    TextDocument,
+    TextEdit,
+    Uri,
+    languages,
+    window,
+    workspace
+} from 'vscode';
+
+import { ConfigurationManager } from '../configuration/configuration_manager';
+
+import getDocumentFilter from '../configuration/mod';
 
 const ansiRegex = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
 
@@ -12,8 +26,79 @@ interface RustFmtDiff {
     removedLines: number;
 }
 
-export default class FormatService implements vscode.DocumentFormattingEditProvider {
-    private static newFormatRegex: RegExp = /^Diff in (.*) at line (\d+):$/;
+export default class FormattingManager implements DocumentFormattingEditProvider {
+    private configurationManager: ConfigurationManager;
+
+    private newFormatRegex: RegExp = /^Diff in (.*) at line (\d+):$/;
+
+    public constructor(context: ExtensionContext, configurationManager: ConfigurationManager) {
+        this.configurationManager = configurationManager;
+
+        context.subscriptions.push(
+            languages.registerDocumentFormattingEditProvider(
+                getDocumentFilter(),
+                this
+            )
+        );
+
+        context.subscriptions.push(
+            workspace.onWillSaveTextDocument(event => {
+                const activeTextEditor = window.activeTextEditor;
+
+                if (!activeTextEditor) {
+                    return;
+                }
+
+                if (activeTextEditor.document !== event.document) {
+                    return;
+                }
+
+                const isFormatOnSaveEnabled = configurationManager.isFormatOnSaveEnabled();
+
+                if (!isFormatOnSaveEnabled) {
+                    return;
+                }
+
+                event.waitUntil(this.provideDocumentFormattingEdits(event.document));
+            })
+        );
+    }
+
+    public provideDocumentFormattingEdits(document: TextDocument): Thenable<TextEdit[]> {
+        return new Promise((resolve, reject) => {
+            let fileName = document.fileName + '.fmt';
+            fs.writeFileSync(fileName, document.getText());
+
+            let args = ['--skip-children', '--write-mode=diff', fileName];
+            let env = Object.assign({ TERM: 'xterm' }, process.env);
+            cp.execFile(this.configurationManager.getRustfmtPath(), args, { env: env }, (err, stdout, stderr) => {
+                try {
+                    if (err && (<any>err).code === 'ENOENT') {
+                        window.showInformationMessage('The "rustfmt" command is not available. Make sure it is installed.');
+                        return resolve([]);
+                    }
+
+                    // rustfmt will return with exit code 3 when it encounters code that could not
+                    // be automatically formatted. However, it will continue to format the rest of the file.
+                    // New releases will return exit code 4 when the write mode is diff and a valid diff is provided.
+                    // For these reasons, if the exit code is 1 or 2, then it should be treated as an error.
+                    let hasFatalError = (err && (err as any).code < 3);
+
+                    // If an error is encountered with any other exit code, inform the user of the error.
+                    if ((err || stderr.length) && hasFatalError) {
+                        window.setStatusBarMessage('$(alert) Cannot format due to syntax errors', 5000);
+                        return reject();
+                    }
+
+                    return resolve(this.parseDiff(document.uri, stdout));
+                } catch (e) {
+                    reject(e);
+                } finally {
+                    fs.unlinkSync(fileName);
+                }
+            });
+        });
+    }
 
     private cleanDiffLine(line: string): string {
         if (line.endsWith('\u23CE')) {
@@ -27,14 +112,14 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
         return input.replace(ansiRegex, '');
     }
 
-    private parseDiffOldFormat(fileToProcess: vscode.Uri, diff: string): RustFmtDiff[] {
+    private parseDiffOldFormat(fileToProcess: Uri, diff: string): RustFmtDiff[] {
         let patches: RustFmtDiff[] = [];
         let currentPatch: RustFmtDiff;
-        let currentFile: vscode.Uri;
+        let currentFile: Uri;
 
         for (let line of diff.split(/\n/)) {
             if (line.startsWith('Diff of')) {
-                currentFile = vscode.Uri.file(line.slice('Diff of '.length, -1));
+                currentFile = Uri.file(line.slice('Diff of '.length, -1));
             }
 
             if (!currentFile) {
@@ -72,14 +157,14 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
         return patches;
     }
 
-    private parseDiffNewFormat(fileToProcess: vscode.Uri, diff: string): RustFmtDiff[] {
+    private parseDiffNewFormat(fileToProcess: Uri, diff: string): RustFmtDiff[] {
         let patches: RustFmtDiff[] = [];
         let currentPatch: RustFmtDiff = null;
-        let currentFile: vscode.Uri = null;
+        let currentFile: Uri = null;
 
         for (let line of diff.split(/\n/)) {
             if (line.startsWith('Diff in')) {
-                const matches = FormatService.newFormatRegex.exec(line);
+                const matches = this.newFormatRegex.exec(line);
                 // Filter out malformed lines
                 if (matches.length !== 3) {
                     continue;
@@ -90,7 +175,7 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
                     patches.push(currentPatch);
                 }
 
-                currentFile = vscode.Uri.file(matches[1]);
+                currentFile = Uri.file(matches[1]);
                 currentPatch = {
                     startLine: parseInt(matches[2], 10),
                     newLines: [],
@@ -98,7 +183,7 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
                 };
             }
 
-            // We haven't managed to figure out what file we're diffing yet, this shouldn't happen. 
+            // We haven't managed to figure out what file we're diffing yet, this shouldn't happen.
             // Probably a malformed diff.
             if (!currentFile) {
                 continue;
@@ -124,7 +209,7 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
         return patches;
     }
 
-    private parseDiff(fileToProcess: vscode.Uri, diff: string): vscode.TextEdit[] {
+    private parseDiff(fileToProcess: Uri, diff: string): TextEdit[] {
         diff = this.stripColorCodes(diff);
 
         let patches: RustFmtDiff[] = [];
@@ -142,51 +227,15 @@ export default class FormatService implements vscode.DocumentFormattingEditProvi
 
             let startLine = patch.startLine - 1 + cummulativeOffset;
             let endLine = removedLines === 0 ? startLine : startLine + removedLines - 1;
-            let range = new vscode.Range(startLine, 0, endLine, Number.MAX_SAFE_INTEGER);
+            let range = new Range(startLine, 0, endLine, Number.MAX_SAFE_INTEGER);
 
             cummulativeOffset += (removedLines - newLines.length);
 
             let lastLineIndex = newLines.length - 1;
             newLines[lastLineIndex] = newLines[lastLineIndex].replace('\n', '');
 
-            return vscode.TextEdit.replace(range, newLines.join(''));
+            return TextEdit.replace(range, newLines.join(''));
         });
         return textEdits;
-    }
-
-    public provideDocumentFormattingEdits(document: vscode.TextDocument): Thenable<vscode.TextEdit[]> {
-        return new Promise((resolve, reject) => {
-            let fileName = document.fileName + '.fmt';
-            fs.writeFileSync(fileName, document.getText());
-
-            let args = ['--skip-children', '--write-mode=diff', fileName];
-            let env = Object.assign({ TERM: 'xterm' }, process.env);
-            cp.execFile(PathService.getRustfmtPath(), args, {env: env}, (err, stdout, stderr) => {
-                try {
-                    if (err && (<any>err).code === 'ENOENT') {
-                        vscode.window.showInformationMessage('The "rustfmt" command is not available. Make sure it is installed.');
-                        return resolve([]);
-                    }
-
-                    // rustfmt will return with exit code 3 when it encounters code that could not
-                    // be automatically formatted. However, it will continue to format the rest of the file.
-                    // New releases will return exit code 4 when the write mode is diff and a valid diff is provided.
-                    // For these reasons, if the exit code is 1 or 2, then it should be treated as an error.
-                    let hasFatalError = (err && (err as any).code < 3);
-
-                    // If an error is encountered with any other exit code, inform the user of the error.
-                    if ((err || stderr.length) && hasFatalError) {
-                        vscode.window.setStatusBarMessage('$(alert) Cannot format due to syntax errors', 5000);
-                        return reject();
-                    }
-
-                    return resolve(this.parseDiff(document.uri, stdout));
-                } catch (e) {
-                    reject(e);
-                } finally {
-                    fs.unlinkSync(fileName);
-                }
-            });
-        });
     }
 }

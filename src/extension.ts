@@ -1,207 +1,117 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import * as vscode from 'vscode';
+import { ExtensionContext, window, workspace } from 'vscode';
 
-import FormatService from './services/formatService';
-import FilterService from './services/filterService';
-import StatusBarService from './services/statusBarService';
-import SuggestService from './services/suggestService';
-import PathService from './services/pathService';
-import {CommandService, CommandServiceCommands} from './services/commandService';
-import {ChildLogger} from './logging/mod';
-import WorkspaceSymbolService from './services/workspaceSymbolService';
-import DocumentSymbolService from './services/documentSymbolService';
-import LoggingManager from './services/logging_manager';
-import {Installator as MissingToolsInstallator} from './installTools';
+import CargoManager from './components/cargo/cargo_manager';
 
-function initializeSuggestService(ctx: vscode.ExtensionContext, logger: ChildLogger): void {
-    // Initialize suggestion service
-    let suggestService = new SuggestService(logger);
+import { RlsConfiguration } from './components/configuration/configuration_manager';
 
-    // Set path to Rust language sources
-    let rustSrcPath = PathService.getRustLangSrcPath();
-    if (rustSrcPath) {
-        process.env['RUST_SRC_PATH'] = rustSrcPath;
+import { ConfigurationManager } from './components/configuration/configuration_manager';
 
-        ctx.subscriptions.push(suggestService.start());
-    } else {
-        const onFulfilled = (sysroot: string) => {
-            rustSrcPath = path.join(sysroot, 'lib', 'rustlib', 'src', 'rust', 'src');
-            fs.access(rustSrcPath, err => {
-                if (!err) {
-                    process.env['RUST_SRC_PATH'] = rustSrcPath;
-                } else if (rustSrcPath.includes('.rustup')) {
-                    // tslint:disable-next-line
-                    const message = 'You are using rustup, but don\'t have installed source code. Do you want to install it?';
-                    vscode.window.showErrorMessage(message, 'Yes').then(chosenItem => {
-                        if (chosenItem === 'Yes') {
-                            const terminal = vscode.window.createTerminal('Rust source code installation');
-                            terminal.sendText('rustup component add rust-src');
-                            terminal.show();
-                        }
-                    });
-                }
-                ctx.subscriptions.push(suggestService.start());
-            });
-        };
-        const onRejected = () => {
-            ctx.subscriptions.push(suggestService.start());
-        };
-        PathService.getRustcSysroot().then(onFulfilled, onRejected);
-    }
+import CurrentWorkingDirectoryManager from './components/configuration/current_working_directory_manager';
 
-    // Racer crash error
-    ctx.subscriptions.push(suggestService.racerCrashErrorCommand('rust.racer.showerror'));
-}
+import { Manager as LanguageClientManager } from './components/language_client/manager';
 
-export function activate(ctx: vscode.ExtensionContext): void {
+import LoggingManager from './components/logging/logging_manager';
+
+import LegacyModeManager from './legacy_mode_manager';
+
+export async function activate(ctx: ExtensionContext): Promise<void> {
     const loggingManager = new LoggingManager();
 
     const logger = loggingManager.getLogger();
 
-    initializeSuggestService(ctx, logger.createChildLogger('SuggestService: '));
+    const configurationManager = await ConfigurationManager.create();
 
-    // Initialize format service
-    let formatService = new FormatService();
-    ctx.subscriptions.push(vscode.languages.registerDocumentFormattingEditProvider(FilterService.getRustModeFilter(), formatService));
+    const currentWorkingDirectoryManager = new CurrentWorkingDirectoryManager();
 
-    // Initialize symbol provider services
-    ctx.subscriptions.push(vscode.languages.registerWorkspaceSymbolProvider(new WorkspaceSymbolService()));
-    ctx.subscriptions.push(vscode.languages.registerDocumentSymbolProvider(FilterService.getRustModeFilter(), new DocumentSymbolService()));
+    const rlsConfiguration: RlsConfiguration | null = configurationManager.getRlsConfiguration();
 
-    // Initialize status bar service
-    ctx.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(StatusBarService.toggleStatus.bind(StatusBarService)));
+    const cargoManager = new CargoManager(
+        ctx,
+        configurationManager,
+        currentWorkingDirectoryManager,
+        logger.createChildLogger('Cargo Manager: '),
+    );
 
-    let alreadyAppliedFormatting = new WeakSet<vscode.TextDocument>();
+    if (rlsConfiguration) {
+        let { executable, args, env } = rlsConfiguration;
 
-    ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument((document) => {
-        if (document.languageId !== 'rust' || !document.fileName.endsWith('.rs') || alreadyAppliedFormatting.has(document)) {
+        if (!env) {
+            env = {};
+        }
+
+        if (!env.RUST_SRC_PATH) {
+            env.RUST_SRC_PATH = configurationManager.getRustSourcePath();
+        }
+
+        const languageClientManager = new LanguageClientManager(
+            ctx,
+            logger.createChildLogger('Language Client Manager: '),
+            executable,
+            args,
+            env
+        );
+
+        languageClientManager.start();
+    } else {
+        const legacyModeManager = new LegacyModeManager(
+            ctx,
+            configurationManager,
+            currentWorkingDirectoryManager,
+            logger.createChildLogger('Legacy Mode Manager: ')
+        );
+
+        legacyModeManager.start();
+    }
+
+    addExecutingActionOnSave(ctx, configurationManager, cargoManager);
+}
+
+function addExecutingActionOnSave(
+    context: ExtensionContext,
+    configurationManager: ConfigurationManager,
+    cargoManager: CargoManager
+): void {
+    context.subscriptions.push(workspace.onDidSaveTextDocument(document => {
+        if (!window.activeTextEditor) {
             return;
         }
 
-        let rustConfig = vscode.workspace.getConfiguration('rust');
-        let textEditor = vscode.window.activeTextEditor;
+        const activeDocument = window.activeTextEditor.document;
 
-        let formatPromise: PromiseLike<void> = Promise.resolve();
-
-        // Incredibly ugly hack to work around no presave event
-        // based on https://github.com/Microsoft/vscode-go/pull/115/files
-        if (rustConfig['formatOnSave'] && textEditor.document === document) {
-            formatPromise = formatService.provideDocumentFormattingEdits(document).then(edits => {
-                return textEditor.edit(editBuilder => {
-                    edits.forEach(edit => editBuilder.replace(edit.range, edit.newText));
-                });
-            }).then(() => {
-                alreadyAppliedFormatting.add(document);
-                return document.save();
-            }).then(() => {
-                alreadyAppliedFormatting.delete(document);
-            }, () => {
-                // Catch any errors and ignore so that we still trigger
-                // the file save.
-            });
+        if (document !== activeDocument) {
+            return;
         }
 
-        const actionOnSave: string | null = rustConfig['actionOnSave'];
+        if (document.languageId !== 'rust' || !document.fileName.endsWith('.rs')) {
+            return;
+        }
+
+        const actionOnSave = configurationManager.getActionOnSave();
 
         if (actionOnSave === null) {
             return;
         }
 
-        let command: string;
-
         switch (actionOnSave) {
             case 'build':
-                command = 'rust.cargo.build.default';
-            break;
+                cargoManager.executeBuildTask();
+                break;
+
             case 'check':
-                command = 'rust.cargo.check.default';
-            break;
+                cargoManager.executeCheckTask();
+                break;
+
             case 'clippy':
-                command = 'rust.cargo.clippy.default';
-            break;
+                cargoManager.executeClippyTask();
+                break;
+
             case 'run':
-                command = 'rust.cargo.run.default';
-            break;
+                cargoManager.executeRunTask();
+                break;
+
             case 'test':
-                command = 'rust.cargo.test.default';
-            break;
-        }
-
-        formatPromise.then(() => {
-            vscode.commands.executeCommand(command);
-        });
-    }));
-
-    // Watch for configuration changes for ENV
-    ctx.subscriptions.push(vscode.workspace.onDidChangeConfiguration(() => {
-        let rustLangPath = PathService.getRustLangSrcPath();
-        if (process.env['RUST_SRC_PATH'] !== rustLangPath) {
-            process.env['RUST_SRC_PATH'] = rustLangPath;
+                cargoManager.executeTestTask();
+                break;
         }
     }));
-
-    {
-        let installator = new MissingToolsInstallator(logger.createChildLogger('MissingToolsInstallator: '));
-        installator.addStatusBarItemIfSomeToolsAreMissing();
-    }
-
-    // Commands
-    const commandService = (() => {
-        const childLogger = logger.createChildLogger('CommandService: ');
-
-        const commands: CommandServiceCommands = {
-            stop: 'rust.cargo.terminate'
-        };
-
-        return new CommandService(childLogger, commands);
-    })();
-
-    // Cargo init
-    ctx.subscriptions.push(commandService.registerCommandHelpingCreatePlayground('rust.cargo.new.playground'));
-
-    // Cargo new
-    ctx.subscriptions.push(commandService.registerCommandHelpingCreateProject('rust.cargo.new.bin', true));
-
-    ctx.subscriptions.push(commandService.registerCommandHelpingCreateProject('rust.cargo.new.lib', false));
-
-    // Cargo build
-    ctx.subscriptions.push(commandService.registerCommandInvokingCargoBuildUsingBuildArgs('rust.cargo.build.default'));
-
-    ctx.subscriptions.push(commandService.registerCommandHelpingChooseArgsAndInvokingCargoBuild('rust.cargo.build.custom'));
-
-    // Cargo run
-    ctx.subscriptions.push(commandService.registerCommandInvokingCargoRunUsingRunArgs('rust.cargo.run.default'));
-
-    ctx.subscriptions.push(commandService.registerCommandHelpingChooseArgsAndInvokingCargoRun('rust.cargo.run.custom'));
-
-    // Cargo test
-    ctx.subscriptions.push(commandService.registerCommandInvokingCargoTestUsingTestArgs('rust.cargo.test.default'));
-
-    ctx.subscriptions.push(commandService.registerCommandHelpingChooseArgsAndInvokingCargoTest('rust.cargo.test.custom'));
-
-    // Cargo bench
-    ctx.subscriptions.push(commandService.registerCommandInvokingCargoWithArgs('rust.cargo.bench', 'bench'));
-
-    // Cargo doc
-    ctx.subscriptions.push(commandService.registerCommandInvokingCargoWithArgs('rust.cargo.doc', 'doc'));
-
-    // Cargo update
-    ctx.subscriptions.push(commandService.registerCommandInvokingCargoWithArgs('rust.cargo.update', 'update'));
-
-    // Cargo clean
-    ctx.subscriptions.push(commandService.registerCommandInvokingCargoWithArgs('rust.cargo.clean', 'clean'));
-
-    // Cargo check
-    ctx.subscriptions.push(commandService.registerCommandInvokingCargoCheckUsingCheckArgs('rust.cargo.check.default'));
-
-    ctx.subscriptions.push(commandService.registerCommandHelpingChooseArgsAndInvokingCargoCheck('rust.cargo.check.custom'));
-
-    // Cargo clippy
-    ctx.subscriptions.push(commandService.registerCommandInvokingCargoClippyUsingClippyArgs('rust.cargo.clippy.default'));
-
-    ctx.subscriptions.push(commandService.registerCommandHelpingChooseArgsAndInvokingCargoClippy('rust.cargo.clippy.custom'));
-
-    // Cargo terminate
-    ctx.subscriptions.push(commandService.registerCommandStoppingCargoTask());
 }

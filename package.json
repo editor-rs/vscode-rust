@@ -222,6 +222,11 @@
           "default": null,
           "description": "Specifies custom variables to set when running cargo. Useful for crates which use env vars in their build.rs (like openssl-sys)."
         },
+        "rust.executeCargoCommandInTerminal": {
+          "type": "boolean",
+          "default": false,
+          "description": "Indicating whether any cargo command should be executed in an integrated terminal. Used only in not RLS mode"
+        },
         "rust.formatOnSave": {
           "type": "boolean",
           "default": false,
@@ -378,6 +383,29 @@
             "required": ["title", "args"]
           },
           "type": "array"
+        },
+        "rust.rls": {
+          "default": null,
+          "description": "Rust Language Server configuration",
+          "properties": {
+            "executable": {
+              "default": "rls",
+              "description": "An executable to run as a language server",
+              "type": "string"
+            },
+            "args": {
+              "default": null,
+              "description": "Arguments to pass to the executable",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "env": {
+              "default": null,
+              "description": "An environment to run the executable in"
+            }
+          }
         }
       }
     },
@@ -436,6 +464,7 @@
     "tmp": "0.0.28",
     "tree-kill": "^1.0.0",
     "find-up": "^1.1.2",
-    "elegant-spinner": "^1.0.1"
+    "elegant-spinner": "^1.0.1",
+    "vscode-languageclient": "^3.0.3"
   }
 }
