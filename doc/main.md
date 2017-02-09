@@ -8,7 +8,7 @@ The documentation describes features supported by the extension.
 
 The extension can function in one of two modes:
 
-* [Legacy Mode](legacy_mode.md)
+* [Legacy Mode](legacy_mode/main.md)
 * [Rust Language Server Mode](rls_mode.md)
 
 Each mode is described in detail on its own page.
