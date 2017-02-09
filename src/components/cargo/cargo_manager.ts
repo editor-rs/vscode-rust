@@ -76,6 +76,8 @@ class CargoTaskManager {
 
     private currentWorkingDirectoryManager: CurrentWorkingDirectoryManager;
 
+    private logger: ChildLogger;
+
     private outputChannelTaskManager: OutputChannelTaskManager;
 
     private terminalTaskManager: TerminalTaskManager;
@@ -84,14 +86,20 @@ class CargoTaskManager {
         context: ExtensionContext,
         configurationManager: ConfigurationManager,
         currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
+        logger: ChildLogger,
         stopCommandName: string
     ) {
         this.configurationManager = configurationManager;
 
         this.currentWorkingDirectoryManager = currentWorkingDirectoryManager;
 
-        this.outputChannelTaskManager =
-            new OutputChannelTaskManager(configurationManager, stopCommandName);
+        this.logger = logger;
+
+        this.outputChannelTaskManager = new OutputChannelTaskManager(
+            configurationManager,
+            logger.createChildLogger('OutputChannelTaskManager: '),
+            stopCommandName
+        );
 
         this.terminalTaskManager = new TerminalTaskManager(context);
     }
@@ -184,7 +192,12 @@ class CargoTaskManager {
     }
 
     private async checkCargoCheckAvailability(): Promise<boolean> {
-        const task = new Task(this.configurationManager, ['check', '--help'], '/');
+        const task = new Task(
+            this.configurationManager,
+            this.logger.createChildLogger('Task: '),
+            ['check', '--help'],
+            '/'
+        );
 
         const exitCode = await task.execute();
 
@@ -237,6 +250,7 @@ export default class CargoManager {
             context,
             configurationManager,
             currentWorkingDirectoryManager,
+            logger.createChildLogger('CargoTaskManager: '),
             stopCommandName
         );
 

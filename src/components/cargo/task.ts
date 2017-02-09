@@ -6,10 +6,14 @@ import * as readline from 'readline';
 
 import { ConfigurationManager } from '../configuration/configuration_manager';
 
+import ChildLogger from '../logging/child_logger';
+
 export type ExitCode = number;
 
 export class Task {
     private configurationManager: ConfigurationManager;
+
+    private logger: ChildLogger;
 
     private args: string[];
 
@@ -25,8 +29,15 @@ export class Task {
 
     private interrupted: boolean;
 
-    public constructor(configurationManager: ConfigurationManager, args: string[], cwd: string) {
+    public constructor(
+        configurationManager: ConfigurationManager,
+        logger: ChildLogger,
+        args: string[],
+        cwd: string
+    ) {
         this.configurationManager = configurationManager;
+
+        this.logger = logger;
 
         this.args = args;
 
@@ -59,16 +70,20 @@ export class Task {
         return new Promise<ExitCode>((resolve, reject) => {
             const cargoPath = this.configurationManager.getCargoPath();
 
-            if (this.onStarted) {
-                this.onStarted();
-            }
-
             let env = Object.assign({}, process.env);
 
             const cargoEnv = this.configurationManager.getCargoEnv();
 
             if (cargoEnv) {
                 env = Object.assign(env, cargoEnv);
+            }
+
+            this.logger.debug(`execute: cargoPath = "${cargoPath}"`);
+            this.logger.debug(`execute: this.args = ${JSON.stringify(this.args)}`);
+            this.logger.debug(`execute: cargoEnv = ${JSON.stringify(cargoEnv)}`);
+
+            if (this.onStarted) {
+                this.onStarted();
             }
 
             this.process = spawn_process(cargoPath, this.args, { cwd: this.cwd, env });

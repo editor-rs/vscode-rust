@@ -2,6 +2,8 @@ import { window } from 'vscode';
 
 import { ConfigurationManager } from '../configuration/configuration_manager';
 
+import ChildLogger from '../logging/child_logger';
+
 import { DiagnosticParser } from './diagnostic_parser';
 
 import { DiagnosticPublisher } from './diagnostic_publisher';
@@ -17,6 +19,8 @@ export class OutputChannelTaskManager {
 
     private configurationManager: ConfigurationManager;
 
+    private logger: ChildLogger;
+
     private runningTask: Task | undefined;
 
     private diagnosticParser: DiagnosticParser;
@@ -25,10 +29,16 @@ export class OutputChannelTaskManager {
 
     private statusBarItem: OutputChannelTaskStatusBarItem;
 
-    public constructor(configurationManager: ConfigurationManager, stopCommandName: string) {
+    public constructor(
+        configurationManager: ConfigurationManager,
+        logger: ChildLogger,
+        stopCommandName: string
+    ) {
         this.channel = new OutputChannelWrapper(window.createOutputChannel('Cargo'));
 
         this.configurationManager = configurationManager;
+
+        this.logger = logger;
 
         this.diagnosticParser = new DiagnosticParser();
 
@@ -63,7 +73,12 @@ export class OutputChannelTaskManager {
 
         extendArgs();
 
-        this.runningTask = new Task(this.configurationManager, args, cwd);
+        this.runningTask = new Task(
+            this.configurationManager,
+            this.logger.createChildLogger('Task: '),
+            args,
+            cwd
+        );
 
         this.runningTask.setStarted(() => {
             this.channel.clear();
