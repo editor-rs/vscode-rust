@@ -137,7 +137,11 @@ export default class CompletionManager {
 
         this.racerStatusBarItem.showTurnedOn();
         const cargoHomePath = this.configurationManager.getCargoHomePath();
-        const racerSpawnOptions: SpawnOptions = { stdio: 'pipe', shell: true, env: process.env };
+        const racerSpawnOptions: SpawnOptions = {
+            stdio: 'pipe',
+            shell: true,
+            env: Object.assign({}, process.env)
+        };
 
         const rustSourcePath = this.configurationManager.getRustSourcePath();
 
@@ -145,7 +149,7 @@ export default class CompletionManager {
             racerSpawnOptions.env.RUST_SRC_PATH = rustSourcePath;
         }
 
-        if (cargoHomePath !== '') {
+        if (cargoHomePath) {
             racerSpawnOptions.env.CARGO_HOME = cargoHomePath;
         }
 
