@@ -5,6 +5,8 @@
 
 # Rust for Visual Studio Code (Latest: 0.3.6)
 
+[**Documentation**](doc/main.md)
+
 ## Why this fork
 The maintainer of RustyCode doesn't answer.
 
