@@ -17,7 +17,23 @@ These commands are:
 
 These commands available through the command palette (CTRL+P).
 
-These commands have prefix "Cargo: "
+These commands have prefix `"Cargo: "`.
+
+## Current working directory determination
+The extension executes a cargo command in some directory. To find out which directory the extension should use, the extension uses the following algorithm:
+
+* Try making out the current working directory from the active text editor
+
+  If all of the conditions are met:
+
+    * There is an active text editor
+    * A file opened in the editor is in the workspace (the opened directory)
+    * There is a `Cargo.toml` file near the file or in the parent directories within the workspace
+
+  Then use the directory containing the `Cargo.toml` file.
+
+* Try using the previous current working directory
+* Try using the workspace
 
 ## Configuration Parameters
 ### Cargo Path
@@ -55,11 +71,11 @@ It is useful when you want the extension to execute `cargo build --features some
 
 These configuration parameters are used when one of the following commands is invoked:
 
-* "Cargo: Build"
-* "Cargo: Check"
-* "Cargo: Clippy"
-* "Cargo: Run"
-* "Cargo: Test"
+* `"Cargo: Build"`
+* `"Cargo: Check"`
+* `"Cargo: Clippy"`
+* `"Cargo: Run"`
+* `"Cargo: Test"`
 
 ### Custom Configurations
 The extension supports several configuration parameters:
@@ -78,11 +94,11 @@ The object must have the following fields:
 
 These configuration parameters are used when one of the following commands is invoked:
 
-* "Cargo: Build using custom configuration"
-* "Cargo: Check using custom configuration"
-* "Cargo: Clippy using custom configuration"
-* "Cargo: Run using custom configuration"
-* "Cargo: Test using custom configuration"
+* `"Cargo: Build using custom configuration"`
+* `"Cargo: Check using custom configuration"`
+* `"Cargo: Clippy using custom configuration"`
+* `"Cargo: Run using custom configuration"`
+* `"Cargo: Test using custom configuration"`
 
 If any of the following commands is invoked, the extension decides what to do.
 
