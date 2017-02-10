@@ -17,7 +17,7 @@ Furthermore, the extension allows:
 
 * [To execute one of built-in cargo command](cargo_command_execution.md)
 * [To create a playground](playground_creation.md)
-* [To make the extension format the active document after save](format_on_save.md)
+* [To format a document opened in the active text editor](format.md)
 * [To make the extension execute a cargo command after save](action_on_save.md)
 
 Also it provides snippets and keybindings.
