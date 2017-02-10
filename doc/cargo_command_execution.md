@@ -19,6 +19,23 @@ These commands available through the command palette (CTRL+P).
 
 These commands have prefix `"Cargo: "`.
 
+## Execute Command On Save
+
+The extension supports executing a command after saving the document opened in the active text document.
+
+The `"rust.actionOnSave"` configuration parameter specifies a command to execute.
+
+The possible values:
+
+* `"build"` - the extension executes `"Cargo: Build"`
+* `"check"` - the extension executes `"Cargo: Check"`
+* `"clippy"` - the extension executes `"Cargo: Clippy"`
+* `"run"` - the extension executes `"Cargo: Run"`
+* `"test"` - the extension executes `"Cargo: Test"`
+* `null` - the extension does nothing
+
+By default, it is `null`.
+
 ## Current working directory determination
 The extension executes a cargo command in some directory. To find out which directory the extension should use, the extension uses the following algorithm:
 
