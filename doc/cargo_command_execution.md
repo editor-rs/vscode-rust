@@ -94,6 +94,11 @@ These configuration parameters are used when one of the following commands is in
 * `"Cargo: Run"`
 * `"Cargo: Test"`
 
+#### Examples
+```json
+"rust.buildArgs": ["--features", "some_feature"]
+```
+
 ### Custom Configurations
 The extension supports several configuration parameters:
 
@@ -128,3 +133,54 @@ If many custom configurations for the command are defined the extension shows a 
 If a developer cancels the quick pick the extension does nothing.
 
 If a developer chooses an item the extension executes the command with the arguments from the chosen configuration.
+
+#### Examples
+##### Build Example
+```json
+"rust.customBuildConfigurations": [
+  {
+    "title": "Example: my_example",
+    "args": ["--example", "my_example"]
+  }
+]
+```
+
+##### Check With Features
+```json
+"rust.customCheckConfigurations": [
+  {
+    "title": "With Features",
+    "args": ["--features", "feature1", "feature2"]
+  }
+]
+```
+
+##### Clippy With Features
+```json
+"rust.customClippyConfigurations": [
+  {
+    "title": "With Features",
+    "args": ["--features", "feature1", "feature2"]
+  }
+]
+```
+
+##### Run With Arguments
+```json
+"rust.customRunConfigurations": [
+  {
+    "title": "With Arguments",
+    "args": ["--", "arg1", "arg2"]
+  }
+]
+```
+
+##### Test No Run
+```json
+"rust.customTestConfigurations": [
+  {
+    "title": "No Run",
+    "args": ["--no-run"]
+  }
+]
+```
