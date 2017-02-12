@@ -1,4 +1,4 @@
-import { ExtensionContext, Terminal, workspace, window } from 'vscode';
+import { ExtensionContext, Terminal, window } from 'vscode';
 
 import { ConfigurationManager } from '../configuration/configuration_manager';
 
