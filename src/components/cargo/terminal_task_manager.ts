@@ -1,4 +1,4 @@
-import { ExtensionContext, Terminal, window } from 'vscode';
+import { ExtensionContext, Terminal, window, workspace } from 'vscode';
 
 import { ConfigurationManager } from '../configuration/configuration_manager';
 
@@ -27,6 +27,45 @@ export class TerminalTaskManager {
         }
 
         this.runningTerminal = window.createTerminal('Cargo Task');
+
+        const setEnvironmentVariables = () => {
+            const cargoEnv = this.configurationManager.getCargoEnv();
+
+            const setEnvironmentVariable = (() => {
+                if (process.platform !== 'win32') {
+                    return (name: string, value: string) => {
+                        this.runningTerminal.sendText(`export ${name}="${value}"`);
+                    };
+                }
+
+                const shell: string = workspace.getConfiguration('terminal')['integrated']['shell']['windows'];
+
+                if (shell.includes('powershell')) {
+                    return (name: string, value: string) => {
+                        this.runningTerminal.sendText(`$ENV:${name}="${value}"`);
+                    };
+                } else if (shell.includes('cmd')) {
+                    return (name: string, value: string) => {
+                        this.runningTerminal.sendText(`set ${name}=${value}`);
+                    };
+                } else {
+                    return (name: string, value: string) => {
+                        this.runningTerminal.sendText(`export ${name}="${value}"`);
+                    };
+                }
+            })();
+
+            // Set environment variables
+            for (let name in cargoEnv) {
+                if (name in cargoEnv) {
+                    const value = cargoEnv[name];
+
+                    setEnvironmentVariable(name, value);
+                }
+            }
+        };
+
+        setEnvironmentVariables();
 
         // Change the current directory to a specified directory
         this.runningTerminal.sendText(`cd "${cwd}"`);
