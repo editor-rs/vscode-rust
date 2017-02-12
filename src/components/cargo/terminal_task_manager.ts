@@ -1,9 +1,15 @@
 import { ExtensionContext, Terminal, window } from 'vscode';
 
+import { ConfigurationManager } from '../configuration/configuration_manager';
+
 export class TerminalTaskManager {
+    private configurationManager: ConfigurationManager;
+
     private runningTerminal: Terminal | undefined;
 
-    public constructor(context: ExtensionContext) {
+    public constructor(context: ExtensionContext, configurationManager: ConfigurationManager) {
+        this.configurationManager = configurationManager;
+
         context.subscriptions.push(
             window.onDidCloseTerminal(closedTerminal => {
                 if (closedTerminal === this.runningTerminal) {
@@ -25,8 +31,10 @@ export class TerminalTaskManager {
         // Change the current directory to a specified directory
         this.runningTerminal.sendText(`cd "${cwd}"`);
 
+        const cargoPath = this.configurationManager.getCargoPath();
+
         // Start a requested command
-        this.runningTerminal.sendText(`cargo ${command} ${args.join(' ')}`);
+        this.runningTerminal.sendText(`${cargoPath} ${command} ${args.join(' ')}`);
 
         this.runningTerminal.show();
     }
