@@ -101,7 +101,7 @@ class CargoTaskManager {
             stopCommandName
         );
 
-        this.terminalTaskManager = new TerminalTaskManager(context);
+        this.terminalTaskManager = new TerminalTaskManager(context, configurationManager);
     }
 
     public async invokeCargoInit(crateType: CrateType, name: string, cwd: string): Promise<void> {
