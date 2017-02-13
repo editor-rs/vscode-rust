@@ -2,7 +2,7 @@
   "name": "vscode-rust",
   "displayName": "Rust",
   "description": "Rust language integration for VSCode",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "publisher": "kalitaalexey",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -268,7 +268,9 @@
           "default": [
             {
               "title": "Release",
-              "args": ["--release"]
+              "args": [
+                "--release"
+              ]
             }
           ],
           "description": "Custom configurations for cargo build. Array of objects with `title` (string) and `args` (array of strings) which will be passed to `cargo build`.",
@@ -284,7 +286,10 @@
                 }
               }
             },
-            "required": ["title", "args"]
+            "required": [
+              "title",
+              "args"
+            ]
           },
           "type": "array"
         },
@@ -292,7 +297,9 @@
           "default": [
             {
               "title": "Release",
-              "args": ["--release"]
+              "args": [
+                "--release"
+              ]
             }
           ],
           "description": "Custom configurations for cargo check. Array of objects with `title` (string) and `args` (array of strings) which will be passed to `cargo check`.",
@@ -308,7 +315,10 @@
                 }
               }
             },
-            "required": ["title", "args"]
+            "required": [
+              "title",
+              "args"
+            ]
           },
           "type": "array"
         },
@@ -327,7 +337,10 @@
                 }
               }
             },
-            "required": ["title", "args"]
+            "required": [
+              "title",
+              "args"
+            ]
           },
           "type": "array"
         },
@@ -335,7 +348,9 @@
           "default": [
             {
               "title": "Release",
-              "args": ["--release"]
+              "args": [
+                "--release"
+              ]
             }
           ],
           "description": "Custom configurations for cargo run. Array of objects with `title` (string) and `args` (array of strings) which will be passed to `cargo run`.",
@@ -351,7 +366,10 @@
                 }
               }
             },
-            "required": ["title", "args"]
+            "required": [
+              "title",
+              "args"
+            ]
           },
           "type": "array"
         },
@@ -359,7 +377,9 @@
           "default": [
             {
               "title": "Release",
-              "args": ["--release"]
+              "args": [
+                "--release"
+              ]
             }
           ],
           "description": "Custom configurations for cargo test. Array of objects with `title` (string) and `args` (array of strings) which will be passed to `cargo test`.",
@@ -375,7 +395,10 @@
                 }
               }
             },
-            "required": ["title", "args"]
+            "required": [
+              "title",
+              "args"
+            ]
           },
           "type": "array"
         },

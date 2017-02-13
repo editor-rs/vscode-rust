@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.7
+
+### Features
+
+* Added Rust Language Server integration. [Pull Request](https://github.com/KalitaAlexey/vscode-rust/pull/56)
+
+* Added the `"rust.executeCargoCommandInTerminal"` configuration parameter. If it is set a cargo command is executed in an integrated terminal
+
+### Breaking changes
+
+* Removed printing the duration of a execution of a task because cargo also does it
+
+* Removed the `"rust.formatOnSave"`. [Pull Request](https://github.com/KalitaAlexey/vscode-rust/pull/74)
+
 ## 0.3.6
 
 ### Features
@@ -36,7 +50,7 @@
 
 * Made ~ be expanded for `racerPath`, `rustfmtPath`, `rustsymPath`
 
-* Fixed an unhandled exception if rustc wasn't installed 
+* Fixed an unhandled exception if rustc wasn't installed
 
 ## 0.3.1
 
@@ -118,9 +132,9 @@ Documentation line limit in hover is removed
 
 Leading spaces are removed from snippet labels
 
-The error message for cancellation project creation is not shown 
+The error message for cancellation project creation is not shown
 
-Missing tools installation aware of cargo bin path 
+Missing tools installation aware of cargo bin path
 
 ## 0.1.2
 

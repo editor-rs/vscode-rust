@@ -3,7 +3,7 @@
 
 [The extension on VSCode marketplace](https://marketplace.visualstudio.com/items?itemName=kalitaalexey.vscode-rust)
 
-# Rust for Visual Studio Code (Latest: 0.3.6)
+# Rust for Visual Studio Code (Latest: 0.3.7)
 
 ## Why this fork
 
