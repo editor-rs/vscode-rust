@@ -13,6 +13,18 @@ The type of the parameter is an object with the following fields:
 
 By default, it is `null`.
 
+### Debugging
+There is an output channel named "Rust Language Server" which is used to show messages from RLS.
+
+To open it, perform the following steps:
+
+* Click "View" on the menu
+* Click "Output" on submenu
+* Click on the listbox which is to the right of the shown panel
+* Choose "Rust Language Server"
+
+For making RLS print more data, refer the "Debug RLS" section below.
+
 ### Examples
 #### RLS is installed
 ```json
