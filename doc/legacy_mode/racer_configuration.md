@@ -5,6 +5,7 @@ The extension supports several configuration parameters to configure racer.
 ## Configuration Parameters
 
 ### Racer Path
+
 The `"rust.racerPath"` configuration parameter specifies a path to the racer's executable.
 
 The possible values:
@@ -15,6 +16,7 @@ The possible values:
 If the extension failed to start racer, autocompletion wouldn't be available.
 
 ### Rust Source
+
 The `"rust.rustLangSrcPath"` configuration parameter specifies a path to the `src` directory of Rust sources.
 
 The possible values:
@@ -31,6 +33,7 @@ The extension tries finding Rust sources in different places:
 If the extension failed to find Rust sources, racer wouldn't provide autocompletion for the standard library.
 
 ### Cargo Home
+
 The `"rust.cargoHomePath"` configuration parameter specifies a path to the home directory of Cargo.
 
 I have never used this configuration parameter, but some people need it.

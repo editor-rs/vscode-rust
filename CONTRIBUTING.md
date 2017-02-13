@@ -2,6 +2,7 @@ There are several sections.
 Choose one of them and follow the instructions.
 
 # Open an issue
+
 Use this section if you want to open an issue describing a problem.
 
 Please follow the instructions:
@@ -10,6 +11,7 @@ Please follow the instructions:
 * Fill the issue
 
 # Fix an opened issue
+
 Use this section if you want to fix a problem or add a feature and there is an opened issue for that.
 
 Please follow the instructions:
@@ -27,6 +29,7 @@ Please follow the instructions:
 * Wait until the pull request is merged
 
 # Fix a bug or add a feature
+
 Use this section if you want to fix a problem or add a feature and there is no opened issue for that.
 
 Please follow the instructions:
@@ -36,6 +39,7 @@ Please follow the instructions:
 * Follow the instructions from the section "Fix an opened issue"
 
 # Suggestion to add a feature or change behavior
+
 Use this section if you have an idea, but you are unsure whether other people would like it.
 
 Please follow the instructions:
@@ -44,6 +48,7 @@ Please follow the instructions:
 * Discuss it
 
 # Instruction to be done before submitting a pull question
+
 * Execute `npm run gulp` in the root directory of the extension to compile the code and to check for code style violation
 * Launch tests:
   * Open the project in VSCode

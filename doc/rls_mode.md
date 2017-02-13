@@ -3,6 +3,7 @@
 The extension supports integration with [Rust Language Server](https://github.com/rust-lang-nursery/rls).
 
 ## Configuration
+
 The `"rust.rls"` configuration parameter specifies how to run RLS if it is requested.
 
 The type of the parameter is an object with the following fields:
@@ -14,6 +15,7 @@ The type of the parameter is an object with the following fields:
 By default, it is `null`.
 
 ### Debugging
+
 There is an output channel named "Rust Language Server" which is used to show messages from RLS.
 
 To open it, perform the following steps:
@@ -26,7 +28,9 @@ To open it, perform the following steps:
 For making RLS print more data, refer the "Debug RLS" section below.
 
 ### Examples
+
 #### RLS is installed
+
 ```json
 "rust.rls": {
     "executable": "rls"
@@ -34,6 +38,7 @@ For making RLS print more data, refer the "Debug RLS" section below.
 ```
 
 #### Source code of RLS is available
+
 ```json
 "rust.rls": {
     "executable": "cargo",
@@ -42,6 +47,7 @@ For making RLS print more data, refer the "Debug RLS" section below.
 ```
 
 #### Debug RLS
+
 ```json
 "rust.rls": {
     ...

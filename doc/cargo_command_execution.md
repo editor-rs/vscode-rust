@@ -36,7 +36,8 @@ The possible values:
 
 By default, it is `null`.
 
-## Current working directory determination
+## Current Working Directory Determination
+
 The extension executes a cargo command in some directory. To find out which directory the extension should use, the extension uses the following algorithm:
 
 * Try making out the current working directory from the active text editor
@@ -53,7 +54,9 @@ The extension executes a cargo command in some directory. To find out which dire
 * Try using the workspace
 
 ## Configuration Parameters
+
 ### Cargo Path
+
 The `"rust.cargoPath"` configuration parameter specifies a path to the cargo's executable.
 
 The possible values:
@@ -64,6 +67,7 @@ The possible values:
 If cargo isn't available the extension can't execute a cargo command.
 
 ### Cargo Environment
+
 The `"rust.cargoEnv"` configuration parameter specifies an environment which would be added to the general environment for executing a cargo command.
 
 The possible values:
@@ -72,6 +76,7 @@ The possible values:
 * `null`
 
 ### Passing Arguments
+
 The extension supports several configuration parameters:
 
 * `"rust.buildArgs"`
@@ -95,11 +100,13 @@ These configuration parameters are used when one of the following commands is in
 * `"Cargo: Test"`
 
 #### Examples
+
 ```json
 "rust.buildArgs": ["--features", "some_feature"]
 ```
 
 ### Custom Configurations
+
 The extension supports several configuration parameters:
 
 * `"rust.customBuildConfigurations"`
@@ -135,7 +142,9 @@ If a developer cancels the quick pick the extension does nothing.
 If a developer chooses an item the extension executes the command with the arguments from the chosen configuration.
 
 #### Examples
+
 ##### Build Example
+
 ```json
 "rust.customBuildConfigurations": [
   {
@@ -146,6 +155,7 @@ If a developer chooses an item the extension executes the command with the argum
 ```
 
 ##### Check With Features
+
 ```json
 "rust.customCheckConfigurations": [
   {
@@ -156,6 +166,7 @@ If a developer chooses an item the extension executes the command with the argum
 ```
 
 ##### Clippy With Features
+
 ```json
 "rust.customClippyConfigurations": [
   {
@@ -166,6 +177,7 @@ If a developer chooses an item the extension executes the command with the argum
 ```
 
 ##### Run With Arguments
+
 ```json
 "rust.customRunConfigurations": [
   {
@@ -176,6 +188,7 @@ If a developer chooses an item the extension executes the command with the argum
 ```
 
 ##### Test No Run
+
 ```json
 "rust.customTestConfigurations": [
   {
