@@ -10,8 +10,7 @@ import {
     TextEdit,
     Uri,
     languages,
-    window,
-    workspace
+    window
 } from 'vscode';
 
 import { ConfigurationManager } from '../configuration/configuration_manager';
