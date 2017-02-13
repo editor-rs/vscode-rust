@@ -22,3 +22,7 @@ Furthermore, the extension allows:
 Also it provides snippets and keybindings.
 
 They are not described because you can see them on the extension's page in VSCode.
+
+## Additional information
+
+[Install extension from source (always latest version)](install_extension_from_source.md)
