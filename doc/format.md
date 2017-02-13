@@ -12,8 +12,6 @@ In order to format the document, make a right click and choose `"Format Document
 
 ## Format On Save
 
-The extension supports formatting the document opened in the active text editor on saving.
+Visual Studio Code supports formatting a document on saving.
 
-The `"rust.formatOnSave"` specifies whether the extension should format the active document on save.
-
-By default, it is `false`.
+Set `"editor.formatOnSave"` to `true` to make Visual Studio Code do that.

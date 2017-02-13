@@ -40,28 +40,6 @@ export default class FormattingManager implements DocumentFormattingEditProvider
                 this
             )
         );
-
-        context.subscriptions.push(
-            workspace.onWillSaveTextDocument(event => {
-                const activeTextEditor = window.activeTextEditor;
-
-                if (!activeTextEditor) {
-                    return;
-                }
-
-                if (activeTextEditor.document !== event.document) {
-                    return;
-                }
-
-                const isFormatOnSaveEnabled = configurationManager.isFormatOnSaveEnabled();
-
-                if (!isFormatOnSaveEnabled) {
-                    return;
-                }
-
-                event.waitUntil(this.provideDocumentFormattingEdits(event.document));
-            })
-        );
     }
 
     public provideDocumentFormattingEdits(document: TextDocument): Thenable<TextEdit[]> {
