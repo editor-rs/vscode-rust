@@ -83,6 +83,8 @@ export class OutputChannelTaskManager {
         this.runningTask.setStarted(() => {
             this.channel.clear();
             this.channel.append(`Started cargo ${args.join(' ')}\n\n`);
+
+            this.diagnosticPublisher.clearDiagnostics();
         });
 
         this.runningTask.setLineReceivedInStdout(line => {
