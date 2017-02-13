@@ -10,8 +10,7 @@ import {
     TextEdit,
     Uri,
     languages,
-    window,
-    workspace
+    window
 } from 'vscode';
 
 import { ConfigurationManager } from '../configuration/configuration_manager';
@@ -39,28 +38,6 @@ export default class FormattingManager implements DocumentFormattingEditProvider
                 getDocumentFilter(),
                 this
             )
-        );
-
-        context.subscriptions.push(
-            workspace.onWillSaveTextDocument(event => {
-                const activeTextEditor = window.activeTextEditor;
-
-                if (!activeTextEditor) {
-                    return;
-                }
-
-                if (activeTextEditor.document !== event.document) {
-                    return;
-                }
-
-                const isFormatOnSaveEnabled = configurationManager.isFormatOnSaveEnabled();
-
-                if (!isFormatOnSaveEnabled) {
-                    return;
-                }
-
-                event.waitUntil(this.provideDocumentFormattingEdits(event.document));
-            })
         );
     }
 

@@ -227,11 +227,6 @@
           "default": false,
           "description": "Indicating whether any cargo command should be executed in an integrated terminal. Used only in not RLS mode"
         },
-        "rust.formatOnSave": {
-          "type": "boolean",
-          "default": false,
-          "description": "Turn on/off autoformatting file on save"
-        },
         "rust.actionOnSave": {
           "type": "string",
           "default": null,

@@ -68,14 +68,6 @@ export class ConfigurationManager {
         return shouldShowRunningCargoTaskOutputChannel;
     }
 
-    public isFormatOnSaveEnabled(): boolean {
-        const configuration = ConfigurationManager.getConfiguration();
-
-        const isFormatOnSaveEnabled = configuration['formatOnSave'];
-
-        return isFormatOnSaveEnabled;
-    }
-
     public getCargoEnv(): any {
         const configuration = ConfigurationManager.getConfiguration();
 
