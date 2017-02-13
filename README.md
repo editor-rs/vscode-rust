@@ -1,43 +1,40 @@
 [![Build Status](https://api.travis-ci.org/KalitaAlexey/vscode-rust.svg)](https://travis-ci.org/KalitaAlexey/vscode-rust)
 [![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/vscode-rust/Lobby)
 
-[The extension on VSCode marketplace](https://marketplace.visualstudio.com/items?itemName=kalitaalexey.vscode-rust)
-
 # Rust for Visual Studio Code (Latest: 0.3.7)
 
-## Why this fork
+## Why the fork?
 
-The maintainer of RustyCode doesn't answer.
-
-The repo contains a lot of bug fixes and new features.
+RustyCode is no longer maintained and the developer seems to have lost all interest in the extension. Due to no response from the original author, this fork was created which now contains additional features and many bug fixes.
 
 ## Extension
 
-On update please look at the change log.
+- [Documentation](doc/main.md)
+- [Roadmap](ROADMAP.md)
+- [Contributing](CONTRIBUTING.md)
 
-[Changelog](CHANGELOG.md)
+This extension adds advanced language support for the Rust programming language within VS Code. It features:
 
-[Documentation](doc/main.md)
+- Rust Language Server integration.
+- Autocompletion (via `racer` or RLS).
+- Go To Definition (via `racer` or RLS).
+- Go To Symbol (via `rustsym` or RLS).
+- Code formatting (via `rustfmt`).
+- Code Snippets.
+- Cargo tasks (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> and type `cargo` to view them).
+- …and a lot of other features. To learn more, see the [documentation](doc/main.md).
 
-[Contributing](CONTRIBUTING.md)
-
-[Roadmap](ROADMAP.md)
-
-This extension adds advanced language support for the Rust language to VS Code, including:
-
-- Autocompletion (using `racer` or `Rust Language Server`)
-- Go To Definition (using `Rust Language Server` or `Rust Language Server`)
-- Go To Symbol (using `rustsym` or `Rust Language Server`)
-- Format (using `rustfmt`)
-- Cargo tasks (Open the Command Palette and they will be there)
-- Snippets
-- And a lot of other features, to read about them, read the [documentation](doc/main.md).
+On update, please review the [changelog](CHANGELOG.md).
 
 ## Installation
 
-First, you will need to install Visual Studio Code `1.8` or newer.
+1. Firstly, you will need to install [VS Code](https://code.visualstudio.com/) `1.8` or later.
 
-In the command palette (`cmd-shift-p`) select `Install Extension` and choose `Rust`.
+2. Now in VS Code, (<kbd>Ctrl</kbd>+<kbd>P</kbd>) and type `ext install vscode-rust`.
+
+3. Choose to install the "Rust" extension.
+
+The extension can also be found on the [VS Code marketplace](https://marketplace.visualstudio.com/items?itemName=kalitaalexey.vscode-rust).
 
 ## License
 
