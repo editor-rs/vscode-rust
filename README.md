@@ -10,12 +10,11 @@ RustyCode is no longer maintained and the developer seems to have lost all inter
 ## Extension
 
 - [Documentation](doc/main.md)
-- [Roadmap](ROADMAP.md)
 - [Contributing](CONTRIBUTING.md)
 
 This extension adds advanced language support for the Rust programming language within VS Code. It features:
 
-- Rust Language Server integration.
+- [Rust Language Server](https://github.com/rust-lang-nursery/rls) integration.
 - Autocompletion (via `racer` or RLS).
 - Go To Definition (via `racer` or RLS).
 - Go To Symbol (via `rustsym` or RLS).
