@@ -22,6 +22,10 @@ It requires tools to function, which are:
 
 If any of the tools was not found the extension would suggest to install the missing tool.
 
+If the extension failed to find any of the tools the "Rust Tools Missing" item in the status bar would appear.
+
+Click on the item to install missing tools.
+
 ## Configuration
 
 The extension supports configuration of the tools:
