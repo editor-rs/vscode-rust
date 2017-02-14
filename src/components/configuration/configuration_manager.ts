@@ -17,8 +17,9 @@ export interface RlsConfiguration {
 }
 
 export enum ActionOnStartingCommandIfThereIsRunningCommand {
-    Stop,
-    Dialog
+    StopRunningCommand,
+    IgnoreNewCommand,
+    ShowDialogToLetUserDecide
 }
 
 export class ConfigurationManager {
@@ -117,21 +118,20 @@ export class ConfigurationManager {
         return this.rustSourcePath;
     }
 
-    public getActionOnStartingCommandIfThereIsRunningCommand():
-        ActionOnStartingCommandIfThereIsRunningCommand | undefined {
+    public getActionOnStartingCommandIfThereIsRunningCommand(): ActionOnStartingCommandIfThereIsRunningCommand {
         const configuration = ConfigurationManager.getConfiguration();
 
         const action = configuration['actionOnStartingCommandIfThereIsRunningCommand'];
 
         switch (action) {
-            case 'stop':
-                return ActionOnStartingCommandIfThereIsRunningCommand.Stop;
+            case 'Stop running command':
+                return ActionOnStartingCommandIfThereIsRunningCommand.StopRunningCommand;
 
-            case 'dialog':
-                return ActionOnStartingCommandIfThereIsRunningCommand.Dialog;
+            case 'Show dialog to let me decide':
+                return ActionOnStartingCommandIfThereIsRunningCommand.ShowDialogToLetUserDecide;
 
             default:
-                return undefined;
+                return ActionOnStartingCommandIfThereIsRunningCommand.IgnoreNewCommand;
         }
     }
 
