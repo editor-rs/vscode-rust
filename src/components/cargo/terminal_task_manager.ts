@@ -75,6 +75,6 @@ export class TerminalTaskManager {
         // Start a requested command
         this.runningTerminal.sendText(`${cargoPath} ${command} ${args.join(' ')}`);
 
-        this.runningTerminal.show();
+        this.runningTerminal.show(true);
     }
 }
