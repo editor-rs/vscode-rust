@@ -16,6 +16,12 @@ export interface RlsConfiguration {
     env?: any;
 }
 
+export enum ActionOnStartingCommandIfThereIsRunningCommand {
+    StopRunningCommand,
+    IgnoreNewCommand,
+    ShowDialogToLetUserDecide
+}
+
 export class ConfigurationManager {
     private rustcSysRoot: string | undefined;
 
@@ -110,6 +116,23 @@ export class ConfigurationManager {
 
     public getRustSourcePath(): string | undefined {
         return this.rustSourcePath;
+    }
+
+    public getActionOnStartingCommandIfThereIsRunningCommand(): ActionOnStartingCommandIfThereIsRunningCommand {
+        const configuration = ConfigurationManager.getConfiguration();
+
+        const action = configuration['actionOnStartingCommandIfThereIsRunningCommand'];
+
+        switch (action) {
+            case 'Stop running command':
+                return ActionOnStartingCommandIfThereIsRunningCommand.StopRunningCommand;
+
+            case 'Show dialog to let me decide':
+                return ActionOnStartingCommandIfThereIsRunningCommand.ShowDialogToLetUserDecide;
+
+            default:
+                return ActionOnStartingCommandIfThereIsRunningCommand.IgnoreNewCommand;
+        }
     }
 
     public static getConfiguration(): WorkspaceConfiguration {

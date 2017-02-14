@@ -227,6 +227,15 @@
           "default": false,
           "description": "Indicating whether any cargo command should be executed in an integrated terminal. Used only in not RLS mode"
         },
+        "rust.actionOnStartingCommandIfThereIsRunningCommand": {
+          "default": "Stop running command",
+          "type": "string",
+          "enum": [
+            "Stop running command",
+            "Ignore new command",
+            "Show dialog to let me decide"
+          ]
+        },
         "rust.actionOnSave": {
           "type": "string",
           "default": null,

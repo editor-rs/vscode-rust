@@ -75,6 +75,17 @@ The possible values:
 * Some object (`{ "RUST_BACKTRACE": 1 }`)
 * `null`
 
+### Setting An Action To Handle Starting A New Command If There Is Another Command Running
+
+The `"rust.actionOnStartingCommandIfThereIsRunningCommand"` configuration parameter specifies what the extension should do in case of starting a new command if there is another command running.
+
+The possible values are:
+
+* `"Stop running command"` - the extension will stop another running command and start a new one
+* `"Ignore new command"` - the extension will ignore a request to start a new command
+* `"Show dialog to let me decide"` - the extension will show an information box to let the user decide whether or not to stop a running command
+
+
 ### Passing Arguments
 
 The extension supports several configuration parameters:

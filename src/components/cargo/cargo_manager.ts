@@ -11,6 +11,8 @@ import ChildLogger from '../logging/child_logger';
 
 import CustomConfigurationChooser from './custom_configuration_chooser';
 
+import { CommandStartHandleResult, Helper } from './helper';
+
 import { OutputChannelTaskManager } from './output_channel_task_manager';
 
 import { Task } from './task';
@@ -219,10 +221,20 @@ class CargoTaskManager {
             this.terminalTaskManager.execute(command, args, cwd);
         } else {
             if (this.outputChannelTaskManager.hasRunningTask()) {
-                if (force) {
-                    await this.outputChannelTaskManager.stopRunningTask();
-                } else {
+                if (!force) {
                     return;
+                }
+
+                const helper = new Helper(this.configurationManager);
+
+                const result = await helper.handleCommandStartWhenThereIsRunningCommand();
+
+                switch (result) {
+                    case CommandStartHandleResult.IgnoreNewCommand:
+                        return;
+
+                    case CommandStartHandleResult.StopRunningCommand:
+                        await this.outputChannelTaskManager.stopRunningTask();
                 }
             }
 

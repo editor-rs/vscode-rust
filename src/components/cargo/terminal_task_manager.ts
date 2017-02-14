@@ -1,5 +1,7 @@
 import { ExtensionContext, Terminal, window, workspace } from 'vscode';
 
+import { CommandStartHandleResult, Helper } from './helper';
+
 import { ConfigurationManager } from '../configuration/configuration_manager';
 
 export class TerminalTaskManager {
@@ -19,11 +21,20 @@ export class TerminalTaskManager {
         );
     }
 
-    public execute(command: string, args: string[], cwd: string): void {
+    public async execute(command: string, args: string[], cwd: string): Promise<void> {
         if (this.runningTerminal) {
-            window.showErrorMessage('Cannot execute task in a terminal because some task is already running');
+            const helper = new Helper(this.configurationManager);
 
+            const result = await helper.handleCommandStartWhenThereIsRunningCommand();
+
+            switch (result) {
+                case CommandStartHandleResult.IgnoreNewCommand:
             return;
+
+                case CommandStartHandleResult.StopRunningCommand:
+                    this.runningTerminal.dispose();
+                    this.runningTerminal = undefined;
+            }
         }
 
         this.runningTerminal = window.createTerminal('Cargo Task');
