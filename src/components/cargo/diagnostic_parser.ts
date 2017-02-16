@@ -115,7 +115,11 @@ export class DiagnosticParser {
             message = `${compilerMessage.code.code}: ${message}`;
         }
 
-        this.addNotesToMessage(message, compilerMessage.children, 1);
+        if (primarySpan.label) {
+            message += `\n  label: ${primarySpan.label}`;
+        }
+
+        message = this.addNotesToMessage(message, compilerMessage.children, 1);
 
         const diagnostic = new Diagnostic(range, message, this.toSeverity(compilerMessage.level));
 
@@ -141,10 +145,10 @@ export class DiagnosticParser {
     }
 
     private addNotesToMessage(msg: string, children: any[], level: number): string {
-        const ident = '   '.repeat(level);
+        const indentation = '  '.repeat(level);
 
         for (const child of children) {
-            msg += `\n${ident}${child.message}`;
+            msg += `\n${indentation}${child.level}: ${child.message}`;
 
             if (child.spans && child.spans.length > 0) {
                 msg += ': ';
