@@ -166,15 +166,31 @@ export default class CompletionManager {
             ['--interface=tab-text', 'daemon'],
             racerSpawnOptions
         );
-        this.racerDaemon.on('error', (err: Error) => {
+        this.racerDaemon.on('error', (err: NodeJS.ErrnoException) => {
             this.logger.error(`racer failed: err = ${err}`);
 
-            this.stopDaemon(err);
+            this.stopDaemon();
+
+            if (err.code === 'ENOENT') {
+                this.racerStatusBarItem.showNotFound();
+            } else {
+                this.racerStatusBarItem.showCrashed();
+
+                this.scheduleRestart();
+            }
         });
         this.racerDaemon.on('close', (code: number, signal: string) => {
             this.logger.warning(`racer closed: code = ${code}, signal = ${signal}`);
 
-            this.stopDaemon(code);
+            this.stopDaemon();
+
+            if (code === 0) {
+                this.racerStatusBarItem.showTurnedOff();
+            } else {
+                this.racerStatusBarItem.showCrashed();
+
+                this.scheduleRestart();
+            }
         });
 
         this.racerDaemon.stdout.on('data', (data: Buffer) => {
@@ -199,7 +215,8 @@ export default class CompletionManager {
     public stop(): void {
         this.logger.debug('stop');
 
-        this.stopDaemon(0);
+        this.stopDaemon();
+        this.racerStatusBarItem.showTurnedOff();
         this.stopListeners();
         this.clearCommandCallbacks();
     }
@@ -211,7 +228,11 @@ export default class CompletionManager {
         this.start();
     }
 
-    private stopDaemon(error): void {
+    private scheduleRestart(): void {
+        setTimeout(this.restart.bind(this), 3000);
+    }
+
+    private stopDaemon(): void {
         if (this.racerDaemon == null) {
             return;
         }
@@ -219,16 +240,6 @@ export default class CompletionManager {
         this.racerDaemon = null;
         this.providers.forEach(disposable => disposable.dispose());
         this.providers = [];
-        if (!error) {
-            this.racerStatusBarItem.showTurnedOff();
-            return;
-        }
-        if (error.code === 'ENOENT') {
-            this.racerStatusBarItem.showNotFound();
-        } else {
-            this.racerStatusBarItem.showCrashed();
-            setTimeout(this.restart.bind(this), 3000);
-        }
     }
 
     private stopListeners(): void {

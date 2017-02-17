@@ -85,7 +85,7 @@ export default class Installator {
 
         logger.debug(`pathDirectories=${JSON.stringify(pathDirectories)}`);
 
-        const tools = {
+        const tools: { [tool: string]: string } = {
             'racer': this.configurationManager.getRacerPath(),
             'rustfmt': this.configurationManager.getRustfmtPath(),
             'rustsym': this.configurationManager.getRustsymPath()
