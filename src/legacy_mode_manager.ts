@@ -68,6 +68,7 @@ export default class LegacyModeManager {
     }
 
     public start(): void {
-        this.context.subscriptions.push(this.completionManager.start());
+        this.context.subscriptions.push(this.completionManager.disposable());
+        this.completionManager.start();
     }
 }

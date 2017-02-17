@@ -101,7 +101,13 @@ export default class CompletionManager {
         this.tmpFile = tmpFile.name;
     }
 
-    public start(): Disposable {
+    public disposable(): Disposable {
+        return new Disposable(() => {
+            this.stop();
+        });
+    }
+
+    public start(): void {
         if (!this.configurationManager.getRustSourcePath()) {
             const rustcSysRoot = this.configurationManager.getRustcSysRoot();
 
@@ -188,8 +194,6 @@ export default class CompletionManager {
                 this.restart();
             }
         }));
-
-        return new Disposable(this.stop.bind(this));
     }
 
     public stop(): void {
