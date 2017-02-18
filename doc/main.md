@@ -13,6 +13,10 @@ The extension can function in one of two modes:
 
 Each mode is described in detail on its own page.
 
+Furthermore, the extension provides:
+
+* [Linting (Showing diagnostics in the active text editor)](linting.md)
+
 Furthermore, the extension allows:
 
 * [To execute one of built-in cargo command](cargo_command_execution.md)
