@@ -29,8 +29,12 @@ export default class SymbolInformationParser {
     public parseJson(json: string): SymbolInformation[] {
         const rustSymbols: RustSymbol[] = JSON.parse(json);
 
-        const symbolInformationList: SymbolInformation[] = rustSymbols.map(rustSymbol => {
+        const symbolInformationList: (SymbolInformation | undefined)[] = rustSymbols.map(rustSymbol => {
             const kind = this.getSymbolKind(rustSymbol.kind);
+
+            if (kind === undefined) {
+                return undefined;
+            }
 
             const pos = new Position(rustSymbol.line - 1, 0);
 
@@ -47,14 +51,15 @@ export default class SymbolInformationParser {
             );
 
             return symbolInformation;
-        });
+        }).filter(value => value !== undefined);
 
-        return symbolInformationList;
+        // It is safe to cast because we filtered out `undefined` values
+        return <SymbolInformation[]>symbolInformationList;
     }
 
-    private getSymbolKind(kind: string): SymbolKind | null {
+    private getSymbolKind(kind: string): SymbolKind | undefined {
         if (kind === '') {
-            return null;
+            return undefined;
         } else {
             return this.kinds[kind];
         }

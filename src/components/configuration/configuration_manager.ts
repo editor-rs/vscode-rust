@@ -62,7 +62,7 @@ export class ConfigurationManager {
         return actionOnSave;
     }
 
-    public getRustcSysRoot(): string {
+    public getRustcSysRoot(): string | undefined {
         return this.rustcSysRoot;
     }
 
@@ -187,6 +187,10 @@ export class ConfigurationManager {
 
         if (envPathExists) {
             return envPath;
+        }
+
+        if (rustcSysRoot === undefined) {
+            return;
         }
 
         if (!rustcSysRoot.includes('.rustup')) {

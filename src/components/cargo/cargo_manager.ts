@@ -69,6 +69,10 @@ class UserDefinedArgs {
         const configuration = getConfiguration();
         const args = configuration.get<string[]>(property);
 
+        if (args === undefined) {
+            throw new Error(`Failed to get args for property=${property}`);
+        }
+
         return args;
     }
 }
@@ -135,7 +139,7 @@ class CargoTaskManager {
 
     public invokeCargoCheckWithArgs(args: string[]): void {
         this.checkCargoCheckAvailability().then(isAvailable => {
-            let command;
+            let command: string;
 
             if (isAvailable) {
                 command = 'check';
@@ -207,7 +211,7 @@ class CargoTaskManager {
     }
 
     private async runCargo(command: string, args: string[], force = false): Promise<void> {
-        let cwd;
+        let cwd: string;
 
         try {
             cwd = await this.currentWorkingDirectoryManager.cwd();

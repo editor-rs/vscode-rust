@@ -86,31 +86,40 @@ export class Task {
                 this.onStarted();
             }
 
-            this.process = spawn_process(cargoPath, this.args, { cwd: this.cwd, env });
+            const spawnedProcess: ChildProcess = spawn_process(cargoPath, this.args, { cwd: this.cwd, env });
 
-            if (this.onLineReceivedInStdout) {
-                const stdout = readline.createInterface({ input: this.process.stdout });
+            this.process = spawnedProcess;
+
+            if (this.onLineReceivedInStdout !== undefined) {
+                const onLineReceivedInStdout = this.onLineReceivedInStdout;
+
+                const stdout = readline.createInterface({ input: spawnedProcess.stdout });
 
                 stdout.on('line', line => {
-                    this.onLineReceivedInStdout(line);
+                    onLineReceivedInStdout(line);
                 });
             }
 
-            if (this.onLineReceivedInStderr) {
-                const stderr = readline.createInterface({ input: this.process.stderr });
+            if (this.onLineReceivedInStderr !== undefined) {
+                const onLineReceivedInStderr = this.onLineReceivedInStderr;
+
+                const stderr = readline.createInterface({ input: spawnedProcess.stderr });
 
                 stderr.on('line', line => {
-                    this.onLineReceivedInStderr(line);
+                    onLineReceivedInStderr(line);
                 });
             }
 
-            this.process.on('error', error => {
+            spawnedProcess.on('error', error => {
                 reject(error);
             });
 
-            this.process.on('exit', code => {
-                this.process.removeAllListeners();
-                this.process = null;
+            spawnedProcess.on('exit', code => {
+                process.removeAllListeners();
+
+                if (this.process === spawnedProcess) {
+                    this.process = undefined;
+                }
 
                 if (this.interrupted) {
                     reject();

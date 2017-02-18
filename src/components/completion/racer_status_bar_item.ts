@@ -14,23 +14,26 @@ export default class RacerStatusBarItem {
     public showTurnedOn(): void {
         this.setText('On');
 
-        this.statusBarItem.command = null;
+        this.clearCommand();
+
         this.statusBarItem.show();
     }
 
     public showTurnedOff(): void {
         this.setText('Off');
 
-        this.statusBarItem.command = null;
+        this.clearCommand();
+
         this.statusBarItem.show();
     }
 
     public showNotFound(): void {
         this.setText('Not found');
 
+        this.clearCommand();
+
         this.statusBarItem.tooltip =
             'The "racer" command is not available. Make sure it is installed.';
-        this.statusBarItem.command = null;
         this.statusBarItem.show();
     }
 
@@ -44,5 +47,11 @@ export default class RacerStatusBarItem {
 
     private setText(text: string): void {
         this.statusBarItem.text = `Racer: ${text}`;
+    }
+
+    private clearCommand(): void {
+        // It is workaround because currently the typoe of StatusBarItem.command is string.
+        const statusBarItem: any = this.statusBarItem;
+        statusBarItem.command = undefined;
     }
 }

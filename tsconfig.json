@@ -4,7 +4,15 @@
 		"target": "es6",
 		"outDir": "out",
 		"lib": ["es6"],
-		"sourceMap": true
+		"sourceMap": true,
+		"noFallthroughCasesInSwitch": true,
+		"noEmitOnError": true,
+		"noImplicitReturns": true,
+		"noImplicitAny": true,
+		"noImplicitThis": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"strictNullChecks": true
 	},
 	"exclude": [
 		"node_modules"

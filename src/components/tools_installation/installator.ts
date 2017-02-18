@@ -85,7 +85,7 @@ export default class Installator {
 
         logger.debug(`pathDirectories=${JSON.stringify(pathDirectories)}`);
 
-        const tools = {
+        const tools: { [tool: string]: string } = {
             'racer': this.configurationManager.getRacerPath(),
             'rustfmt': this.configurationManager.getRustfmtPath(),
             'rustsym': this.configurationManager.getRustsymPath()
@@ -95,13 +95,13 @@ export default class Installator {
 
         const keys = Object.keys(tools);
 
-        this.missingTools = keys.map(tool => {
+        const missingTools = keys.map(tool => {
             // Check if the path exists as-is.
             let userPath = tools[tool];
             if (existsSync(userPath)) {
                 logger.debug(`${tool}'s path=${userPath}`);
 
-                return null;
+                return undefined;
             }
 
             // If the extension is running on Windows and no extension was
@@ -116,13 +116,14 @@ export default class Installator {
                 let binPath = path.join(part, userPath);
 
                 if (existsSync(binPath)) {
-                    return null;
+                    return undefined;
                 }
             }
 
             // The tool wasn't found, we should install it
             return tool;
-        }).filter(tool => tool !== null);
+        }).filter(tool => tool !== undefined);
+        this.missingTools = <string[]>missingTools;
 
         logger.debug(`this.missingTools = ${JSON.stringify(this.missingTools)}`);
     }

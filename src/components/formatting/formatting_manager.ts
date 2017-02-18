@@ -91,15 +91,15 @@ export default class FormattingManager implements DocumentFormattingEditProvider
 
     private parseDiffOldFormat(fileToProcess: Uri, diff: string): RustFmtDiff[] {
         let patches: RustFmtDiff[] = [];
-        let currentPatch: RustFmtDiff;
-        let currentFile: Uri;
+        let currentPatch: RustFmtDiff | undefined = undefined;
+        let currentFile: Uri | undefined = undefined;
 
         for (let line of diff.split(/\n/)) {
             if (line.startsWith('Diff of')) {
                 currentFile = Uri.file(line.slice('Diff of '.length, -1));
             }
 
-            if (!currentFile) {
+            if (currentFile === undefined) {
                 continue;
             }
 
@@ -117,13 +117,15 @@ export default class FormattingManager implements DocumentFormattingEditProvider
                     newLines: [],
                     removedLines: 0
                 };
-            } else if (line.startsWith('+')) {
-                currentPatch.newLines.push(this.cleanDiffLine(line));
-            } else if (line.startsWith('-')) {
-                currentPatch.removedLines += 1;
-            } else if (line.startsWith(' ')) {
-                currentPatch.newLines.push(this.cleanDiffLine(line));
-                currentPatch.removedLines += 1;
+            } else if (currentPatch !== undefined) {
+                if (line.startsWith('+')) {
+                    currentPatch.newLines.push(this.cleanDiffLine(line));
+                } else if (line.startsWith('-')) {
+                    currentPatch.removedLines += 1;
+                } else if (line.startsWith(' ')) {
+                    currentPatch.newLines.push(this.cleanDiffLine(line));
+                    currentPatch.removedLines += 1;
+                }
             }
         }
 
@@ -136,19 +138,24 @@ export default class FormattingManager implements DocumentFormattingEditProvider
 
     private parseDiffNewFormat(fileToProcess: Uri, diff: string): RustFmtDiff[] {
         let patches: RustFmtDiff[] = [];
-        let currentPatch: RustFmtDiff = null;
-        let currentFile: Uri = null;
+        let currentPatch: RustFmtDiff | undefined = undefined;
+        let currentFile: Uri | undefined = undefined;
 
         for (let line of diff.split(/\n/)) {
             if (line.startsWith('Diff in')) {
                 const matches = this.newFormatRegex.exec(line);
+
+                if (!matches) {
+                    continue;
+                }
+
                 // Filter out malformed lines
                 if (matches.length !== 3) {
                     continue;
                 }
 
                 // If we begin a new diff while already building one, push it as its now complete
-                if (currentPatch !== null) {
+                if (currentPatch !== undefined) {
                     patches.push(currentPatch);
                 }
 
@@ -166,15 +173,21 @@ export default class FormattingManager implements DocumentFormattingEditProvider
                 continue;
             }
 
-            if (currentFile.toString() === fileToProcess.toString() + '.fmt') {
-                if (line.startsWith('+')) {
-                    currentPatch.newLines.push(this.cleanDiffLine(line));
-                } else if (line.startsWith('-')) {
-                    currentPatch.removedLines += 1;
-                } else if (line.startsWith(' ')) {
-                    currentPatch.newLines.push(this.cleanDiffLine(line));
-                    currentPatch.removedLines += 1;
-                }
+            if (currentFile.toString() !== fileToProcess.toString() + '.fmt') {
+                continue;
+            }
+
+            if (currentPatch === undefined) {
+                continue;
+            }
+
+            if (line.startsWith('+')) {
+                currentPatch.newLines.push(this.cleanDiffLine(line));
+            } else if (line.startsWith('-')) {
+                currentPatch.removedLines += 1;
+            } else if (line.startsWith(' ')) {
+                currentPatch.newLines.push(this.cleanDiffLine(line));
+                currentPatch.removedLines += 1;
             }
         }
 

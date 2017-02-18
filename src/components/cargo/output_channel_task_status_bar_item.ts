@@ -7,7 +7,7 @@ export class OutputChannelTaskStatusBarItem {
 
     private spinnerStatusBarItem: StatusBarItem;
 
-    private interval: NodeJS.Timer | null;
+    private interval: NodeJS.Timer | undefined;
 
     public constructor(stopCommandName: string) {
         this.stopStatusBarItem = window.createStatusBarItem();
@@ -17,8 +17,6 @@ export class OutputChannelTaskStatusBarItem {
 
         this.spinnerStatusBarItem = window.createStatusBarItem();
         this.spinnerStatusBarItem.tooltip = 'Cargo task is running';
-
-        this.interval = null;
     }
 
     public show(): void {
@@ -36,9 +34,11 @@ export class OutputChannelTaskStatusBarItem {
     }
 
     public hide(): void {
-        clearInterval(this.interval);
+        if (this.interval !== undefined) {
+            clearInterval(this.interval);
 
-        this.interval = null;
+            this.interval = undefined;
+        }
 
         this.stopStatusBarItem.hide();
 
