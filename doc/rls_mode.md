@@ -14,7 +14,28 @@ The type of the parameter is an object with the following fields:
 
 By default, it is `null`.
 
-### Debugging
+## Instructions
+
+* Clone the [Rust Language Server repository](https://github.com/rust-lang-nursery/rls) with
+
+```bash
+git clone https://github.com/rust-lang-nursery/rls
+```
+
+* Make sure you have [rustup](https://github.com/rust-lang-nursery/rustup.rs) with nightly toolchain
+
+* Let nightly `cargo` run the rls
+
+```json
+"rust.rls": {
+    "executable": "cargo",
+    "args": ["+nightly", "run", "--manifest-path=/path/to/rls/Cargo.toml", "--release"]
+}
+```
+
+**Note:** Remember that RLS requires nightly Rust, that's why you have to use `+nightly` here.
+
+## Debugging
 
 There is an output channel named "Rust Language Server" which is used to show messages from RLS.
 
@@ -27,7 +48,7 @@ To open it, perform the following steps:
 
 For making RLS print more data, refer the "Debug RLS" section below.
 
-### Examples
+## Examples
 
 #### RLS is installed
 
