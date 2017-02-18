@@ -28,7 +28,7 @@ export class DiagnosticPublisher {
         if (oneFileDiagnostics === undefined) {
             this.diagnostics.set(filePathUri, [diagnostic]);
         } else if (this.isUniqueDiagnostic(diagnostic, oneFileDiagnostics)) {
-            oneFileDiagnostics.push(diagnostic);
+            this.diagnostics.set(filePathUri, oneFileDiagnostics.concat([diagnostic]));
         }
     }
 
