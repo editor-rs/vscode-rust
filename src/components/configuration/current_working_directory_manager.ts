@@ -45,6 +45,10 @@ export default class CurrentWorkingDirectoryManager {
     }
 
     private checkWorkspaceCanBeUsedAsCwd(): Promise<boolean> {
+        if (workspace.rootPath === undefined) {
+            return Promise.resolve(false);
+        }
+
         const filePath = join(workspace.rootPath, 'Cargo.toml');
 
         return this.checkPathExists(filePath);
@@ -57,7 +61,7 @@ export default class CurrentWorkingDirectoryManager {
 
         const fileName = window.activeTextEditor.document.fileName;
 
-        if (!fileName.startsWith(workspace.rootPath)) {
+        if (workspace.rootPath === undefined || !fileName.startsWith(workspace.rootPath)) {
             return Promise.reject(new Error('Current document not in the workspace'));
         }
 
@@ -72,7 +76,7 @@ export default class CurrentWorkingDirectoryManager {
                 return Promise.reject(new Error('Cargo.toml hasn\'t been found'));
             }
 
-            if (!cargoTomlDirPath.startsWith(workspace.rootPath)) {
+            if (workspace.rootPath === undefined || !cargoTomlDirPath.startsWith(workspace.rootPath)) {
                 return Promise.reject(new Error('Cargo.toml hasn\'t been found within the workspace'));
             }
 

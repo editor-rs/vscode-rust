@@ -11,7 +11,8 @@
 		"noImplicitAny": true,
 		"noImplicitThis": true,
 		"noUnusedLocals": true,
-		"noUnusedParameters": true
+		"noUnusedParameters": true,
+		"strictNullChecks": true
 	},
 	"exclude": [
 		"node_modules"

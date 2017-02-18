@@ -481,7 +481,7 @@
     "gulp-tslint": "^4.1.0",
     "mocha": "^3.2.0",
     "tslint": "^3.1.1",
-    "typescript": "^2.1.4",
+    "typescript": "^2.1.6",
     "vscode": "^1.0.3",
     "@types/node": "^6.0.52",
     "@types/mocha": "^2.2.33"

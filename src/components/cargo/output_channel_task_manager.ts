@@ -12,7 +12,7 @@ import { OutputChannelWrapper } from './output_channel_wrapper';
 
 import { OutputChannelTaskStatusBarItem } from './output_channel_task_status_bar_item';
 
-import { Task } from './task';
+import { ExitCode, Task } from './task';
 
 export class OutputChannelTaskManager {
     private channel: OutputChannelWrapper;
@@ -109,7 +109,7 @@ export class OutputChannelTaskManager {
 
         this.statusBarItem.show();
 
-        let exitCode;
+        let exitCode: ExitCode;
 
         try {
             exitCode = await this.runningTask.execute();
@@ -139,6 +139,8 @@ export class OutputChannelTaskManager {
     }
 
     public async stopRunningTask(): Promise<void> {
-        await this.runningTask.kill();
+        if (this.runningTask !== undefined) {
+            await this.runningTask.kill();
+        }
     }
 }

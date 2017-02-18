@@ -28,15 +28,17 @@ export class Manager {
 
         this.logger = logger;
 
+        let serverEnv = Object.assign({}, process.env);
+
+        if (env) {
+            serverEnv = Object.assign(serverEnv, env);
+        }
+
         const serverOptions: ServerOptions = {
             command: executable,
             args: args,
-            options: { env: process.env }
+            options: { env: serverEnv }
         };
-
-        if (env) {
-            serverOptions.options.env = Object.assign(serverOptions.options.env, env);
-        }
 
         const clientOptions: LanguageClientOptions = {
             documentSelector: ['rust'],
