@@ -15,13 +15,10 @@ Each mode is described in detail on its own page.
 
 Furthermore, the extension provides:
 
-* [Linting (Showing diagnostics in the active text editor)](linting.md)
-
-Furthermore, the extension allows:
-
-* [To execute one of built-in cargo command](cargo_command_execution.md)
-* [To create a playground](playground_creation.md)
-* [To format a document opened in the active text editor](format.md)
+* [Linting (the showing of diagnostics in the active text editor)](linting.md)
+* [Executing one of built-in cargo command](cargo_command_execution.md)
+* [Creating a playground](playground_creation.md)
+* [Formatting a document opened in the active text editor](format.md)
 
 Also it provides snippets and keybindings.
 

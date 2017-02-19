@@ -1,10 +1,10 @@
-# Linging Page
+# Linting Page
 
-The extension provides linting which looks like in the following screenshot:
+The extension provides linting as shown in the following screenshot:
 
 [![Linting](../images/linting/code.jpg)]()
 
-Also it populates the Problems panel.
+It also populates the Problems panel.
 
 For the code:
 
@@ -16,8 +16,8 @@ fn main() {
 }
 ```
 
-The Problems panel looks like in the following screenshot:
+The Problems panel would look like:
 
 [![Linting](../images/linting/problems_panel.jpg)]()
 
-Linting works different in [Legacy Mode](legacy_mode/linting.md) and [RLS Mode](rls_mode/linting.md).
+Linting behaves differently in [RLS Mode](rls_mode/linting.md) than in [Legacy Mode](legacy_mode/linting.md).
