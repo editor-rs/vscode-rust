@@ -14,17 +14,50 @@ The type of the parameter is an object with the following fields:
 
 By default, it is `null`.
 
-## Instructions
+## Setting up
 
-* Clone the [Rust Language Server repository](https://github.com/rust-lang-nursery/rls) with
+First of all, you have to download the RLS sourcs:
 
 ```bash
 git clone https://github.com/rust-lang-nursery/rls
 ```
 
-* Make sure you have [rustup](https://github.com/rust-lang-nursery/rustup.rs) with nightly toolchain
+Depending on whether you have rustup or not, there are different ways you can set up this plugin.
 
-* Let nightly `cargo` run the rls
+#### Without rustup
+
+**Note:** You should only do this if you do not have rustup because otherwise rustup will not work anymore.
+
+After you have cloned the sources, you need to download the latest nightly. See the [Building section of the Rust repository](https://github.com/rust-lang/rust#building-from-source) for how to do this.
+
+You can now install the Rust Language Server globally with
+
+```bash
+cargo install
+```
+
+and set `"executable"` to `"rls"`:
+
+```json
+"rust.rls": {
+    "executable": "rls"
+}
+```
+
+If you don't want to have it installed you can also run it from sources:
+
+```json
+"rust.rls": {
+    "executable": "cargo",
+    "args": ["run", "--manifest-path=/path/to/rls/Cargo.toml", "--release"]
+}
+```
+
+#### With rustup
+
+Make sure you do have [rustup](https://github.com/rust-lang-nursery/rustup.rs) with nightly toolchain.
+
+Because at the moment RLS links to the compiler and it assumes the compiler to be globally installed, one can only run the RLS from sources. To use the nightly compiler, we pass `+nightly` to rustup's cargo proxy:
 
 ```json
 "rust.rls": {
@@ -32,8 +65,6 @@ git clone https://github.com/rust-lang-nursery/rls
     "args": ["+nightly", "run", "--manifest-path=/path/to/rls/Cargo.toml", "--release"]
 }
 ```
-
-**Note:** Remember that RLS requires nightly Rust, that's why you have to use `+nightly` here.
 
 ## Debugging
 
@@ -46,28 +77,7 @@ To open it, perform the following steps:
 * Click on the listbox which is to the right of the shown panel
 * Choose "Rust Language Server"
 
-For making RLS print more data, refer the "Debug RLS" section below.
-
-## Examples
-
-#### RLS is installed
-
-```json
-"rust.rls": {
-    "executable": "rls"
-}
-```
-
-#### Source code of RLS is available
-
-```json
-"rust.rls": {
-    "executable": "cargo",
-    "args": ["run", "--manifest-path=/path/to/rls/Cargo.toml"]
-}
-```
-
-#### Debug RLS
+For making RLS print more data, you have to add the following lines to your `"rust.rls"` configuration:
 
 ```json
 "rust.rls": {
