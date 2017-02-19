@@ -44,7 +44,7 @@ export default class CompletionManager {
 
     private logger: ChildLogger;
 
-    private racerDaemon: ChildProcess;
+    private racerDaemon: ChildProcess | undefined;
     private commandCallbacks: ((lines: string[]) => void)[];
     private linesBuffer: string[];
     private dataBuffer: string;
@@ -101,7 +101,13 @@ export default class CompletionManager {
         this.tmpFile = tmpFile.name;
     }
 
-    public start(): Disposable {
+    public disposable(): Disposable {
+        return new Disposable(() => {
+            this.stop();
+        });
+    }
+
+    public start(): void {
         if (!this.configurationManager.getRustSourcePath()) {
             const rustcSysRoot = this.configurationManager.getRustcSysRoot();
 
@@ -160,15 +166,31 @@ export default class CompletionManager {
             ['--interface=tab-text', 'daemon'],
             racerSpawnOptions
         );
-        this.racerDaemon.on('error', (err: Error) => {
+        this.racerDaemon.on('error', (err: NodeJS.ErrnoException) => {
             this.logger.error(`racer failed: err = ${err}`);
 
-            this.stopDaemon(err);
+            this.stopDaemon();
+
+            if (err.code === 'ENOENT') {
+                this.racerStatusBarItem.showNotFound();
+            } else {
+                this.racerStatusBarItem.showCrashed();
+
+                this.scheduleRestart();
+            }
         });
         this.racerDaemon.on('close', (code: number, signal: string) => {
             this.logger.warning(`racer closed: code = ${code}, signal = ${signal}`);
 
-            this.stopDaemon(code);
+            this.stopDaemon();
+
+            if (code === 0) {
+                this.racerStatusBarItem.showTurnedOff();
+            } else {
+                this.racerStatusBarItem.showCrashed();
+
+                this.scheduleRestart();
+            }
         });
 
         this.racerDaemon.stdout.on('data', (data: Buffer) => {
@@ -188,14 +210,13 @@ export default class CompletionManager {
                 this.restart();
             }
         }));
-
-        return new Disposable(this.stop.bind(this));
     }
 
     public stop(): void {
         this.logger.debug('stop');
 
-        this.stopDaemon(0);
+        this.stopDaemon();
+        this.racerStatusBarItem.showTurnedOff();
         this.stopListeners();
         this.clearCommandCallbacks();
     }
@@ -207,24 +228,18 @@ export default class CompletionManager {
         this.start();
     }
 
-    private stopDaemon(error): void {
-        if (this.racerDaemon == null) {
+    private scheduleRestart(): void {
+        setTimeout(this.restart.bind(this), 3000);
+    }
+
+    private stopDaemon(): void {
+        if (this.racerDaemon === undefined) {
             return;
         }
         this.racerDaemon.kill();
-        this.racerDaemon = null;
+        this.racerDaemon = undefined;
         this.providers.forEach(disposable => disposable.dispose());
         this.providers = [];
-        if (!error) {
-            this.racerStatusBarItem.showTurnedOff();
-            return;
-        }
-        if (error.code === 'ENOENT') {
-            this.racerStatusBarItem.showNotFound();
-        } else {
-            this.racerStatusBarItem.showCrashed();
-            setTimeout(this.restart.bind(this), 3000);
-        }
     }
 
     private stopListeners(): void {
@@ -245,11 +260,11 @@ export default class CompletionManager {
         channel.show(true);
     }
 
-    private definitionProvider(document: TextDocument, position: Position): Thenable<Definition> {
+    private definitionProvider(document: TextDocument, position: Position): Thenable<Definition | undefined> {
         let commandArgs = [position.line + 1, position.character, document.fileName, this.tmpFile];
         return this.runCommand(document, 'find-definition', commandArgs).then(lines => {
             if (lines.length === 0) {
-                return null;
+                return undefined;
             }
 
             let result = lines[0];
@@ -262,7 +277,7 @@ export default class CompletionManager {
         });
     }
 
-    private hoverProvider(document: TextDocument, position: Position): Thenable<Hover> {
+    private hoverProvider(document: TextDocument, position: Position): Thenable<Hover | undefined> | undefined {
         // Could potentially use `document.getWordRangeAtPosition`.
         let line = document.lineAt(position.line);
         let wordStartIndex = line.text.slice(0, position.character + 1).search(/[a-z0-9_]+$/i);
@@ -273,7 +288,7 @@ export default class CompletionManager {
 
         let word = line.text.slice(wordStartIndex, wordEndIndex);
         if (!word) {
-            return null;
+            return undefined;
         }
 
         // We are using `complete-with-snippet` instead of `find-definition` because it contains
@@ -281,7 +296,7 @@ export default class CompletionManager {
         let commandArgs = [position.line + 1, wordEndIndex, document.fileName, this.tmpFile];
         return this.runCommand(document, 'complete-with-snippet', commandArgs).then(lines => {
             if (lines.length <= 1) {
-                return null;
+                return undefined;
             }
 
             let results = lines.slice(1).map(x => x.split('\t'));
@@ -291,8 +306,8 @@ export default class CompletionManager {
                     : results.find(parts => parts[2] === word);
 
             // We actually found a completion instead of a definition, so we won't show the returned info.
-            if (result == null) {
-                return null;
+            if (result === undefined) {
+                return undefined;
             }
 
             let match = result[2];
@@ -389,7 +404,8 @@ export default class CompletionManager {
                 let type = parts[5];
                 let detail = parts[6];
 
-                let kind;
+                let kind: CompletionItemKind;
+
                 if (type in this.typeMap) {
                     kind = this.typeMap[type];
                 } else {
@@ -501,7 +517,7 @@ export default class CompletionManager {
         return result;
     }
 
-    private firstDanglingParen(document: TextDocument, position: Position): Position {
+    private firstDanglingParen(document: TextDocument, position: Position): Position | undefined {
         let text = document.getText();
         let offset = document.offsetAt(position) - 1;
         let currentDepth = 0;
@@ -514,7 +530,7 @@ export default class CompletionManager {
             } else if (char === '(') {
                 currentDepth -= 1;
             } else if (char === '{') {
-                return null; // not inside function call
+                return undefined; // not inside function call
             }
 
             if (currentDepth === -1) {
@@ -524,43 +540,50 @@ export default class CompletionManager {
             offset--;
         }
 
-        return null;
+        return undefined;
     }
 
-    private signatureHelpProvider(document: TextDocument, position: Position): Thenable<SignatureHelp> {
+    private signatureHelpProvider(document: TextDocument, position: Position): Thenable<SignatureHelp | undefined> | undefined {
         // Get the first dangling parenthesis, so we don't stop on a function call used as a previous parameter
-        let startPos = this.firstDanglingParen(document, position);
-        if (!startPos) {
-            return null;
+        const startPos = this.firstDanglingParen(document, position);
+
+        if (startPos === undefined) {
+            return undefined;
         }
 
-        let name = document.getText(document.getWordRangeAtPosition(startPos));
+        const name = document.getText(document.getWordRangeAtPosition(startPos));
 
-        let commandArgs = [startPos.line + 1, startPos.character - 1, document.fileName, this.tmpFile];
+        const commandArgs = [startPos.line + 1, startPos.character - 1, document.fileName, this.tmpFile];
+
         return this.runCommand(document, 'complete-with-snippet', commandArgs).then((lines) => {
             lines = lines.map(l => l.trim()).join('').split('MATCH\t').slice(1);
 
-            let parts: string[] = [];
-            for (let line of lines) {
+            let parts: string[] | undefined = [];
+            for (const line of lines) {
                 parts = line.split('\t');
                 if (parts[0] === name) {
                     break;
                 }
             }
 
-            if (parts[0] !== name) {
-                return null;
+            if (parts === undefined) {
+                return undefined;
             }
 
-            let args = parts[1].match(/\${\d+:\w+}/g);
-            let type = parts[5];
-            let definition = parts[6];
+            const args = parts[1].match(/\${\d+:\w+}/g);
+
+            if (!args) {
+                return undefined;
+            }
+
+            const type = parts[5];
+            const definition = parts[6];
 
             if (type !== 'Function') {
                 return null;
             }
 
-            let callText = document.getText(new Range(startPos, position));
+            const callText = document.getText(new Range(startPos, position));
             return this.parseCall(name, args, definition, callText);
         });
     }
@@ -613,8 +636,12 @@ export default class CompletionManager {
             if (line.length === 0) {
                 continue;
             } else if (line.startsWith('END')) {
-                let callback = this.commandCallbacks.shift();
-                callback(this.linesBuffer);
+                const callback = this.commandCallbacks.shift();
+
+                if (callback !== undefined) {
+                    callback(this.linesBuffer);
+                }
+
                 this.linesBuffer = [];
             } else {
                 this.linesBuffer.push(line);
@@ -627,16 +654,22 @@ export default class CompletionManager {
     }
 
     private runCommand(document: TextDocument, command: string, args: any[]): Promise<string[]> {
+        if (this.racerDaemon === undefined) {
+            return Promise.reject(undefined);
+        }
+
         this.updateTmpFile(document);
 
         let queryString = [command, ...args].join('\t') + '\n';
 
         this.lastCommand = queryString;
+
         let promise = new Promise(resolve => {
             this.commandCallbacks.push(resolve);
         });
 
         this.racerDaemon.stdin.write(queryString);
+
         return promise;
     }
 }

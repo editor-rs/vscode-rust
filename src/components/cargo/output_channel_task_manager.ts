@@ -1,4 +1,4 @@
-import { window } from 'vscode';
+import { DiagnosticCollection, languages, window } from 'vscode';
 
 import { ConfigurationManager } from '../configuration/configuration_manager';
 
@@ -6,13 +6,13 @@ import ChildLogger from '../logging/child_logger';
 
 import { DiagnosticParser } from './diagnostic_parser';
 
-import { DiagnosticPublisher } from './diagnostic_publisher';
+import { normalizeDiagnosticPath, addUniqueDiagnostic } from './diagnostic_utils';
 
 import { OutputChannelWrapper } from './output_channel_wrapper';
 
 import { OutputChannelTaskStatusBarItem } from './output_channel_task_status_bar_item';
 
-import { Task } from './task';
+import { ExitCode, Task } from './task';
 
 export class OutputChannelTaskManager {
     private channel: OutputChannelWrapper;
@@ -23,9 +23,9 @@ export class OutputChannelTaskManager {
 
     private runningTask: Task | undefined;
 
-    private diagnosticParser: DiagnosticParser;
+    private diagnostics: DiagnosticCollection;
 
-    private diagnosticPublisher: DiagnosticPublisher;
+    private diagnosticParser: DiagnosticParser;
 
     private statusBarItem: OutputChannelTaskStatusBarItem;
 
@@ -40,9 +40,9 @@ export class OutputChannelTaskManager {
 
         this.logger = logger;
 
-        this.diagnosticParser = new DiagnosticParser();
+        this.diagnostics = languages.createDiagnosticCollection('rust');
 
-        this.diagnosticPublisher = new DiagnosticPublisher();
+        this.diagnosticParser = new DiagnosticParser();
 
         this.statusBarItem = new OutputChannelTaskStatusBarItem(stopCommandName);
     }
@@ -84,7 +84,7 @@ export class OutputChannelTaskManager {
             this.channel.clear();
             this.channel.append(`Started cargo ${args.join(' ')}\n\n`);
 
-            this.diagnosticPublisher.clearDiagnostics();
+            this.diagnostics.clear();
         });
 
         this.runningTask.setLineReceivedInStdout(line => {
@@ -92,7 +92,8 @@ export class OutputChannelTaskManager {
                 const fileDiagnostics = this.diagnosticParser.parseLine(line);
 
                 for (const fileDiagnostic of fileDiagnostics) {
-                    this.diagnosticPublisher.publishDiagnostic(fileDiagnostic, cwd);
+                    fileDiagnostic.filePath = normalizeDiagnosticPath(fileDiagnostic.filePath, cwd);
+                    addUniqueDiagnostic(fileDiagnostic, this.diagnostics);
                 }
             } else {
                 this.channel.append(`${line}\n`);
@@ -109,7 +110,7 @@ export class OutputChannelTaskManager {
 
         this.statusBarItem.show();
 
-        let exitCode;
+        let exitCode: ExitCode;
 
         try {
             exitCode = await this.runningTask.execute();
@@ -139,6 +140,8 @@ export class OutputChannelTaskManager {
     }
 
     public async stopRunningTask(): Promise<void> {
-        await this.runningTask.kill();
+        if (this.runningTask !== undefined) {
+            await this.runningTask.kill();
+        }
     }
 }

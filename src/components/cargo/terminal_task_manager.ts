@@ -37,7 +37,9 @@ export class TerminalTaskManager {
             }
         }
 
-        this.runningTerminal = window.createTerminal('Cargo Task');
+        const terminal = window.createTerminal('Cargo Task');
+
+        this.runningTerminal = terminal;
 
         const setEnvironmentVariables = () => {
             const cargoEnv = this.configurationManager.getCargoEnv();
@@ -45,7 +47,7 @@ export class TerminalTaskManager {
             const setEnvironmentVariable = (() => {
                 if (process.platform !== 'win32') {
                     return (name: string, value: string) => {
-                        this.runningTerminal.sendText(`export ${name}="${value}"`);
+                        terminal.sendText(`export ${name}="${value}"`);
                     };
                 }
 
@@ -53,15 +55,15 @@ export class TerminalTaskManager {
 
                 if (shell.includes('powershell')) {
                     return (name: string, value: string) => {
-                        this.runningTerminal.sendText(`$ENV:${name}="${value}"`);
+                        terminal.sendText(`$ENV:${name}="${value}"`);
                     };
                 } else if (shell.includes('cmd')) {
                     return (name: string, value: string) => {
-                        this.runningTerminal.sendText(`set ${name}=${value}`);
+                        terminal.sendText(`set ${name}=${value}`);
                     };
                 } else {
                     return (name: string, value: string) => {
-                        this.runningTerminal.sendText(`export ${name}="${value}"`);
+                        terminal.sendText(`export ${name}="${value}"`);
                     };
                 }
             })();
