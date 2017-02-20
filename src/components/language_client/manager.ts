@@ -1,12 +1,16 @@
 import { ExtensionContext } from 'vscode';
 
-import { LanguageClientOptions, LanguageClient, ServerOptions, State } from 'vscode-languageclient';
+import { LanguageClient, State } from 'vscode-languageclient';
 
 import ChildLogger from '../logging/child_logger';
+
+import { Creator as LanguageClientCreator } from './creator';
 
 import { StatusBarItem } from './status_bar_item';
 
 export class Manager {
+    private languageClientCreator: LanguageClientCreator;
+
     private languageClient: LanguageClient;
 
     private statusBarItem: StatusBarItem;
@@ -22,6 +26,8 @@ export class Manager {
         args?: string[],
         env?: any
     ) {
+        this.languageClientCreator = new LanguageClientCreator(executable, args, env);
+
         this.context = context;
 
         this.statusBarItem = new StatusBarItem(context);
@@ -34,24 +40,7 @@ export class Manager {
             serverEnv = Object.assign(serverEnv, env);
         }
 
-        const serverOptions: ServerOptions = {
-            command: executable,
-            args: args,
-            options: { env: serverEnv }
-        };
-
-        const clientOptions: LanguageClientOptions = {
-            documentSelector: ['rust'],
-            synchronize: {
-                configurationSection: 'languageServerExample'
-            }
-        };
-
-        this.languageClient = new LanguageClient(
-            'Rust Language Server',
-            serverOptions,
-            clientOptions
-        );
+        this.languageClient = this.languageClientCreator.create();
     }
 
     public start(): void {
