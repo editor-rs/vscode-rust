@@ -1,11 +1,13 @@
-[![Build Status](https://api.travis-ci.org/KalitaAlexey/vscode-rust.svg)](https://travis-ci.org/KalitaAlexey/vscode-rust)
+[![Build Status](https://api.travis-ci.org/editor-rs/vscode-rust.svg)](https://travis-ci.org/editor-rs/vscode-rust)
 [![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/vscode-rust/Lobby)
 
 # Rust for Visual Studio Code (Latest: 0.3.7)
 
-## Why the fork?
+## What is the repository?
 
-RustyCode is no longer maintained and the developer seems to have lost all interest in the extension. Due to no response from the original author, this fork was created which now contains additional features and many bug fixes.
+The extension is continuation of RustyCode (an extension for Visual Studio Code for Rust language).
+
+RustyCode is no longer maintained and the developer seems to have lost all interest in the extension. Due to no response from the original author, this repository was created which now contains additional features and many bug fixes.
 
 ## Extension
 

@@ -146,7 +146,7 @@ class CargoTaskManager {
             } else {
                 command = 'rustc';
 
-                args.push('--', '-Zno-trans');
+                args = args.concat('--', '-Zno-trans');
             }
 
             this.runCargo(command, args, true);
