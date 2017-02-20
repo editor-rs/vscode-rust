@@ -9,15 +9,16 @@ The documentation describes features supported by the extension.
 The extension can function in one of two modes:
 
 * [Legacy Mode](legacy_mode/main.md)
-* [Rust Language Server Mode](rls_mode.md)
+* [Rust Language Server Mode](rls_mode/main.md)
 
 Each mode is described in detail on its own page.
 
-Furthermore, the extension allows:
+Furthermore, the extension provides:
 
-* [To execute one of built-in cargo command](cargo_command_execution.md)
-* [To create a playground](playground_creation.md)
-* [To format a document opened in the active text editor](format.md)
+* [Linting (the showing of diagnostics in the active text editor)](linting.md)
+* [Executing one of built-in cargo command](cargo_command_execution.md)
+* [Creating a playground](playground_creation.md)
+* [Formatting a document opened in the active text editor](format.md)
 
 Also it provides snippets and keybindings.
 
