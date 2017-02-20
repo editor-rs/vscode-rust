@@ -34,12 +34,6 @@ export class Manager {
 
         this.logger = logger;
 
-        let serverEnv = Object.assign({}, process.env);
-
-        if (env) {
-            serverEnv = Object.assign(serverEnv, env);
-        }
-
         this.languageClient = this.languageClientCreator.create();
     }
 
