@@ -37,7 +37,7 @@ If you want use RLS installed, but RLS hasn't been installed yet, perform the fo
 
 ```bash
 cd /path/to/rls
-cargo install
+rustup run nightly cargo install
 ```
 
 Because at the moment RLS links to the compiler and it assumes the compiler to be globally installed, one has to use rustup to start the `rls` (rustup will configure the environment accordingly):
