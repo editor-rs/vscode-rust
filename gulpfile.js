@@ -8,7 +8,7 @@ var files = {
 };
 
 gulp.task('compile', shell.task([
-    'tsc -p .'
+    'node ./node_modules/typescript/bin/tsc -p .'
 ]));
 
 gulp.task('tslint', function () {
