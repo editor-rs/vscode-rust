@@ -1,3 +1,5 @@
+import { join } from 'path';
+
 import { DiagnosticCollection, languages, window } from 'vscode';
 
 import { ConfigurationManager } from '../configuration/configuration_manager';
@@ -53,25 +55,51 @@ export class OutputChannelTaskManager {
         cwd: string,
         parseOutput: boolean
     ): Promise<void> {
-        function extendArgs(): void {
-            if (parseOutput) {
-                // Prepend arguments with arguments making cargo print output in JSON.
-                switch (command) {
-                    case 'build':
-                    case 'check':
-                    case 'clippy':
-                    case 'test':
-                    case 'run':
-                        args = ['--message-format', 'json'].concat(args);
-                        break;
-                }
+        const cargoCwd = this.configurationManager.getCargoCwd();
+
+        /**
+         * Prepends the manifest path to arguments
+         * if the command should be executed in a directory
+         * which differs from the directory containing Cargo.toml.
+         */
+        function prependArgsWithManifestPathIfRequired(): void {
+            if (cargoCwd === undefined || cargoCwd === cwd) {
+                return;
             }
 
-            // Prepare arguments with a command
-            args = [command].concat(args);
+            const manifestPath = join(cwd, 'Cargo.toml');
+
+            args = ['--manifest-path', manifestPath].concat(args);
         }
 
-        extendArgs();
+        function prependArgsWithMessageFormatIfRequired(): void {
+            if (!parseOutput) {
+                return;
+            }
+
+            // Prepend arguments with arguments making cargo print output in JSON.
+            switch (command) {
+                case 'build':
+                case 'check':
+                case 'clippy':
+                case 'test':
+                case 'run':
+                    args = ['--message-format', 'json'].concat(args);
+                    break;
+            }
+        }
+
+        prependArgsWithMessageFormatIfRequired();
+
+        prependArgsWithManifestPathIfRequired();
+
+        // Prepend arguments with a command.
+        args = [command].concat(args);
+
+        // Change cwd if the user specified custom cwd.
+        if (cargoCwd !== undefined) {
+            cwd = cargoCwd;
+        }
 
         this.runningTask = new Task(
             this.configurationManager,
@@ -82,6 +110,7 @@ export class OutputChannelTaskManager {
 
         this.runningTask.setStarted(() => {
             this.channel.clear();
+            this.channel.append(`Working directory: ${cwd}\n`);
             this.channel.append(`Started cargo ${args.join(' ')}\n\n`);
 
             this.diagnostics.clear();

@@ -222,6 +222,14 @@
           "default": null,
           "description": "Specifies custom variables to set when running cargo. Useful for crates which use env vars in their build.rs (like openssl-sys)."
         },
+        "rust.cargoCwd": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Specifies the path of the directory where a cargo command would be executed"
+        },
         "rust.executeCargoCommandInTerminal": {
           "type": "boolean",
           "default": false,
