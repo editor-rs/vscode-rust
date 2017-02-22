@@ -8,13 +8,15 @@ var files = {
 };
 
 gulp.task('compile', shell.task([
-    'tsc -p .'
+    'node ./node_modules/typescript/bin/tsc -p .'
 ]));
 
-gulp.task('tslint', function() {
+gulp.task('tslint', function () {
     return gulp.src([files.src, files.test, '!test/index.ts'])
-        .pipe(tslint())
-        .pipe(tslint.report('verbose'));
+        .pipe(tslint({
+            formatter: 'verbose'
+        }))
+        .pipe(tslint.report());
 });
 
 gulp.task('default', ['compile', 'tslint']);
