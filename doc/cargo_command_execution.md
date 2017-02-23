@@ -15,7 +15,7 @@ These commands are:
 * test
 * update
 
-These commands available through the command palette (CTRL+P).
+These commands available through the command palette (<kbd>CTRL</kbd>+<kbd>P</kbd>).
 
 These commands have prefix `"Cargo: "`.
 
@@ -36,9 +36,11 @@ The possible values:
 
 By default, it is `null`.
 
-## Current Working Directory Determination
+## Finding Out Cargo.toml
 
-The extension executes a cargo command in some directory. To find out which directory the extension should use, the extension uses the following algorithm:
+Before executing the command the extension should find out what `Cargo.toml` to use.
+
+To find out what `Cargo.toml` to use, the extension uses the following algorithm:
 
 * Try making out the current working directory from the active text editor
 
@@ -48,10 +50,21 @@ The extension executes a cargo command in some directory. To find out which dire
     * A file opened in the editor is in the workspace (the opened directory)
     * There is a `Cargo.toml` file near the file or in the parent directories within the workspace
 
-  Then use the directory containing the `Cargo.toml` file.
+  Then use the `Cargo.toml` file.
 
-* Try using the previous current working directory
-* Try using the workspace
+* Try using the previous `Cargo.toml` file
+* Try using the `Cargo.toml` from the workspace
+
+If the extension failed to find `Cargo.toml` the extension would show an error message.
+
+## Finding Out Working Directory
+
+Before executing the command the extension should find out what directory to execute the command in.
+
+The extension supports the `"rust.cargoCwd"` configuration parameter with the following possible values:
+
+* `"/some/path"` - the extension would use the path as the command's working directory
+* `null` - the extension would use the directory containing the chosen `Cargo.toml` as the command's working directory
 
 ## Configuration Parameters
 
