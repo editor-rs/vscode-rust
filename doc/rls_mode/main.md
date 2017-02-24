@@ -19,7 +19,7 @@ By default, it is `null`.
 First of all, you have to download the [RLS](https://github.com/rust-lang-nursery/rls) sources:
 
 ```bash
-git clone https://github.com/rust-lang-nursery/rls
+git clone https://github.com/rust-lang-nursery/rls.git
 ```
 
 Depending on whether you have rustup or not, there are different ways you can set up this plugin.
