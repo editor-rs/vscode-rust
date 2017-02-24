@@ -1,6 +1,6 @@
 import { ExtensionContext } from 'vscode';
 
-import { LanguageClient, State } from 'vscode-languageclient';
+import { LanguageClient, RevealOutputChannelOn, State } from 'vscode-languageclient';
 
 import ChildLogger from '../logging/child_logger';
 
@@ -23,10 +23,11 @@ export class Manager {
         context: ExtensionContext,
         logger: ChildLogger,
         executable: string,
-        args?: string[],
-        env?: any
+        args: string[] | undefined,
+        env: any | undefined,
+        revealOutputChannelOn: RevealOutputChannelOn
     ) {
-        this.languageClientCreator = new LanguageClientCreator(executable, args, env);
+        this.languageClientCreator = new LanguageClientCreator(executable, args, env, revealOutputChannelOn);
 
         this.context = context;
 

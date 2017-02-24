@@ -11,8 +11,22 @@ The type of the parameter is an object with the following fields:
 * `"executable"` - a string. The path to an executable to execute
 * `"args"` - an array of strings. Arguments to pass to the executable
 * `"env"` - an environment to append to the current environment to execute the executable
+* `"revealOutputChannelOn"` - a string. Specifies the condition when the output channel should be revealed
 
 By default, it is `null`.
+
+### The revealOutputChannelOn configuration parameter
+
+By default, it is `"error"`.
+
+The possible values are:
+
+* `"info"` - the output channel would be revealed on each info line
+* `"warn"` - the output channel would be revealed on each warn line
+* `"error"` - the output channel would be revealed on each error line
+* `"never"` - the output channel would not be revealed automatically
+
+The `"never"` could be used if RLS sometimes showed errors and you didn't like it.
 
 ## Setting up
 

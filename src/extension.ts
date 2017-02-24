@@ -23,7 +23,7 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
 
     const currentWorkingDirectoryManager = new CurrentWorkingDirectoryManager();
 
-    const rlsConfiguration: RlsConfiguration | null = configurationManager.getRlsConfiguration();
+    const rlsConfiguration: RlsConfiguration | undefined = configurationManager.getRlsConfiguration();
 
     const cargoManager = new CargoManager(
         ctx,
@@ -32,8 +32,8 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
         logger.createChildLogger('Cargo Manager: ')
     );
 
-    if (rlsConfiguration) {
-        let { executable, args, env } = rlsConfiguration;
+    if (rlsConfiguration !== undefined) {
+        let { executable, args, env, revealOutputChannelOn } = rlsConfiguration;
 
         if (!env) {
             env = {};
@@ -48,7 +48,8 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
             logger.createChildLogger('Language Client Manager: '),
             executable,
             args,
-            env
+            env,
+            revealOutputChannelOn
         );
 
         languageClientManager.start();
