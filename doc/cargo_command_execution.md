@@ -1,19 +1,19 @@
 # Cargo Command Execution Page
 
-The extension allows a developer to execute any of the inbuilt cargo commands.
+The extension allows a developer to execute any of the inbuilt Cargo commands.
 
 These commands are:
 
-* bench
-* build
-* check
-* clean
-* clippy
-* doc
-* new
-* run
-* test
-* update
+* `bench`
+* `build`
+* `check`
+* `clean`
+* `clippy`
+* `doc`
+* `new`
+* `run`
+* `test`
+* `update`
 
 These commands are available through the command palette (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>) and have the prefix `"Cargo: "`.
 
@@ -21,7 +21,9 @@ These commands are available through the command palette (<kbd>Ctrl</kbd>+<kbd>S
 
 The extension supports executing one of these commands after saving the active document. 
 
-The `"rust.actionOnSave"` configuration parameter specifies which command to execute. The possible values are:
+The `"rust.actionOnSave"` configuration parameter specifies which command to execute.
+
+The possible values are:
 
 * `"build"` - executes `"Cargo: Build"`
 * `"check"` - executes `"Cargo: Check"`
