@@ -1,6 +1,6 @@
 # Cargo Command Execution Page
 
-The extension allows a developer to execute any of built-in cargo commands.
+The extension allows a developer to execute any of the inbuilt cargo commands.
 
 These commands are:
 
@@ -15,93 +15,88 @@ These commands are:
 * test
 * update
 
-These commands available through the command palette (<kbd>CTRL</kbd>+<kbd>P</kbd>).
-
-These commands have prefix `"Cargo: "`.
+These commands are available through the command palette (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>) and have the prefix `"Cargo: "`.
 
 ## Execute Command On Save
 
-The extension supports executing a command after saving the document opened in the active text document.
+The extension supports executing one of these commands after saving the active document. 
 
-The `"rust.actionOnSave"` configuration parameter specifies a command to execute.
+The `"rust.actionOnSave"` configuration parameter specifies which command to execute. The possible values are:
 
-The possible values:
-
-* `"build"` - the extension executes `"Cargo: Build"`
-* `"check"` - the extension executes `"Cargo: Check"`
-* `"clippy"` - the extension executes `"Cargo: Clippy"`
-* `"run"` - the extension executes `"Cargo: Run"`
-* `"test"` - the extension executes `"Cargo: Test"`
-* `null` - the extension does nothing
-
-By default, it is `null`.
+* `"build"` - executes `"Cargo: Build"`
+* `"check"` - executes `"Cargo: Check"`
+* `"clippy"` - executes `"Cargo: Clippy"`
+* `"run"` - executes `"Cargo: Run"`
+* `"test"` - executes `"Cargo: Test"`
+* `null` - the extension does nothing (default)
 
 ## Finding Out Cargo.toml
 
-Before executing the command the extension should find out what `Cargo.toml` to use.
+Before executing the command, the extension needs to find out which `Cargo.toml` to use. The extension uses the following algorithm:
 
-To find out what `Cargo.toml` to use, the extension uses the following algorithm:
+* Try to determine the current working directory from the active text editor
 
-* Try making out the current working directory from the active text editor
+  If all of the following conditions are met:
 
-  If all of the conditions are met:
+  * There is an active text editor
+  * A file opened in the editor is within the workspace (the directory opened in VS Code)
+  * There is a `Cargo.toml` in the same directory as the active file or in any of the parent directories within the workspace
 
-    * There is an active text editor
-    * A file opened in the editor is in the workspace (the opened directory)
-    * There is a `Cargo.toml` file near the file or in the parent directories within the workspace
-
-  Then use the `Cargo.toml` file.
+  Then use the `Cargo.toml` file that was found.
 
 * Try using the previous `Cargo.toml` file
 * Try using the `Cargo.toml` from the workspace
 
-If the extension failed to find `Cargo.toml` the extension would show an error message.
+If the extension fails to find a `Cargo.toml`, an error message is shown.
 
-## Finding Out Working Directory
+## Finding Out The Working Directory
 
-Before executing the command the extension should find out what directory to execute the command in.
+Before executing a Cargo command, the extension must find out which directory to execute the command in.
 
 The extension supports the `"rust.cargoCwd"` configuration parameter with the following possible values:
 
-* `"/some/path"` - the extension would use the path as the command's working directory
-* `null` - the extension would use the directory containing the chosen `Cargo.toml` as the command's working directory
+* `"/some/path"` - the extension uses the specified path as the command's working directory
+* `null` - the directory containing the chosen `Cargo.toml` is used as Cargo's working directory (default `cargo` behavior)
 
 ## Configuration Parameters
 
 ### Cargo Path
 
-The `"rust.cargoPath"` configuration parameter specifies a path to the cargo's executable.
+The `"rust.cargoPath"` configuration parameter specifies a path to the `cargo` executable with the following possible values:
 
-The possible values:
+* `"/some/path"` - the extension would try to use the path
+* `null` - the extension would try to use `cargo` from the `PATH` environment variable.
 
-* `"Some path"` - the extension would try to use the path
-* `null` - the extension would try to use cargo from the `PATH` variable of the environment.
-
-If cargo isn't available the extension can't execute a cargo command.
+If `cargo` isn't available, the extension can't execute any Cargo commands.
 
 ### Cargo Environment
 
-The `"rust.cargoEnv"` configuration parameter specifies an environment which would be added to the general environment for executing a cargo command.
-
-The possible values:
-
-* Some object (`{ "RUST_BACKTRACE": 1 }`)
-* `null`
-
-### Setting An Action To Handle Starting A New Command If There Is Another Command Running
-
-The `"rust.actionOnStartingCommandIfThereIsRunningCommand"` configuration parameter specifies what the extension should do in case of starting a new command if there is another command running.
+The `"rust.cargoEnv"` configuration parameter specifies an environment variable which would be added to the general environment when executing a Cargo command.
 
 The possible values are:
 
-* `"Stop running command"` - the extension will stop another running command and start a new one
+* `{ "Some": object }`
+* `null`
+
+#### Examples
+
+```json
+"rust.cargoEnv": { "RUST_BACKTRACE": 1 }
+```
+
+### Setting An Action To Handle Starting A New Command If There Is Another Command Running
+
+The `"rust.actionOnStartingCommandIfThereIsRunningCommand"` configuration parameter specifies what the extension should do in case of starting a new command if there is a previous command running.
+
+The possible values are:
+
+* `"Stop running command"` - the extension will stop the previous running command and start a new one
 * `"Ignore new command"` - the extension will ignore a request to start a new command
 * `"Show dialog to let me decide"` - the extension will show an information box to let the user decide whether or not to stop a running command
 
-
 ### Passing Arguments
 
-The extension supports several configuration parameters:
+The extension supports several configuration parameters used to pass arguments on to the appropriate commands:
 
 * `"rust.buildArgs"`
 * `"rust.checkArgs"`
@@ -109,13 +104,9 @@ The extension supports several configuration parameters:
 * `"rust.runArgs"`
 * `"rust.testArgs"`
 
-The type of these configuration parameters is an array of strings.
+These parameters each take an array of strings. For example, you could configure the extension to execute `cargo build --features some_feature`.
 
-These configuration parameters specify arguments which are passed to an appropriate command.
-
-It is useful when you want the extension to execute `cargo build --features some_feature`.
-
-These configuration parameters are used when one of the following commands is invoked:
+These parameters are used when one of the following commands is invoked:
 
 * `"Cargo: Build"`
 * `"Cargo: Check"`
@@ -139,11 +130,10 @@ The extension supports several configuration parameters:
 * `"rust.customRunConfigurations"`
 * `"rust.customTestConfigurations"`
 
-The type of these configuration parameters is an array of objects.
-The object must have the following fields:
+The type of these parameters is an array of objects and each object must have the following fields:
 
-* `"title"` - a string. It is shown as the label of a quick pick item if a cargo command has several custom configurations
-* `"args"` - an array of strings. If a custom configuration is chosen, a cargo command is executed with the arguments from the custom configuration
+* `"title"` - a string. It is shown as the label of a quick pick item if a Cargo command has more than one custom configuration
+* `"args"` - an array of strings. If a custom configuration is chosen, a Cargo command is executed with the arguments that were defined
 
 These configuration parameters are used when one of the following commands is invoked:
 
@@ -153,17 +143,13 @@ These configuration parameters are used when one of the following commands is in
 * `"Cargo: Run using custom configuration"`
 * `"Cargo: Test using custom configuration"`
 
-If any of the following commands is invoked, the extension decides what to do.
+When one of these commands is invoked, the extension decides what to do:
 
-If none of the custom configurations for the command is defined the extension shows an error message.
-
-If only one custom configuration for the command is defined the extension executes the command with the arguments from the custom configuration.
-
-If many custom configurations for the command are defined the extension shows a quick pick with titles of the custom configurations to let a developer decide.
-
-If a developer cancels the quick pick the extension does nothing.
-
-If a developer chooses an item the extension executes the command with the arguments from the chosen configuration.
+* If there are no custom configurations defined for the command, the extension shows an error message.
+* If only one custom configuration for the command is defined, the extension executes the customized command.
+* If more than one custom configuration is defined, the extension shows a quick pick view, listing the title of each configuration to let the developer decide.
+* If a developer cancels the quick pick, the extension does nothing.
+* If a developer chooses an item, the extension executes the customized command.
 
 #### Examples
 
