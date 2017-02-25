@@ -2,7 +2,9 @@ import { existsSync } from 'fs';
 
 import * as path from 'path';
 
-import { ExtensionContext, commands, window } from 'vscode';
+import { ExtensionContext, commands, window, workspace } from 'vscode';
+
+import { getCommandToExecuteStatementsOneByOneIfPreviousIsSucceed } from '../../CommandLine';
 
 import { ConfigurationManager } from '../configuration/configuration_manager';
 
@@ -70,7 +72,12 @@ export default class Installator {
         const terminal = window.createTerminal('Rust tools installation');
         // cargo install tool && cargo install another_tool
         const cargoBinPath = this.configurationManager.getCargoPath();
-        const command = this.missingTools.map(tool => `${cargoBinPath} install ${tool}`).join(' && ');
+
+        const shell: string = workspace.getConfiguration('terminal')['integrated']['shell']['windows'];
+
+        const statements = this.missingTools.map(tool => `${cargoBinPath} install ${tool}`);
+
+        const command = getCommandToExecuteStatementsOneByOneIfPreviousIsSucceed(shell, statements);
 
         terminal.sendText(command);
         terminal.show();

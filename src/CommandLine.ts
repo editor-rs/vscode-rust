@@ -21,3 +21,34 @@ export function getCommandToSetEnvVar(shell: string, varName: string, varValue: 
         return `export ${varName}=${varValue}`;
     }
 }
+
+/**
+ * Creates a command to execute several statements one by one if the previous one is succeed
+ * @param shell The shell which the command is going to be passed to
+ * @param statements The statements to execute
+ * @return A created command which if it is passed to a terminal,
+ * it will execute the statements
+ */
+export function getCommandToExecuteStatementsOneByOneIfPreviousIsSucceed(shell: string, statements: string[]): string {
+    if (statements.length === 0) {
+        return '';
+    }
+
+    if (process.platform === 'win32' && shell.includes('powershell')) {
+        let command = statements[0];
+
+        for (let i = 1; i < statements.length; ++i) {
+            command += `; if ($?) { ${statements[i]}; }`;
+        }
+
+        return command;
+    } else {
+        let command = statements[0];
+
+        for (let i = 1; i < statements.length; ++i) {
+            command += ` && ${statements[i]}`;
+        }
+
+        return command;
+    }
+}
