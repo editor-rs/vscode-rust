@@ -82,6 +82,12 @@ export class ConfigurationManager {
         return cargoEnv || {};
     }
 
+    public getCargoCwd(): string | undefined {
+        const cargoCwd = ConfigurationManager.getPathConfigParameter('cargoCwd');
+
+        return cargoCwd;
+    }
+
     public getCargoPath(): string {
         const rustsymPath = ConfigurationManager.getPathConfigParameter('cargoPath');
 
