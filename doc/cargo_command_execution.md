@@ -19,7 +19,7 @@ These commands are available through the command palette (<kbd>Ctrl</kbd>+<kbd>S
 
 ## Execute Command On Save
 
-The extension supports executing one of these commands after saving the active document. 
+The extension supports executing some of these commands after saving the active document. 
 
 The `"rust.actionOnSave"` configuration parameter specifies which command to execute.
 
