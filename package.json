@@ -434,11 +434,29 @@
               "items": {
                 "type": "string"
               },
-              "type": "array"
+              "type": [
+                "array",
+                "null"
+              ]
             },
             "env": {
               "default": null,
-              "description": "An environment to run the executable in"
+              "description": "An environment to run the executable in",
+              "type": [
+                "object",
+                "null"
+              ]
+            },
+            "revealOutputChannelOn": {
+              "default": "error",
+              "description": "Specifies when the output channel should be revealed",
+              "enum": [
+                "info",
+                "warn",
+                "error",
+                "never"
+              ],
+              "type": "string"
             }
           }
         }

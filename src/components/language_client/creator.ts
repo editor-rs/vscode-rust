@@ -1,13 +1,14 @@
-import { LanguageClient, LanguageClientOptions as ClientOptions, ServerOptions } from 'vscode-languageclient';
+import { LanguageClient, LanguageClientOptions as ClientOptions, RevealOutputChannelOn, ServerOptions } from 'vscode-languageclient';
 
 export class Creator {
     private clientOptions: ClientOptions;
 
     private serverOptions: ServerOptions;
 
-    public constructor(executable: string, args?: string[], env?: any) {
+    public constructor(executable: string, args: string[] | undefined, env: any | undefined, revealOutputChannelOn: RevealOutputChannelOn) {
         this.clientOptions = {
             documentSelector: ['rust'],
+            revealOutputChannelOn,
             synchronize: {
                 configurationSection: 'languageServerExample'
             }
@@ -15,7 +16,7 @@ export class Creator {
 
         this.serverOptions = {
             command: executable,
-            args: args,
+            args,
             options: {
                 env: Object.assign({}, process.env, env ? env : {})
             }
