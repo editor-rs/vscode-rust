@@ -11,8 +11,20 @@ The type of the parameter is an object with the following fields:
 * `"executable"` - a string. The path to an executable to execute
 * `"args"` - an array of strings. Arguments to pass to the executable
 * `"env"` - an environment to append to the current environment to execute the executable
+* `"revealOutputChannelOn"` - a string. Specifies the condition when the output channel should be revealed
 
 By default, it is `null`.
+
+### The revealOutputChannelOn configuration parameter
+
+This determines when the Output channel is revealed.
+
+The possible values are:
+
+* `"info"` - revealed on each info line
+* `"warn"` - revealed on each warn line
+* `"error"` - revealed on each error line (default)
+* `"never"` - the output channel never reveals automatically
 
 ## Setting up
 
