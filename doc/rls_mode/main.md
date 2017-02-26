@@ -17,16 +17,14 @@ By default, it is `null`.
 
 ### The revealOutputChannelOn configuration parameter
 
-By default, it is `"error"`.
+This determines when the Output channel is revealed.
 
 The possible values are:
 
-* `"info"` - the output channel would be revealed on each info line
-* `"warn"` - the output channel would be revealed on each warn line
-* `"error"` - the output channel would be revealed on each error line
-* `"never"` - the output channel would not be revealed automatically
-
-The `"never"` could be used if RLS sometimes showed errors and you didn't like it.
+* `"info"` - revealed on each info line
+* `"warn"` - revealed on each warn line
+* `"error"` - revealed on each error line (default)
+* `"never"` - the output channel never reveals automatically
 
 ## Setting up
 
