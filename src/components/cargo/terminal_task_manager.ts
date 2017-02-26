@@ -1,3 +1,5 @@
+import { join } from 'path';
+
 import { ExtensionContext, Terminal, window, workspace } from 'vscode';
 
 import { CommandStartHandleResult, Helper } from './helper';
@@ -79,6 +81,16 @@ export class TerminalTaskManager {
         };
 
         setEnvironmentVariables();
+
+        const cargoCwd = this.configurationManager.getCargoCwd();
+
+        if (cargoCwd !== undefined && cargoCwd !== cwd) {
+            const manifestPath = join(cwd, 'Cargo.toml');
+
+            args = ['--manifest-path', manifestPath].concat(args);
+
+            cwd = cargoCwd;
+        }
 
         // Change the current directory to a specified directory
         this.runningTerminal.sendText(`cd "${cwd}"`);
