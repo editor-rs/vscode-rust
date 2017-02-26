@@ -45,11 +45,11 @@ export class Manager {
 
         this.languageClient.onDidChangeState(event => {
             if (event.newState === State.Running) {
-                this.languageClient.onNotification('rustDocument/diagnosticsBegin', () => {
+                this.languageClient.onNotification({ method: 'rustDocument/diagnosticsBegin' }, () => {
                     this.statusBarItem.setText('Analysis started');
                 });
 
-                this.languageClient.onNotification('rustDocument/diagnosticsEnd', () => {
+                this.languageClient.onNotification({ method: 'rustDocument/diagnosticsEnd' }, () => {
                     this.statusBarItem.setText('Analysis finished');
                 });
             }
