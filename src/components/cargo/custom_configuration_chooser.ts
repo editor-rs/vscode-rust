@@ -36,7 +36,7 @@ export default class CustomConfigurationChooser {
 
         const customConfigurations = configuration.get<CustomConfiguration[]>(propertyName);
 
-        if (customConfigurations === undefined) {
+        if (!customConfigurations) {
             throw new Error(`No custom configurations for property=${propertyName}`);
         }
 

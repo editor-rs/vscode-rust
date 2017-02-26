@@ -44,7 +44,7 @@ export class ConfigurationManager {
 
         const rlsConfiguration: any | null = configuration['rls'];
 
-        if (rlsConfiguration === null) {
+        if (!rlsConfiguration) {
             return undefined;
         }
 
@@ -236,8 +236,8 @@ export class ConfigurationManager {
             return envPath;
         }
 
-        if (rustcSysRoot === undefined) {
-            return;
+        if (!rustcSysRoot) {
+            return undefined;
         }
 
         if (!rustcSysRoot.includes('.rustup')) {

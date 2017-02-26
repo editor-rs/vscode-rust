@@ -85,7 +85,7 @@ suite('Diagnostic Utils Tests', () => {
 
         const fileDiagnostics = diagnostics.get(Uri.file('/1'));
 
-        if (fileDiagnostics === undefined) {
+        if (!fileDiagnostics) {
             assert.notEqual(fileDiagnostics, undefined);
         } else {
             assert.equal(fileDiagnostics.length, 1);
@@ -109,7 +109,7 @@ suite('Diagnostic Utils Tests', () => {
 
             const fileDiagnostics = diagnostics.get(Uri.file('/1'));
 
-            if (fileDiagnostics === undefined) {
+            if (!fileDiagnostics) {
                 assert.notEqual(fileDiagnostics, undefined);
             } else {
                 assert.equal(fileDiagnostics.length, 3);
@@ -132,7 +132,7 @@ suite('Diagnostic Utils Tests', () => {
 
             const fileDiagnostics = diagnostics.get(Uri.file('/1'));
 
-            if (fileDiagnostics === undefined) {
+            if (!fileDiagnostics) {
                 assert.notEqual(fileDiagnostics, undefined);
             } else {
                 assert.equal(fileDiagnostics.length, 2);

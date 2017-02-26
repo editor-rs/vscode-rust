@@ -233,7 +233,7 @@ export default class CompletionManager {
     }
 
     private stopDaemon(): void {
-        if (this.racerDaemon === undefined) {
+        if (!this.racerDaemon) {
             return;
         }
         this.racerDaemon.kill();
@@ -306,7 +306,7 @@ export default class CompletionManager {
                     : results.find(parts => parts[2] === word);
 
             // We actually found a completion instead of a definition, so we won't show the returned info.
-            if (result === undefined) {
+            if (!result) {
                 return undefined;
             }
 
@@ -547,7 +547,7 @@ export default class CompletionManager {
         // Get the first dangling parenthesis, so we don't stop on a function call used as a previous parameter
         const startPos = this.firstDanglingParen(document, position);
 
-        if (startPos === undefined) {
+        if (!startPos) {
             return undefined;
         }
 
@@ -566,7 +566,7 @@ export default class CompletionManager {
                 }
             }
 
-            if (parts === undefined) {
+            if (!parts) {
                 return undefined;
             }
 
@@ -654,7 +654,7 @@ export default class CompletionManager {
     }
 
     private runCommand(document: TextDocument, command: string, args: any[]): Promise<string[]> {
-        if (this.racerDaemon === undefined) {
+        if (!this.racerDaemon) {
             return Promise.reject(undefined);
         }
 
