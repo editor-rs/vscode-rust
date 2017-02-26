@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.9
+
+### Features
+
+* Added a new configuration parameter named `cargoCwd`. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/111)
+
+* Added a new configuration parameter named `revealOutputChannelOn` to the `rls` configuration parameter object. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/113)
+
+### Bug fixes
+
+* Fixed installing missing tools for Powershell. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/117)
+
+* Fixed "Rename Symbol" when RLS is used. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/118)
+
 ## 0.3.8
 
 ### Features
