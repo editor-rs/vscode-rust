@@ -69,7 +69,7 @@ class UserDefinedArgs {
         const configuration = getConfiguration();
         const args = configuration.get<string[]>(property);
 
-        if (args === undefined) {
+        if (!args) {
             throw new Error(`Failed to get args for property=${property}`);
         }
 
@@ -465,7 +465,7 @@ export default class CargoManager {
 
         vscode.window.showQuickPick(playgroundProjectTypes)
             .then((playgroundProjectType: string | undefined) => {
-                if (playgroundProjectType === undefined) {
+                if (!playgroundProjectType) {
                     logger.debug('quick pick has been cancelled');
 
                     return;

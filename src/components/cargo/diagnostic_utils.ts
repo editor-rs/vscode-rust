@@ -28,7 +28,7 @@ export function addUniqueDiagnostic(diagnostic: FileDiagnostic, diagnostics: Dia
 
     const fileDiagnostics = diagnostics.get(uri);
 
-    if (fileDiagnostics === undefined) {
+    if (!fileDiagnostics) {
         // No diagnostics for the file
         // The diagnostic is unique
         diagnostics.set(uri, [diagnostic.diagnostic]);
@@ -51,5 +51,5 @@ export function isUniqueDiagnostic(diagnostic: Diagnostic, diagnostics: Diagnost
         return true;
     });
 
-    return foundDiagnostic === undefined;
+    return !foundDiagnostic;
 }

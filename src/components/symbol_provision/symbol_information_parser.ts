@@ -32,7 +32,7 @@ export default class SymbolInformationParser {
         const symbolInformationList: (SymbolInformation | undefined)[] = rustSymbols.map(rustSymbol => {
             const kind = this.getSymbolKind(rustSymbol.kind);
 
-            if (kind === undefined) {
+            if (!kind) {
                 return undefined;
             }
 
