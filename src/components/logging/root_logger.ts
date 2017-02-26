@@ -38,7 +38,7 @@ export default class RootLogger extends Logger {
     }
 
     private log(message: string, severityAsString: string): void {
-        if (this.logFunction === undefined) {
+        if (!this.logFunction) {
             return;
         }
 

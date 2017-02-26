@@ -63,7 +63,7 @@ export class OutputChannelTaskManager {
          * which differs from the directory containing Cargo.toml.
          */
         function prependArgsWithManifestPathIfRequired(): void {
-            if (cargoCwd === undefined || cargoCwd === cwd) {
+            if (!cargoCwd || cargoCwd === cwd) {
                 return;
             }
 

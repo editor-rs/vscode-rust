@@ -89,7 +89,7 @@ function addExecutingActionOnSave(
 
         const actionOnSave = configurationManager.getActionOnSave();
 
-        if (actionOnSave === null) {
+        if (!actionOnSave) {
             return;
         }
 
