@@ -6,6 +6,8 @@ import { join } from 'path';
 
 import { WorkspaceConfiguration, workspace } from 'vscode';
 
+import { RevealOutputChannelOn } from 'vscode-languageclient';
+
 import expandTilde = require('expand-tilde');
 
 export interface RlsConfiguration {
@@ -14,6 +16,8 @@ export interface RlsConfiguration {
     args?: string[];
 
     env?: any;
+
+    revealOutputChannelOn: RevealOutputChannelOn;
 }
 
 export enum ActionOnStartingCommandIfThereIsRunningCommand {
@@ -35,17 +39,54 @@ export class ConfigurationManager {
         return new ConfigurationManager(rustcSysRoot, rustSourcePath);
     }
 
-    public getRlsConfiguration(): RlsConfiguration | null {
+    public getRlsConfiguration(): RlsConfiguration | undefined {
         const configuration = ConfigurationManager.getConfiguration();
 
-        const rlsConfiguration: RlsConfiguration | null = configuration['rls'];
+        const rlsConfiguration: any | null = configuration['rls'];
 
-        return rlsConfiguration;
+        if (!rlsConfiguration) {
+            return undefined;
+        }
+
+        const executable: string = rlsConfiguration.executable;
+        const args: string[] | null = rlsConfiguration.args;
+        const env: any | null = rlsConfiguration.env;
+        const revealOutputChannelOn: string = rlsConfiguration.revealOutputChannelOn;
+
+        let revealOutputChannelOnEnum: RevealOutputChannelOn;
+
+        switch (revealOutputChannelOn) {
+            case 'info':
+                revealOutputChannelOnEnum = RevealOutputChannelOn.Info;
+                break;
+
+            case 'warn':
+                revealOutputChannelOnEnum = RevealOutputChannelOn.Warn;
+                break;
+
+            case 'error':
+                revealOutputChannelOnEnum = RevealOutputChannelOn.Error;
+                break;
+
+            case 'never':
+                revealOutputChannelOnEnum = RevealOutputChannelOn.Never;
+                break;
+
+            default:
+                revealOutputChannelOnEnum = RevealOutputChannelOn.Error;
+        }
+
+        return {
+            executable,
+            args: args !== null ? args : undefined,
+            env: env !== null ? env : undefined,
+            revealOutputChannelOn: revealOutputChannelOnEnum
+        };
     }
 
     public shouldExecuteCargoCommandInTerminal(): boolean {
         // When RLS is used any cargo command is executed in an integrated terminal.
-        if (this.getRlsConfiguration()) {
+        if (this.getRlsConfiguration() !== undefined) {
             return true;
         }
 
@@ -80,6 +121,12 @@ export class ConfigurationManager {
         const cargoEnv = configuration['cargoEnv'];
 
         return cargoEnv || {};
+    }
+
+    public getCargoCwd(): string | undefined {
+        const cargoCwd = ConfigurationManager.getPathConfigParameter('cargoCwd');
+
+        return cargoCwd;
     }
 
     public getCargoPath(): string {
@@ -189,8 +236,8 @@ export class ConfigurationManager {
             return envPath;
         }
 
-        if (rustcSysRoot === undefined) {
-            return;
+        if (!rustcSysRoot) {
+            return undefined;
         }
 
         if (!rustcSysRoot.includes('.rustup')) {

@@ -99,7 +99,7 @@ export default class FormattingManager implements DocumentFormattingEditProvider
                 currentFile = Uri.file(line.slice('Diff of '.length, -1));
             }
 
-            if (currentFile === undefined) {
+            if (!currentFile) {
                 continue;
             }
 
@@ -177,7 +177,7 @@ export default class FormattingManager implements DocumentFormattingEditProvider
                 continue;
             }
 
-            if (currentPatch === undefined) {
+            if (!currentPatch) {
                 continue;
             }
 

@@ -2,8 +2,5 @@ language: node_js
 node_js:
   - "5.0"
 
-before_script:
-  - npm install -g gulp
-
 script:
-  - gulp
+  - node node_modules/gulp/bin/gulp.js

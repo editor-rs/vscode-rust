@@ -2,7 +2,7 @@
   "name": "vscode-rust",
   "displayName": "Rust",
   "description": "Rust language integration for VSCode",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "publisher": "kalitaalexey",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -222,6 +222,14 @@
           "default": null,
           "description": "Specifies custom variables to set when running cargo. Useful for crates which use env vars in their build.rs (like openssl-sys)."
         },
+        "rust.cargoCwd": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Specifies the path of the directory where a cargo command would be executed"
+        },
         "rust.executeCargoCommandInTerminal": {
           "type": "boolean",
           "default": false,
@@ -426,11 +434,29 @@
               "items": {
                 "type": "string"
               },
-              "type": "array"
+              "type": [
+                "array",
+                "null"
+              ]
             },
             "env": {
               "default": null,
-              "description": "An environment to run the executable in"
+              "description": "An environment to run the executable in",
+              "type": [
+                "object",
+                "null"
+              ]
+            },
+            "revealOutputChannelOn": {
+              "default": "error",
+              "description": "Specifies when the output channel should be revealed",
+              "enum": [
+                "info",
+                "warn",
+                "error",
+                "never"
+              ],
+              "type": "string"
             }
           }
         }
@@ -476,22 +502,22 @@
     "postinstall": "node ./node_modules/vscode/bin/install"
   },
   "devDependencies": {
-    "gulp": "^3.9.0",
-    "gulp-shell": "^0.5.1",
-    "gulp-tslint": "^4.1.0",
-    "mocha": "^3.2.0",
-    "tslint": "^3.1.1",
-    "typescript": "^2.1.6",
-    "vscode": "^1.0.3",
-    "@types/node": "^6.0.52",
-    "@types/mocha": "^2.2.33"
+    "gulp": "3.9.1",
+    "gulp-shell": "0.5.2",
+    "gulp-tslint": "7.1.0",
+    "mocha": "3.2.0",
+    "tslint": "4.4.2",
+    "typescript": "2.1.6",
+    "vscode": "1.0.3",
+    "@types/node": "7.0.5",
+    "@types/mocha": "2.2.39"
   },
   "dependencies": {
-    "expand-tilde": "^2.0.2",
-    "tmp": "0.0.28",
-    "tree-kill": "^1.0.0",
-    "find-up": "^1.1.2",
-    "elegant-spinner": "^1.0.1",
-    "vscode-languageclient": "^3.0.3"
+    "expand-tilde": "2.0.2",
+    "tmp": "0.0.31",
+    "tree-kill": "1.1.0",
+    "find-up": "2.1.0",
+    "elegant-spinner": "1.0.1",
+    "vscode-languageclient": "2.6.3"
   }
 }

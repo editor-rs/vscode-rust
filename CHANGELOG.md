@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.3.8
+
+### Features
+
+* Added information about installing Rust Language Server to the documentation. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/94)
+
+* Added the `"actionOnStartingCommandIfThereIsRunningCommand"` configuration parameter. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/78)
+
+* Added information about linting to the documentation. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/92)
+
+### Bug fixes
+
+* Fixed an error because of which `"Cargo: Check"` command didn't work. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/100)
+
+* Fixed an error because of which in Legacy Mode only one diagnostic was shown in each file. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/95)
+
+* Made a diagnostic contain notes. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/89)
+
+* Made executing a cargo command in a terminal preserve the focus. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/86)
+
+* Fixed constructing a diagnostic's path. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/87)
+
 ## 0.3.7
 
 ### Features

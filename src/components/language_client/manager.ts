@@ -1,6 +1,6 @@
 import { Disposable, ExtensionContext, window, workspace } from 'vscode';
 
-import { LanguageClient, State } from 'vscode-languageclient';
+import { LanguageClient, RevealOutputChannelOn, State } from 'vscode-languageclient';
 
 import ChildLogger from '../logging/child_logger';
 
@@ -21,10 +21,11 @@ export class Manager {
         context: ExtensionContext,
         logger: ChildLogger,
         executable: string,
-        args?: string[],
-        env?: any
+        args: string[] | undefined,
+        env: any | undefined,
+        revealOutputChannelOn: RevealOutputChannelOn
     ) {
-        this.languageClientCreator = new LanguageClientCreator(executable, args, env);
+        this.languageClientCreator = new LanguageClientCreator(executable, args, env, revealOutputChannelOn);
 
         this.languageClient = this.languageClientCreator.create();
 
@@ -85,13 +86,11 @@ export class Manager {
     private subscribeOnStateChanging(): void {
         this.languageClient.onDidChangeState(event => {
             if (event.newState === State.Running) {
-                this.languageClient.outputChannel.show();
-
-                this.languageClient.onNotification('rustDocument/diagnosticsBegin', () => {
+                this.languageClient.onNotification({ method: 'rustDocument/diagnosticsBegin' }, () => {
                     this.statusBarItem.setText('Analysis started');
                 });
 
-                this.languageClient.onNotification('rustDocument/diagnosticsEnd', () => {
+                this.languageClient.onNotification({ method: 'rustDocument/diagnosticsEnd' }, () => {
                     this.statusBarItem.setText('Analysis finished');
                 });
             } else {
