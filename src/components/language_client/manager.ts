@@ -54,18 +54,20 @@ export class Manager {
         this.statusBarItem.enable();
     }
 
-    public stop(): void {
+    public async stop(): Promise<void> {
         this.logger.debug('stop');
 
         this.statusBarItem.disable();
 
         if (this.languageClient.needsStop()) {
-            this.languageClient.stop();
+            await this.languageClient.stop();
         }
+
+        this.languageClient.outputChannel.dispose();
     }
 
     /** Stops the running language client if any and starts a new one. */
-    private restart(): void {
+    private async restart(): Promise<void> {
         const isAnyDocumentDirty = !workspace.textDocuments.every(t => !t.isDirty);
 
         if (isAnyDocumentDirty) {
@@ -74,7 +76,7 @@ export class Manager {
             return;
         }
 
-        this.stop();
+        await this.stop();
 
         this.languageClient = this.languageClientCreator.create();
 
