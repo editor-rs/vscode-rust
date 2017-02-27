@@ -4,7 +4,7 @@ Welcome the main page of the documentation.
 
 First of all, issues and PRs are welcome.
 
-The documentation describes features supported by the extension.
+Each section describes various features supported by the extension and their respective configuration parameters. By [changing configuration parameters](changing_configuration_parameters.md), the extension may be customized.
 
 The extension can function in one of two modes:
 
