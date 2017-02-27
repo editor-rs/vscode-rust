@@ -52,7 +52,7 @@ cd /path/to/rls
 rustup run nightly cargo install
 ```
 
-Because at the moment RLS links to the compiler and it assumes the compiler to be globally installed, one has to use rustup to start the `rls` (rustup will configure the environment accordingly):
+Because at the moment RLS links to the compiler and it assumes the compiler to be globally installed, one has to use rustup to start the `rls` (rustup will configure the environment accordingly). The following must be added to your VS Code `settings.json`:
 
 ```json
 "rust.rls": {
@@ -85,7 +85,7 @@ cd /path/to/rls
 cargo install
 ```
 
-and set `"executable"` to `"rls"`:
+and set `"executable"` to `"rls"` through VS Code's `settings.json`:
 
 ```json
 "rust.rls": {
