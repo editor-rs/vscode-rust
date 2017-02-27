@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.10
+
+### Bug fixes
+
+* Fixed checking via `Cargo: Check` on stable. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/127)
+
 ## 0.3.9
 
 ### Features
