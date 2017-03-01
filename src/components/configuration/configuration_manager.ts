@@ -220,17 +220,17 @@ export class ConfigurationManager {
      * * Rustup
      */
     private static async loadRustSourcePath(rustcSysRoot: string | undefined): Promise<string | undefined> {
-        const configPath = this.getPathConfigParameter('rustLangSrcPath');
+        const configPath: string | undefined = this.getPathConfigParameter('rustLangSrcPath');
 
-        const configPathExists = await this.checkPathExists(configPath);
+        const configPathExists: boolean = configPath !== undefined && await this.checkPathExists(configPath);
 
         if (configPathExists) {
             return configPath;
         }
 
-        const envPath = this.getPathEnvParameter('RUST_SRC_PATH');
+        const envPath: string | undefined = this.getPathEnvParameter('RUST_SRC_PATH');
 
-        const envPathExists = await this.checkPathExists(envPath);
+        const envPathExists: boolean = envPath !== undefined && await this.checkPathExists(envPath);
 
         if (envPathExists) {
             return envPath;
@@ -244,9 +244,9 @@ export class ConfigurationManager {
             return undefined;
         }
 
-        const rustupPath = join(rustcSysRoot, 'lib', 'rustlib', 'src', 'rust', 'src');
+        const rustupPath: string = join(rustcSysRoot, 'lib', 'rustlib', 'src', 'rust', 'src');
 
-        const rustupPathExists = this.checkPathExists(rustupPath);
+        const rustupPathExists: boolean = await this.checkPathExists(rustupPath);
 
         if (rustupPathExists) {
             return rustupPath;
@@ -255,11 +255,7 @@ export class ConfigurationManager {
         }
     }
 
-    private static checkPathExists(path: string | undefined): Promise<boolean> {
-        if (!path) {
-            return Promise.resolve(false);
-        }
-
+    private static checkPathExists(path: string): Promise<boolean> {
         return new Promise<boolean>(resolve => {
             access(path, err => {
                 const pathExists = !err;
