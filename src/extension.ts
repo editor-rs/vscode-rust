@@ -1,6 +1,6 @@
 import { ExtensionContext, window, workspace } from 'vscode';
 
-import CargoManager from './components/cargo/cargo_manager';
+import { CargoManager } from './components/cargo/cargo_manager';
 
 import { RlsConfiguration } from './components/configuration/configuration_manager';
 

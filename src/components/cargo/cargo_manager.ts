@@ -247,7 +247,7 @@ class CargoTaskManager {
     }
 }
 
-export default class CargoManager {
+export class CargoManager {
     private cargoManager: CargoTaskManager;
 
     private customConfigurationChooser: CustomConfigurationChooser;
