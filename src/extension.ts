@@ -1,6 +1,6 @@
 import { ExtensionContext, window, workspace } from 'vscode';
 
-import { CargoManager } from './components/cargo/cargo_manager';
+import { CargoManager, CommandInvocationReason } from './components/cargo/cargo_manager';
 
 import { RlsConfiguration } from './components/configuration/configuration_manager';
 
@@ -95,23 +95,23 @@ function addExecutingActionOnSave(
 
         switch (actionOnSave) {
             case 'build':
-                cargoManager.executeBuildTask();
+                cargoManager.executeBuildTask(CommandInvocationReason.ActionOnSave);
                 break;
 
             case 'check':
-                cargoManager.executeCheckTask();
+                cargoManager.executeCheckTask(CommandInvocationReason.ActionOnSave);
                 break;
 
             case 'clippy':
-                cargoManager.executeClippyTask();
+                cargoManager.executeClippyTask(CommandInvocationReason.ActionOnSave);
                 break;
 
             case 'run':
-                cargoManager.executeRunTask();
+                cargoManager.executeRunTask(CommandInvocationReason.ActionOnSave);
                 break;
 
             case 'test':
-                cargoManager.executeTestTask();
+                cargoManager.executeTestTask(CommandInvocationReason.ActionOnSave);
                 break;
         }
     }));
