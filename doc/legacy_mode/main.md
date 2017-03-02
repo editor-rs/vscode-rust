@@ -36,20 +36,23 @@ You may also configure Legacy Mode via configuration parameters.
 
 ### Show Output
 
-The `"rust.showOutput"` configuration parameter controls whether the Output channel should be shown when [a Cargo command starts executing](../cargo_command_execution.md). All Cargo command other than `build` and `check` trigger this event.
+The `"rust.showOutput"` configuration parameter controls whether the output channel should be shown when [a Cargo command starts executing](../cargo_command_execution.md).
 
 The possible values:
 
 * `true` - the output channel should be shown
 * `false` - the output channel shouldn't be shown
 
-When `"rust.executeCargoCommandInTerminal"` is set to `true`, `"rust.showOutput"` has no effect.
+The output channel will not be shown under the following conditions:
 
-### Executing Cargo commands in the integrated temrinal
+- `"rust.executeCargoCommandInTerminal"` is set to `true`
+- `"rust.actionOnSave"` is set to `"check"`
+
+### Executing Cargo commands in a integrated terminal
 
 The `"rust.executeCargoCommandInTerminal"` configuration parameter controls whether [a Cargo command should be executed](../cargo_command_execution.md) in an integrated terminal.
 
-By default, the extension executes a Cargo command as a child process. It then parses the output of the command and publishes diagnostics. This is useful if you need to run a binary and enter some text.
+By default, the extension executes Cargo commands as a child process. It then parses the output of the command and publishes diagnostics. Executing Cargo commands in an integrated terminal is useful if you need to run a binary and enter some text.
 
 Unfortunately, there is currently no way to parse output of an integrated terminal. This means diagnostics cannot be shown in the editor.
 
