@@ -53,7 +53,8 @@ export class OutputChannelTaskManager {
         command: string,
         args: string[],
         cwd: string,
-        parseOutput: boolean
+        parseOutput: boolean,
+        shouldShowOutputChannnel: boolean
     ): Promise<void> {
         const cargoCwd = this.configurationManager.getCargoCwd();
 
@@ -134,7 +135,7 @@ export class OutputChannelTaskManager {
             this.channel.append(`${line}\n`);
         });
 
-        if (this.configurationManager.shouldShowRunningCargoTaskOutputChannel()) {
+        if (shouldShowOutputChannnel) {
             this.channel.show();
         }
 
