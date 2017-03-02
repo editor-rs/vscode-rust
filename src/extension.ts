@@ -52,7 +52,7 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
             revealOutputChannelOn
         );
 
-        languageClientManager.start();
+        languageClientManager.initialStart();
     } else {
         const legacyModeManager = new LegacyModeManager(
             ctx,
