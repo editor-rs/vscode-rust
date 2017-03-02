@@ -44,26 +44,38 @@ export class Manager {
         }));
     }
 
-    public start(): void {
+    /**
+     * Starts the language client at first time
+     */
+    public initialStart(): void {
+        this.start();
+
+        this.statusBarItem.show();
+    }
+
+    private start(): void {
         this.logger.debug('start');
 
         this.languageClient.start();
 
-        this.statusBarItem.updateVisibility();
-
+        // As we started the language client, we need to enable the indicator in order to allow the user restart the language client.
+        this.statusBarItem.setText('Starting');
         this.statusBarItem.enable();
     }
 
-    public async stop(): Promise<void> {
+    private async stop(): Promise<void> {
         this.logger.debug('stop');
 
         this.statusBarItem.disable();
+        this.statusBarItem.setText('Stopping');
 
         if (this.languageClient.needsStop()) {
             await this.languageClient.stop();
         }
 
         this.languageClient.outputChannel.dispose();
+
+        this.statusBarItem.setText('Stopped');
     }
 
     /** Stops the running language client if any and starts a new one. */
@@ -95,8 +107,6 @@ export class Manager {
                 this.languageClient.onNotification({ method: 'rustDocument/diagnosticsEnd' }, () => {
                     this.statusBarItem.setText('Analysis finished');
                 });
-            } else {
-                this.statusBarItem.setText('Stopped');
             }
         });
     }

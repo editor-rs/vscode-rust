@@ -125,3 +125,19 @@ For making RLS print more data, you have to add the following lines to your `"ru
     }
 }
 ```
+
+## Status Bar Indicator
+
+When the extension functions in this mode, the indicator shows in the status bar.
+
+The indicator shows the current status of RLS.
+
+The indicator may show one of the following statuses:
+
+* `Starting` - RLS is starting, hence no features are available
+* `Analysis started` - RLS analyses code. Features are available, but result may be inaccurate
+* `Analysis finished` - RLS finished analysing code. Features are available and result should be exact
+* `Stopping` - RLS has been requested to stop. It started stopping. Features may or may not be available
+* `Stopped` - RLS has been stopped. Features are unavailable
+
+Clicking on the indicator restarts RLS.
