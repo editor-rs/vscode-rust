@@ -25,7 +25,15 @@ export class Manager {
         env: any | undefined,
         revealOutputChannelOn: RevealOutputChannelOn
     ) {
-        this.languageClientCreator = new LanguageClientCreator(executable, args, env, revealOutputChannelOn);
+        this.languageClientCreator = new LanguageClientCreator(
+            executable,
+            args,
+            env,
+            revealOutputChannelOn,
+            () => {
+                this.statusBarItem.setText('Crashed');
+            }
+        );
 
         this.languageClient = this.languageClientCreator.create();
 
