@@ -1,17 +1,50 @@
-import { LanguageClient, LanguageClientOptions as ClientOptions, RevealOutputChannelOn, ServerOptions } from 'vscode-languageclient';
+import {
+    CloseAction,
+    ErrorAction,
+    ErrorHandler as IErrorHandler,
+    LanguageClient,
+    LanguageClientOptions as ClientOptions,
+    RevealOutputChannelOn,
+    ServerOptions
+} from 'vscode-languageclient';
+
+class ErrorHandler implements IErrorHandler {
+    private onClosed: () => void;
+
+    public constructor(onClosed: () => void) {
+        this.onClosed = onClosed;
+    }
+
+    public error(): ErrorAction {
+        return ErrorAction.Continue;
+    }
+
+    public closed(): CloseAction {
+        this.onClosed();
+
+        return CloseAction.DoNotRestart;
+    }
+}
 
 export class Creator {
     private clientOptions: ClientOptions;
 
     private serverOptions: ServerOptions;
 
-    public constructor(executable: string, args: string[] | undefined, env: any | undefined, revealOutputChannelOn: RevealOutputChannelOn) {
+    public constructor(
+        executable: string,
+        args: string[] | undefined,
+        env: any | undefined,
+        revealOutputChannelOn: RevealOutputChannelOn,
+        onClosed: () => void
+    ) {
         this.clientOptions = {
             documentSelector: ['rust'],
             revealOutputChannelOn,
             synchronize: {
                 configurationSection: 'languageServerExample'
-            }
+            },
+            errorHandler: new ErrorHandler(onClosed)
         };
 
         this.serverOptions = {
