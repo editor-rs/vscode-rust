@@ -4,6 +4,7 @@ import * as fs from 'fs';
 
 import {
     DocumentFormattingEditProvider,
+    DocumentRangeFormattingEditProvider,
     ExtensionContext,
     Range,
     TextDocument,
@@ -25,7 +26,7 @@ interface RustFmtDiff {
     removedLines: number;
 }
 
-export default class FormattingManager implements DocumentFormattingEditProvider {
+export default class FormattingManager implements DocumentFormattingEditProvider, DocumentRangeFormattingEditProvider {
     private configurationManager: ConfigurationManager;
 
     private newFormatRegex: RegExp = /^Diff in (.*) at line (\d+):$/;
@@ -37,16 +38,34 @@ export default class FormattingManager implements DocumentFormattingEditProvider
             languages.registerDocumentFormattingEditProvider(
                 getDocumentFilter(),
                 this
+            ),
+            languages.registerDocumentRangeFormattingEditProvider(
+                getDocumentFilter(),
+                this
             )
         );
     }
 
     public provideDocumentFormattingEdits(document: TextDocument): Thenable<TextEdit[]> {
+        return this.formattingEdits(document);
+    }
+
+    public provideDocumentRangeFormattingEdits(document: TextDocument, range: Range): Thenable<TextEdit[]> {
+        return this.formattingEdits(document, range);
+    }
+
+    private formattingEdits(document: TextDocument, range?: Range): Thenable<TextEdit[]> {
         return new Promise((resolve, reject) => {
             let fileName = document.fileName + '.fmt';
             fs.writeFileSync(fileName, document.getText());
 
-            let args = ['--skip-children', '--write-mode=diff', fileName];
+            let args = ['--skip-children', '--write-mode=diff'];
+            if (range !== undefined) {
+                args.push('--file-lines',
+                    `[{"file":"${fileName}","range":[${range.start.line + 1}, ${range.end.line + 1}]}]`);
+            } else {
+                args.push(fileName);
+            }
             let env = Object.assign({ TERM: 'xterm' }, process.env);
             cp.execFile(this.configurationManager.getRustfmtPath(), args, { env: env }, (err, stdout, stderr) => {
                 try {
@@ -61,7 +80,6 @@ export default class FormattingManager implements DocumentFormattingEditProvider
                     // For these reasons, if the exit code is 1 or 2, then it should be treated as an error.
                     let hasFatalError = (err && (err as any).code < 3);
 
-                    // If an error is encountered with any other exit code, inform the user of the error.
                     if ((err || stderr.length) && hasFatalError) {
                         window.setStatusBarMessage('$(alert) Cannot format due to syntax errors', 5000);
                         return reject();
