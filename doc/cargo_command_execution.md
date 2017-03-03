@@ -28,6 +28,7 @@ The possible values are:
 * `"build"` - executes `"Cargo: Build"`
 * `"check"` - executes `"Cargo: Check"`
 * `"clippy"` - executes `"Cargo: Clippy"`
+* `"doc"` - executes `"Cargo: Doc"`
 * `"run"` - executes `"Cargo: Run"`
 * `"test"` - executes `"Cargo: Test"`
 * `null` - the extension does nothing (default)
@@ -103,6 +104,7 @@ The extension supports several configuration parameters used to pass arguments o
 * `"rust.buildArgs"`
 * `"rust.checkArgs"`
 * `"rust.clippyArgs"`
+* `"rust.docArgs"`
 * `"rust.runArgs"`
 * `"rust.testArgs"`
 
@@ -113,6 +115,7 @@ These parameters are used when one of the following commands is invoked:
 * `"Cargo: Build"`
 * `"Cargo: Check"`
 * `"Cargo: Clippy"`
+* `"Cargo: Doc"`
 * `"Cargo: Run"`
 * `"Cargo: Test"`
 
@@ -129,6 +132,7 @@ The extension supports several configuration parameters:
 * `"rust.customBuildConfigurations"`
 * `"rust.customCheckConfigurations"`
 * `"rust.customClippyConfigurations"`
+* `"rust.customDocConfigurations"`
 * `"rust.customRunConfigurations"`
 * `"rust.customTestConfigurations"`
 
@@ -142,6 +146,7 @@ These configuration parameters are used when one of the following commands is in
 * `"Cargo: Build using custom configuration"`
 * `"Cargo: Check using custom configuration"`
 * `"Cargo: Clippy using custom configuration"`
+* `"Cargo: Doc using custom configuration"`
 * `"Cargo: Run using custom configuration"`
 * `"Cargo: Test using custom configuration"`
 
@@ -181,6 +186,17 @@ When one of these commands is invoked, the extension decides what to do:
 
 ```json
 "rust.customClippyConfigurations": [
+  {
+    "title": "With Features",
+    "args": ["--features", "feature1", "feature2"]
+  }
+]
+```
+
+##### Doc With Features
+
+```json
+"rust.customDocConfigurations": [
   {
     "title": "With Features",
     "args": ["--features", "feature1", "feature2"]

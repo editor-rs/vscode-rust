@@ -67,6 +67,12 @@ class UserDefinedArgs {
         return args;
     }
 
+    public static getDocArgs(): string[] {
+        const args = UserDefinedArgs.getArgs('docArgs');
+
+        return args;
+    }
+
     public static getRunArgs(): string[] {
         const args = UserDefinedArgs.getArgs('runArgs');
 
@@ -177,6 +183,14 @@ class CargoTaskManager {
 
     public invokeCargoClippyUsingClippyArgs(reason: CommandInvocationReason): void {
         this.invokeCargoClippyWithArgs(UserDefinedArgs.getClippyArgs(), reason);
+    }
+
+    public invokeCargoDocWithArgs(args: string[], reason: CommandInvocationReason): void {
+        this.runCargo('doc', args, true, reason);
+    }
+
+    public invokeCargoDocUsingDocArgs(reason: CommandInvocationReason): void {
+        this.invokeCargoDocWithArgs(UserDefinedArgs.getDocArgs(), reason);
     }
 
     public async invokeCargoNew(projectName: string, isBin: boolean, cwd: string): Promise<void> {
@@ -309,6 +323,10 @@ export class CargoManager {
         this.cargoManager.invokeCargoClippyUsingClippyArgs(reason);
     }
 
+    public executeDocTask(reason: CommandInvocationReason): void {
+        this.cargoManager.invokeCargoDocUsingDocArgs(reason);
+    }
+
     public executeRunTask(reason: CommandInvocationReason): void {
         this.cargoManager.invokeCargoRunUsingRunArgs(reason);
     }
@@ -345,7 +363,9 @@ export class CargoManager {
         context.subscriptions.push(this.registerCommandInvokingCargoWithArgs('rust.cargo.bench', 'bench'));
 
         // Cargo doc
-        context.subscriptions.push(this.registerCommandInvokingCargoWithArgs('rust.cargo.doc', 'doc'));
+        context.subscriptions.push(this.registerCommandInvokingCargoDocUsingDocArgs('rust.cargo.doc.default'));
+
+        context.subscriptions.push(this.registerCommandHelpingChooseArgsAndInvokingCargoDoc('rust.cargo.doc.custom'));
 
         // Cargo update
         context.subscriptions.push(this.registerCommandInvokingCargoWithArgs('rust.cargo.update', 'update'));
@@ -398,6 +418,20 @@ export class CargoManager {
     public registerCommandInvokingCargoClippyUsingClippyArgs(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
             this.executeClippyTask(CommandInvocationReason.CommandExecution);
+        });
+    }
+
+    public registerCommandHelpingChooseArgsAndInvokingCargoDoc(commandName: string): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            this.customConfigurationChooser.choose('customDocConfigurations').then(args => {
+                this.cargoManager.invokeCargoDocWithArgs(args, CommandInvocationReason.CommandExecution);
+            }, () => undefined);
+        });
+    }
+
+    public registerCommandInvokingCargoDocUsingDocArgs(commandName: string): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            this.executeDocTask(CommandInvocationReason.CommandExecution);
         });
     }
 
