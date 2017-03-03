@@ -106,6 +106,10 @@ function addExecutingActionOnSave(
                 cargoManager.executeClippyTask(CommandInvocationReason.ActionOnSave);
                 break;
 
+            case 'doc':
+                cargoManager.executeDocTask(CommandInvocationReason.ActionOnSave);
+                break;
+
             case 'run':
                 cargoManager.executeRunTask(CommandInvocationReason.ActionOnSave);
                 break;

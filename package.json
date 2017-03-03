@@ -32,9 +32,10 @@
     "onCommand:rust.cargo.build.custom",
     "onCommand:rust.cargo.clippy.default",
     "onCommand:rust.cargo.clippy.custom",
+    "onCommand:rust.cargo.doc.default",
+    "onCommand:rust.cargo.doc.custom",
     "onCommand:rust.cargo.run.default",
     "onCommand:rust.cargo.run.custom",
-    "onCommand:rust.cargo.doc",
     "onCommand:rust.cargo.test.default",
     "onCommand:rust.cargo.test.custom",
     "onCommand:rust.cargo.bench",
@@ -100,9 +101,14 @@
         "description": "Build and execute src/main.rs using custom configuration"
       },
       {
-        "command": "rust.cargo.doc",
+        "command": "rust.cargo.doc.default",
         "title": "Cargo: Doc",
         "description": "Build this project's and its dependencies' documentation"
+      },
+      {
+        "command": "rust.cargo.doc.custom",
+        "title": "Cargo: Doc using custom configuration",
+        "description": "Build this project's and its dependencies' documentation using custom configuration"
       },
       {
         "command": "rust.cargo.test.default",
@@ -251,6 +257,7 @@
             "build",
             "check",
             "clippy",
+            "doc",
             "run",
             "test",
             null
@@ -270,6 +277,11 @@
           "type": "array",
           "default": [],
           "description": "Arguments which is passed to cargo clippy"
+        },
+        "rust.docArgs": {
+          "type": "array",
+          "default": [],
+          "description": "Arguments which is passed to cargo doc"
         },
         "rust.runArgs": {
           "type": "array",
@@ -342,6 +354,28 @@
         "rust.customClippyConfigurations": {
           "default": [],
           "description": "Custom configurations for cargo clippy. Array of objects with `title` (string) and `args` (array of strings) which will be passed to `cargo clippy`.",
+          "items": {
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "title",
+              "args"
+            ]
+          },
+          "type": "array"
+        },
+        "rust.customDocConfigurations": {
+          "default": [],
+          "description": "Custom configurations for cargo doc. Array of objects with `title` (string) and `args` (array of strings) which will be passed to `cargo doc`.",
           "items": {
             "properties": {
               "title": {
