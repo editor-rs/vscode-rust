@@ -1,6 +1,6 @@
 import { ExtensionContext, window, workspace } from 'vscode';
 
-import CargoManager from './components/cargo/cargo_manager';
+import { CargoManager, CommandInvocationReason } from './components/cargo/cargo_manager';
 
 import { RlsConfiguration } from './components/configuration/configuration_manager';
 
@@ -52,7 +52,7 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
             revealOutputChannelOn
         );
 
-        languageClientManager.start();
+        languageClientManager.initialStart();
     } else {
         const legacyModeManager = new LegacyModeManager(
             ctx,
@@ -95,23 +95,27 @@ function addExecutingActionOnSave(
 
         switch (actionOnSave) {
             case 'build':
-                cargoManager.executeBuildTask();
+                cargoManager.executeBuildTask(CommandInvocationReason.ActionOnSave);
                 break;
 
             case 'check':
-                cargoManager.executeCheckTask();
+                cargoManager.executeCheckTask(CommandInvocationReason.ActionOnSave);
                 break;
 
             case 'clippy':
-                cargoManager.executeClippyTask();
+                cargoManager.executeClippyTask(CommandInvocationReason.ActionOnSave);
+                break;
+
+            case 'doc':
+                cargoManager.executeDocTask(CommandInvocationReason.ActionOnSave);
                 break;
 
             case 'run':
-                cargoManager.executeRunTask();
+                cargoManager.executeRunTask(CommandInvocationReason.ActionOnSave);
                 break;
 
             case 'test':
-                cargoManager.executeTestTask();
+                cargoManager.executeTestTask(CommandInvocationReason.ActionOnSave);
                 break;
         }
     }));

@@ -19,6 +19,20 @@ import { Task } from './task';
 
 import { TerminalTaskManager } from './terminal_task_manager';
 
+/**
+ * Possible reasons of a cargo command invocation
+ */
+export enum CommandInvocationReason {
+    /**
+     * The command is invoked because the action on save is to execute the command
+     */
+    ActionOnSave,
+    /**
+     * The command is invoked because the corresponding registered command is executed
+     */
+    CommandExecution
+}
+
 export enum BuildType {
     Debug,
     Release
@@ -49,6 +63,12 @@ class UserDefinedArgs {
 
     public static getClippyArgs(): string[] {
         const args = UserDefinedArgs.getArgs('clippyArgs');
+
+        return args;
+    }
+
+    public static getDocArgs(): string[] {
+        const args = UserDefinedArgs.getArgs('docArgs');
 
         return args;
     }
@@ -126,18 +146,18 @@ class CargoTaskManager {
                 throw new Error(`Unhandled crate type=${crateType}`);
         }
 
-        this.outputChannelTaskManager.startTask('init', args, cwd, false);
+        this.outputChannelTaskManager.startTask('init', args, cwd, false, true);
     }
 
-    public invokeCargoBuildWithArgs(args: string[]): void {
-        this.runCargo('build', args, true);
+    public invokeCargoBuildWithArgs(args: string[], reason: CommandInvocationReason): void {
+        this.runCargo('build', args, true, reason);
     }
 
-    public invokeCargoBuildUsingBuildArgs(): void {
-        this.invokeCargoBuildWithArgs(UserDefinedArgs.getBuildArgs());
+    public invokeCargoBuildUsingBuildArgs(reason: CommandInvocationReason): void {
+        this.invokeCargoBuildWithArgs(UserDefinedArgs.getBuildArgs(), reason);
     }
 
-    public invokeCargoCheckWithArgs(args: string[]): void {
+    public invokeCargoCheckWithArgs(args: string[], reason: CommandInvocationReason): void {
         this.checkCargoCheckAvailability().then(isAvailable => {
             let command: string;
 
@@ -149,46 +169,54 @@ class CargoTaskManager {
                 args = args.concat('--', '-Zno-trans');
             }
 
-            this.runCargo(command, args, true);
+            this.runCargo(command, args, true, reason);
         });
     }
 
-    public invokeCargoCheckUsingCheckArgs(): void {
-        this.invokeCargoCheckWithArgs(UserDefinedArgs.getCheckArgs());
+    public invokeCargoCheckUsingCheckArgs(reason: CommandInvocationReason): void {
+        this.invokeCargoCheckWithArgs(UserDefinedArgs.getCheckArgs(), reason);
     }
 
-    public invokeCargoClippyWithArgs(args: string[]): void {
-        this.runCargo('clippy', args, true);
+    public invokeCargoClippyWithArgs(args: string[], reason: CommandInvocationReason): void {
+        this.runCargo('clippy', args, true, reason);
     }
 
-    public invokeCargoClippyUsingClippyArgs(): void {
-        this.invokeCargoClippyWithArgs(UserDefinedArgs.getClippyArgs());
+    public invokeCargoClippyUsingClippyArgs(reason: CommandInvocationReason): void {
+        this.invokeCargoClippyWithArgs(UserDefinedArgs.getClippyArgs(), reason);
+    }
+
+    public invokeCargoDocWithArgs(args: string[], reason: CommandInvocationReason): void {
+        this.runCargo('doc', args, true, reason);
+    }
+
+    public invokeCargoDocUsingDocArgs(reason: CommandInvocationReason): void {
+        this.invokeCargoDocWithArgs(UserDefinedArgs.getDocArgs(), reason);
     }
 
     public async invokeCargoNew(projectName: string, isBin: boolean, cwd: string): Promise<void> {
         const args = [projectName, isBin ? '--bin' : '--lib'];
 
-        await this.outputChannelTaskManager.startTask('new', args, cwd, false);
+        await this.outputChannelTaskManager.startTask('new', args, cwd, false, true);
     }
 
-    public invokeCargoRunWithArgs(args: string[]): void {
-        this.runCargo('run', args, true);
+    public invokeCargoRunWithArgs(args: string[], reason: CommandInvocationReason): void {
+        this.runCargo('run', args, true, reason);
     }
 
-    public invokeCargoRunUsingRunArgs(): void {
-        this.invokeCargoRunWithArgs(UserDefinedArgs.getRunArgs());
+    public invokeCargoRunUsingRunArgs(reason: CommandInvocationReason): void {
+        this.invokeCargoRunWithArgs(UserDefinedArgs.getRunArgs(), reason);
     }
 
-    public invokeCargoTestWithArgs(args: string[]): void {
-        this.runCargo('test', args, true);
+    public invokeCargoTestWithArgs(args: string[], reason: CommandInvocationReason): void {
+        this.runCargo('test', args, true, reason);
     }
 
-    public invokeCargoTestUsingTestArgs(): void {
-        this.invokeCargoTestWithArgs(UserDefinedArgs.getTestArgs());
+    public invokeCargoTestUsingTestArgs(reason: CommandInvocationReason): void {
+        this.invokeCargoTestWithArgs(UserDefinedArgs.getTestArgs(), reason);
     }
 
     public invokeCargo(command: string, args: string[]): void {
-        this.runCargo(command, args, true);
+        this.runCargo(command, args, true, CommandInvocationReason.CommandExecution);
     }
 
     public stopTask(): void {
@@ -210,7 +238,7 @@ class CargoTaskManager {
         return exitCode === 0;
     }
 
-    private async runCargo(command: string, args: string[], force = false): Promise<void> {
+    private async runCargo(command: string, args: string[], force: boolean, reason: CommandInvocationReason): Promise<void> {
         let cwd: string;
 
         try {
@@ -242,12 +270,18 @@ class CargoTaskManager {
                 }
             }
 
-            await this.outputChannelTaskManager.startTask(command, args, cwd, true);
+            // The output channel should be shown only if the user wants that.
+            // The only exception is checking invoked on saving the active document - in that case the output channel shouldn't be shown.
+            const shouldShowOutputChannel: boolean =
+                this.configurationManager.shouldShowRunningCargoTaskOutputChannel() &&
+                !(command === 'check' && reason === CommandInvocationReason.ActionOnSave);
+
+            await this.outputChannelTaskManager.startTask(command, args, cwd, true, shouldShowOutputChannel);
         }
     }
 }
 
-export default class CargoManager {
+export class CargoManager {
     private cargoManager: CargoTaskManager;
 
     private customConfigurationChooser: CustomConfigurationChooser;
@@ -277,24 +311,28 @@ export default class CargoManager {
         this.registerCommands(context, stopCommandName);
     }
 
-    public executeBuildTask(): void {
-        this.cargoManager.invokeCargoBuildUsingBuildArgs();
+    public executeBuildTask(reason: CommandInvocationReason): void {
+        this.cargoManager.invokeCargoBuildUsingBuildArgs(reason);
     }
 
-    public executeCheckTask(): void {
-        this.cargoManager.invokeCargoCheckUsingCheckArgs();
+    public executeCheckTask(reason: CommandInvocationReason): void {
+        this.cargoManager.invokeCargoCheckUsingCheckArgs(reason);
     }
 
-    public executeClippyTask(): void {
-        this.cargoManager.invokeCargoClippyUsingClippyArgs();
+    public executeClippyTask(reason: CommandInvocationReason): void {
+        this.cargoManager.invokeCargoClippyUsingClippyArgs(reason);
     }
 
-    public executeRunTask(): void {
-        this.cargoManager.invokeCargoRunUsingRunArgs();
+    public executeDocTask(reason: CommandInvocationReason): void {
+        this.cargoManager.invokeCargoDocUsingDocArgs(reason);
     }
 
-    public executeTestTask(): void {
-        this.cargoManager.invokeCargoTestUsingTestArgs();
+    public executeRunTask(reason: CommandInvocationReason): void {
+        this.cargoManager.invokeCargoRunUsingRunArgs(reason);
+    }
+
+    public executeTestTask(reason: CommandInvocationReason): void {
+        this.cargoManager.invokeCargoTestUsingTestArgs(reason);
     }
 
     private registerCommands(context: ExtensionContext, stopCommandName: string): void {
@@ -325,7 +363,9 @@ export default class CargoManager {
         context.subscriptions.push(this.registerCommandInvokingCargoWithArgs('rust.cargo.bench', 'bench'));
 
         // Cargo doc
-        context.subscriptions.push(this.registerCommandInvokingCargoWithArgs('rust.cargo.doc', 'doc'));
+        context.subscriptions.push(this.registerCommandInvokingCargoDocUsingDocArgs('rust.cargo.doc.default'));
+
+        context.subscriptions.push(this.registerCommandHelpingChooseArgsAndInvokingCargoDoc('rust.cargo.doc.custom'));
 
         // Cargo update
         context.subscriptions.push(this.registerCommandInvokingCargoWithArgs('rust.cargo.update', 'update'));
@@ -356,28 +396,42 @@ export default class CargoManager {
     public registerCommandHelpingChooseArgsAndInvokingCargoCheck(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
             this.customConfigurationChooser.choose('customCheckConfigurations').then(args => {
-                this.cargoManager.invokeCargoCheckWithArgs(args);
+                this.cargoManager.invokeCargoCheckWithArgs(args, CommandInvocationReason.CommandExecution);
             }, () => undefined);
         });
     }
 
     public registerCommandInvokingCargoCheckUsingCheckArgs(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
-            this.executeCheckTask();
+            this.executeCheckTask(CommandInvocationReason.CommandExecution);
         });
     }
 
     public registerCommandHelpingChooseArgsAndInvokingCargoClippy(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
             this.customConfigurationChooser.choose('customClippyConfigurations').then(args => {
-                this.cargoManager.invokeCargoClippyWithArgs(args);
+                this.cargoManager.invokeCargoClippyWithArgs(args, CommandInvocationReason.CommandExecution);
             }, () => undefined);
         });
     }
 
     public registerCommandInvokingCargoClippyUsingClippyArgs(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
-            this.executeClippyTask();
+            this.executeClippyTask(CommandInvocationReason.CommandExecution);
+        });
+    }
+
+    public registerCommandHelpingChooseArgsAndInvokingCargoDoc(commandName: string): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            this.customConfigurationChooser.choose('customDocConfigurations').then(args => {
+                this.cargoManager.invokeCargoDocWithArgs(args, CommandInvocationReason.CommandExecution);
+            }, () => undefined);
+        });
+    }
+
+    public registerCommandInvokingCargoDocUsingDocArgs(commandName: string): vscode.Disposable {
+        return vscode.commands.registerCommand(commandName, () => {
+            this.executeDocTask(CommandInvocationReason.CommandExecution);
         });
     }
 
@@ -407,42 +461,42 @@ export default class CargoManager {
     public registerCommandHelpingChooseArgsAndInvokingCargoBuild(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
             this.customConfigurationChooser.choose('customBuildConfigurations').then(args => {
-                this.cargoManager.invokeCargoBuildWithArgs(args);
+                this.cargoManager.invokeCargoBuildWithArgs(args, CommandInvocationReason.CommandExecution);
             }, () => undefined);
         });
     }
 
     public registerCommandInvokingCargoBuildUsingBuildArgs(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
-            this.executeBuildTask();
+            this.executeBuildTask(CommandInvocationReason.CommandExecution);
         });
     }
 
     public registerCommandHelpingChooseArgsAndInvokingCargoRun(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
             this.customConfigurationChooser.choose('customRunConfigurations').then(args => {
-                this.cargoManager.invokeCargoRunWithArgs(args);
+                this.cargoManager.invokeCargoRunWithArgs(args, CommandInvocationReason.CommandExecution);
             }, () => undefined);
         });
     }
 
     public registerCommandInvokingCargoRunUsingRunArgs(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
-            this.executeRunTask();
+            this.executeRunTask(CommandInvocationReason.CommandExecution);
         });
     }
 
     public registerCommandHelpingChooseArgsAndInvokingCargoTest(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
             this.customConfigurationChooser.choose('customTestConfigurations').then(args => {
-                this.cargoManager.invokeCargoTestWithArgs(args);
+                this.cargoManager.invokeCargoTestWithArgs(args, CommandInvocationReason.CommandExecution);
             }, () => undefined);
         });
     }
 
     public registerCommandInvokingCargoTestUsingTestArgs(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
-            this.executeTestTask();
+            this.executeTestTask(CommandInvocationReason.CommandExecution);
         });
     }
 
