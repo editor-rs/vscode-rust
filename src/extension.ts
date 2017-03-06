@@ -83,9 +83,6 @@ function addExecutingActionOnSave(
     configurationManager: ConfigurationManager,
     cargoManager: CargoManager
 ): void {
-    context.subscriptions.push(workspace.onWillSaveTextDocument(event => {
-        console.log(event);
-    }));
     context.subscriptions.push(workspace.onDidSaveTextDocument(document => {
         if (!window.activeTextEditor) {
             return;
