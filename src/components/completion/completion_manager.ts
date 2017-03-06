@@ -107,6 +107,9 @@ export default class CompletionManager {
         });
     }
 
+    /**
+     * Starts itself at first time
+     */
     public initialStart(): void {
         const isSourceCodeAvailable: boolean = this.ensureSourceCodeIsAvailable();
 
