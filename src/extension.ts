@@ -12,6 +12,8 @@ import { Manager as LanguageClientManager } from './components/language_client/m
 
 import LoggingManager from './components/logging/logging_manager';
 
+import RootLogger from './components/logging/root_logger';
+
 import LegacyModeManager from './legacy_mode_manager';
 
 export async function activate(ctx: ExtensionContext): Promise<void> {
@@ -23,14 +25,25 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
 
     const currentWorkingDirectoryManager = new CurrentWorkingDirectoryManager();
 
-    const rlsConfiguration: RlsConfiguration | undefined = configurationManager.getRlsConfiguration();
-
     const cargoManager = new CargoManager(
         ctx,
         configurationManager,
         currentWorkingDirectoryManager,
         logger.createChildLogger('Cargo Manager: ')
     );
+
+    chooseModeAndRun(ctx, logger, configurationManager, currentWorkingDirectoryManager);
+
+    addExecutingActionOnSave(ctx, configurationManager, cargoManager);
+}
+
+function chooseModeAndRun(
+    context: ExtensionContext,
+    logger: RootLogger,
+    configurationManager: ConfigurationManager,
+    currentWorkingDirectoryManager: CurrentWorkingDirectoryManager
+): void {
+    const rlsConfiguration: RlsConfiguration | undefined = configurationManager.getRlsConfiguration();
 
     if (rlsConfiguration !== undefined) {
         let { executable, args, env, revealOutputChannelOn } = rlsConfiguration;
@@ -44,7 +57,7 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
         }
 
         const languageClientManager = new LanguageClientManager(
-            ctx,
+            context,
             logger.createChildLogger('Language Client Manager: '),
             executable,
             args,
@@ -55,7 +68,7 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
         languageClientManager.initialStart();
     } else {
         const legacyModeManager = new LegacyModeManager(
-            ctx,
+            context,
             configurationManager,
             currentWorkingDirectoryManager,
             logger.createChildLogger('Legacy Mode Manager: ')
@@ -63,8 +76,6 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
 
         legacyModeManager.start();
     }
-
-    addExecutingActionOnSave(ctx, configurationManager, cargoManager);
 }
 
 function addExecutingActionOnSave(
@@ -72,6 +83,9 @@ function addExecutingActionOnSave(
     configurationManager: ConfigurationManager,
     cargoManager: CargoManager
 ): void {
+    context.subscriptions.push(workspace.onWillSaveTextDocument(event => {
+        console.log(event);
+    }));
     context.subscriptions.push(workspace.onDidSaveTextDocument(document => {
         if (!window.activeTextEditor) {
             return;
