@@ -107,25 +107,44 @@ export default class CompletionManager {
         });
     }
 
-    public start(): void {
-        if (!this.configurationManager.getRustSourcePath()) {
-            const rustcSysRoot = this.configurationManager.getRustcSysRoot();
+    public initialStart(): void {
+        const isSourceCodeAvailable: boolean = this.ensureSourceCodeIsAvailable();
 
-            if (rustcSysRoot && rustcSysRoot.includes('.rustup')) {
-                // tslint:disable-next-line
-                const message = 'You are using rustup, but don\'t have installed source code. Do you want to install it?';
-                window.showErrorMessage(message, 'Yes').then(chosenItem => {
-                    if (chosenItem === 'Yes') {
-                        const terminal = window.createTerminal('Rust source code installation');
-                        terminal.sendText('rustup component add rust-src');
-                        terminal.show();
-                    }
-                });
-            }
+        if (isSourceCodeAvailable) {
+            this.start();
+        }
+    }
 
-            return;
+    /**
+     * Ensures that Rust's source code is available to use
+     * @returns flag indicating whether the source code if available or not
+     */
+    private ensureSourceCodeIsAvailable(): boolean {
+        if (this.configurationManager.getRustSourcePath()) {
+            return true;
         }
 
+        const rustcSysRoot = this.configurationManager.getRustcSysRoot();
+
+        if (rustcSysRoot && rustcSysRoot.includes('.rustup')) {
+            // tslint:disable-next-line
+            const message = 'You are using rustup, but don\'t have installed source code. Do you want to install it?';
+            window.showErrorMessage(message, 'Yes').then(chosenItem => {
+                if (chosenItem === 'Yes') {
+                    const terminal = window.createTerminal('Rust source code installation');
+                    terminal.sendText('rustup component add rust-src');
+                    terminal.show();
+                }
+            });
+        }
+
+        return false;
+    }
+
+    /**
+     * Starts Racer as a daemon, adds itself as definition, completion, hover, signature provider
+     */
+    private start(): void {
         const logger = this.logger.createChildLogger('start: ');
 
         logger.debug('enter');
