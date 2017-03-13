@@ -1,4 +1,4 @@
-import { SpawnOptions, spawn } from 'child_process';
+import { SpawnOptions } from 'child_process';
 
 import { access } from 'fs';
 
@@ -9,6 +9,8 @@ import { WorkspaceConfiguration, workspace } from 'vscode';
 import { RevealOutputChannelOn } from 'vscode-languageclient';
 
 import expandTilde = require('expand-tilde');
+
+import { OutputtingProcess } from '../../OutputtingProcess';
 
 export interface RlsConfiguration {
     executable: string;
@@ -189,26 +191,19 @@ export class ConfigurationManager {
     }
 
     private static async loadRustcSysRoot(): Promise<string | undefined> {
+        const executable = 'rustc';
+
         const args = ['--print', 'sysroot'];
 
         const options: SpawnOptions = { cwd: process.cwd() };
 
-        const spawnedProcess = spawn('rustc', args, options);
+        const output = await OutputtingProcess.spawn(executable, args, options);
 
-        return new Promise<string | undefined>(resolve => {
-            spawnedProcess.on('error', () => {
-                resolve(undefined);
-            });
-            spawnedProcess.on('exit', code => {
-                if (code === 0) {
-                    const sysroot = spawnedProcess.stdout.read().toString().trim();
-
-                    resolve(sysroot);
-                } else {
-                    resolve(undefined);
-                }
-            });
-        });
+        if (output.success && output.exitCode === 0) {
+            return output.stdoutData.trim();
+        } else {
+            return undefined;
+        }
     }
 
     /**
