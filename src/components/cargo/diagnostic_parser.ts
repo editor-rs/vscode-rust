@@ -98,7 +98,7 @@ export class DiagnosticParser {
         }
 
         // Following macro expansion to get correct file name and range.
-        while (primarySpan.expansion && primarySpan.expansion.span) {
+        while (primarySpan.expansion && primarySpan.expansion.span && primarySpan.expansion.macro_decl_name !== 'include!') {
             primarySpan = primarySpan.expansion.span;
         }
 
