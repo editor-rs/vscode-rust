@@ -108,11 +108,11 @@ export class Manager {
     private subscribeOnStateChanging(): void {
         this.languageClient.onDidChangeState(event => {
             if (event.newState === State.Running) {
-                this.languageClient.onNotification({ method: 'rustDocument/diagnosticsBegin' }, () => {
+                this.languageClient.onNotification('rustDocument/diagnosticsBegin', () => {
                     this.statusBarItem.setText('Analysis started');
                 });
 
-                this.languageClient.onNotification({ method: 'rustDocument/diagnosticsEnd' }, () => {
+                this.languageClient.onNotification('rustDocument/diagnosticsEnd', () => {
                     this.statusBarItem.setText('Analysis finished');
                 });
             }
