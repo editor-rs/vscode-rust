@@ -85,7 +85,6 @@ export class OutputChannelTaskManager {
                 case 'clippy':
                 case 'test':
                 case 'run':
-                case 'rustc':
                     args = ['--message-format', 'json'].concat(args);
                     break;
             }

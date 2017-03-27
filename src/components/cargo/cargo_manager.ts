@@ -15,8 +15,6 @@ import { CommandStartHandleResult, Helper } from './helper';
 
 import { OutputChannelTaskManager } from './output_channel_task_manager';
 
-import { Task } from './task';
-
 import { TerminalTaskManager } from './terminal_task_manager';
 
 /**
@@ -158,19 +156,7 @@ class CargoTaskManager {
     }
 
     public invokeCargoCheckWithArgs(args: string[], reason: CommandInvocationReason): void {
-        this.checkCargoCheckAvailability().then(isAvailable => {
-            let command: string;
-
-            if (isAvailable) {
-                command = 'check';
-            } else {
-                command = 'rustc';
-
-                args = args.concat('--', '-Zno-trans');
-            }
-
-            this.runCargo(command, args, true, reason);
-        });
+        this.runCargo('check', args, true, reason);
     }
 
     public invokeCargoCheckUsingCheckArgs(reason: CommandInvocationReason): void {
@@ -223,19 +209,6 @@ class CargoTaskManager {
         if (this.outputChannelTaskManager.hasRunningTask()) {
             this.outputChannelTaskManager.stopRunningTask();
         }
-    }
-
-    private async checkCargoCheckAvailability(): Promise<boolean> {
-        const task = new Task(
-            this.configurationManager,
-            this.logger.createChildLogger('Task: '),
-            ['check', '--help'],
-            '/'
-        );
-
-        const exitCode = await task.execute();
-
-        return exitCode === 0;
     }
 
     private async runCargo(command: string, args: string[], force: boolean, reason: CommandInvocationReason): Promise<void> {
