@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.3.11
+
+### Features
+
+* Support formatting range of lines instead of a whole file in Legacy Mode. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/122)
+
+* Support `"actionOnSave"`:`"doc"`, `"docArgs"`, `"customDocConfigurations"`. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/136)
+
+* Click on the status bar indicator to restart RLS. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/104)
+
+* Don't show the output channel if checking is an action on save. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/133)
+
+### Bug fixes
+
+* Diagnostic messages are shown in an included file instead of the line `include!`. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/149)
+
+* Fixed start up issue. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/148)
+
+* Fixed crash. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/135)
+
+* Fixed suggestion to install Rust's source code. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/131)
+
+### Breaking changes
+
+* Removed a fallback from `cargo check` to `rustc -Z no-trans`. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/159)
+
 ## 0.3.10
 
 ### Bug fixes
