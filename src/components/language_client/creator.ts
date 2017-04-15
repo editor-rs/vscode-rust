@@ -41,9 +41,6 @@ export class Creator {
         this.clientOptions = {
             documentSelector: ['rust'],
             revealOutputChannelOn,
-            synchronize: {
-                configurationSection: 'languageServerExample'
-            },
             errorHandler: new ErrorHandler(onClosed)
         };
 
