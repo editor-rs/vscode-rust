@@ -140,3 +140,6 @@ The indicator may show one of the following statuses:
 * `Stopped` - RLS has been stopped. Features are unavailable
 
 Clicking on the indicator restarts RLS.
+
+## Enabling formatting and renaming
+Create a `rls.toml` file in your project's root and add `unstable_features = true` and RLS will be able to auto format on save and renaming.
