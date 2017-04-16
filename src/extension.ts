@@ -48,9 +48,8 @@ function chooseModeAndRun(
     if (rlsConfiguration !== undefined) {
         let { executable, args, env, revealOutputChannelOn } = rlsConfiguration;
 
-        if (!env) {
-            env = {};
-        }
+        args = args || [];
+        env = env || {};
 
         if (!env.RUST_SRC_PATH) {
             env.RUST_SRC_PATH = configurationManager.getRustSourcePath();
