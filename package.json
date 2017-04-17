@@ -495,39 +495,7 @@
           }
         }
       }
-    },
-    "keybindings": [
-      {
-        "key": "ctrl+shift+b",
-        "command": "rust.cargo.build.default",
-        "when": "editorLangId == 'rust'"
-      },
-      {
-        "key": "ctrl+shift+t",
-        "command": "rust.cargo.test.default",
-        "when": "editorLangId == 'rust'"
-      },
-      {
-        "key": "ctrl+shift+r",
-        "command": "rust.cargo.run.default",
-        "when": "editorLangId == 'rust'"
-      },
-      {
-        "key": "ctrl+shift+alt+b",
-        "command": "rust.cargo.build.custom",
-        "when": "editorLangId == 'rust'"
-      },
-      {
-        "key": "ctrl+shift+alt+t",
-        "command": "rust.cargo.test.custom",
-        "when": "editorLangId == 'rust'"
-      },
-      {
-        "key": "ctrl+shift+alt+r",
-        "command": "rust.cargo.run.custom",
-        "when": "editorLangId == 'rust'"
-      }
-    ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "tsc -p .",
