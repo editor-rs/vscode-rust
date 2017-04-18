@@ -28,21 +28,21 @@ export enum ActionOnStartingCommandIfThereIsRunningCommand {
     ShowDialogToLetUserDecide
 }
 
-export class ConfigurationManager {
+export class Configuration {
     private rustcSysRoot: string | undefined;
 
     private rustSourcePath: string | undefined;
 
-    public static async create(): Promise<ConfigurationManager> {
+    public static async create(): Promise<Configuration> {
         const rustcSysRoot = await this.loadRustcSysRoot();
 
         const rustSourcePath = await this.loadRustSourcePath(rustcSysRoot);
 
-        return new ConfigurationManager(rustcSysRoot, rustSourcePath);
+        return new Configuration(rustcSysRoot, rustSourcePath);
     }
 
     public getRlsConfiguration(): RlsConfiguration | undefined {
-        const configuration = ConfigurationManager.getConfiguration();
+        const configuration = Configuration.getConfiguration();
 
         const rlsConfiguration: any | null = configuration['rls'];
 
@@ -92,7 +92,7 @@ export class ConfigurationManager {
             return true;
         }
 
-        const configuration = ConfigurationManager.getConfiguration();
+        const configuration = Configuration.getConfiguration();
 
         const shouldExecuteCargoCommandInTerminal = configuration['executeCargoCommandInTerminal'];
 
@@ -100,7 +100,7 @@ export class ConfigurationManager {
     }
 
     public getActionOnSave(): string | null {
-        const actionOnSave = ConfigurationManager.getStringParameter('actionOnSave');
+        const actionOnSave = Configuration.getStringParameter('actionOnSave');
 
         return actionOnSave;
     }
@@ -110,7 +110,7 @@ export class ConfigurationManager {
     }
 
     public shouldShowRunningCargoTaskOutputChannel(): boolean {
-        const configuration = ConfigurationManager.getConfiguration();
+        const configuration = Configuration.getConfiguration();
 
         const shouldShowRunningCargoTaskOutputChannel = configuration['showOutput'];
 
@@ -118,7 +118,7 @@ export class ConfigurationManager {
     }
 
     public getCargoEnv(): any {
-        const configuration = ConfigurationManager.getConfiguration();
+        const configuration = Configuration.getConfiguration();
 
         const cargoEnv = configuration['cargoEnv'];
 
@@ -126,39 +126,39 @@ export class ConfigurationManager {
     }
 
     public getCargoCwd(): string | undefined {
-        const cargoCwd = ConfigurationManager.getPathConfigParameter('cargoCwd');
+        const cargoCwd = Configuration.getPathConfigParameter('cargoCwd');
 
         return cargoCwd;
     }
 
     public getCargoPath(): string {
-        const rustsymPath = ConfigurationManager.getPathConfigParameter('cargoPath');
+        const rustsymPath = Configuration.getPathConfigParameter('cargoPath');
 
         return rustsymPath || 'cargo';
     }
 
     public getCargoHomePath(): string | undefined {
-        const configPath = ConfigurationManager.getPathConfigParameter('cargoHomePath');
+        const configPath = Configuration.getPathConfigParameter('cargoHomePath');
 
-        const envPath = ConfigurationManager.getPathEnvParameter('CARGO_HOME');
+        const envPath = Configuration.getPathEnvParameter('CARGO_HOME');
 
         return configPath || envPath || undefined;
     }
 
     public getRacerPath(): string {
-        const racerPath = ConfigurationManager.getPathConfigParameter('racerPath');
+        const racerPath = Configuration.getPathConfigParameter('racerPath');
 
         return racerPath || 'racer';
     }
 
     public getRustfmtPath(): string {
-        const rustfmtPath = ConfigurationManager.getPathConfigParameter('rustfmtPath');
+        const rustfmtPath = Configuration.getPathConfigParameter('rustfmtPath');
 
         return rustfmtPath || 'rustfmt';
     }
 
     public getRustsymPath(): string {
-        const rustsymPath = ConfigurationManager.getPathConfigParameter('rustsymPath');
+        const rustsymPath = Configuration.getPathConfigParameter('rustsymPath');
 
         return rustsymPath || 'rustsym';
     }
@@ -168,7 +168,7 @@ export class ConfigurationManager {
     }
 
     public getActionOnStartingCommandIfThereIsRunningCommand(): ActionOnStartingCommandIfThereIsRunningCommand {
-        const configuration = ConfigurationManager.getConfiguration();
+        const configuration = Configuration.getConfiguration();
 
         const action = configuration['actionOnStartingCommandIfThereIsRunningCommand'];
 

@@ -2,8 +2,8 @@ import { window } from 'vscode';
 
 import {
     ActionOnStartingCommandIfThereIsRunningCommand,
-    ConfigurationManager
-} from '../configuration/configuration_manager';
+    Configuration
+} from '../configuration/Configuration';
 
 export enum CommandStartHandleResult {
     StopRunningCommand,
@@ -14,15 +14,15 @@ export enum CommandStartHandleResult {
  * The class stores functionality which can't be placed somewhere else.
  */
 export class Helper {
-    private configurationManager: ConfigurationManager;
+    private configuration: Configuration;
 
-    public constructor(configurationManager: ConfigurationManager) {
-        this.configurationManager = configurationManager;
+    public constructor(configuration: Configuration) {
+        this.configuration = configuration;
     }
 
     public handleCommandStartWhenThereIsRunningCommand(): Promise<CommandStartHandleResult> {
         const action =
-            this.configurationManager.getActionOnStartingCommandIfThereIsRunningCommand();
+            this.configuration.getActionOnStartingCommandIfThereIsRunningCommand();
 
         switch (action) {
             case ActionOnStartingCommandIfThereIsRunningCommand.ShowDialogToLetUserDecide:

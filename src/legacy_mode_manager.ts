@@ -1,6 +1,6 @@
 import { ExtensionContext } from 'vscode';
 
-import { ConfigurationManager } from './components/configuration/configuration_manager';
+import { Configuration } from './components/configuration/Configuration';
 
 import CurrentWorkingDirectoryManager
     from './components/configuration/current_working_directory_manager';
@@ -34,7 +34,7 @@ export default class LegacyModeManager {
 
     public constructor(
         context: ExtensionContext,
-        configurationManager: ConfigurationManager,
+        configuration: Configuration,
         currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
         logger: ChildLogger
     ) {
@@ -42,26 +42,26 @@ export default class LegacyModeManager {
 
         this.completionManager = new CompletionManager(
             context,
-            configurationManager,
+            configuration,
             logger.createChildLogger('CompletionManager: ')
         );
 
-        this.formattingManager = new FormattingManager(context, configurationManager);
+        this.formattingManager = new FormattingManager(context, configuration);
 
         this.workspaceSymbolProvisionManager = new WorkspaceSymbolProvisionManager(
             context,
-            configurationManager,
+            configuration,
             currentWorkingDirectoryManager
         );
 
         this.documentSymbolProvisionManager = new DocumentSymbolProvisionManager(
             context,
-            configurationManager
+            configuration
         );
 
         this.missingToolsInstallator = new MissingToolsInstallator(
             context,
-            configurationManager,
+            configuration,
             logger.createChildLogger('MissingToolsInstallator: ')
         );
         this.missingToolsInstallator.addStatusBarItemIfSomeToolsAreMissing();

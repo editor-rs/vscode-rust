@@ -31,7 +31,7 @@ import {
 
 import { fileSync } from 'tmp';
 
-import { ConfigurationManager } from '../configuration/configuration_manager';
+import { Configuration } from '../configuration/Configuration';
 
 import getDocumentFilter from '../configuration/mod';
 
@@ -40,7 +40,7 @@ import ChildLogger from '../logging/child_logger';
 import RacerStatusBarItem from './racer_status_bar_item';
 
 export default class CompletionManager {
-    private configurationManager: ConfigurationManager;
+    private configuration: Configuration;
 
     private logger: ChildLogger;
 
@@ -78,10 +78,10 @@ export default class CompletionManager {
 
     public constructor(
         context: ExtensionContext,
-        configurationManager: ConfigurationManager,
+        configuration: Configuration,
         logger: ChildLogger
     ) {
-        this.configurationManager = configurationManager;
+        this.configuration = configuration;
 
         this.logger = logger;
 
@@ -123,11 +123,11 @@ export default class CompletionManager {
      * @returns flag indicating whether the source code if available or not
      */
     private ensureSourceCodeIsAvailable(): boolean {
-        if (this.configurationManager.getRustSourcePath()) {
+        if (this.configuration.getRustSourcePath()) {
             return true;
         }
 
-        const rustcSysRoot = this.configurationManager.getRustcSysRoot();
+        const rustcSysRoot = this.configuration.getRustcSysRoot();
 
         if (rustcSysRoot && rustcSysRoot.includes('.rustup')) {
             // tslint:disable-next-line
@@ -159,19 +159,19 @@ export default class CompletionManager {
         this.lastCommand = '';
         this.providers = [];
 
-        this.racerPath = this.configurationManager.getRacerPath();
+        this.racerPath = this.configuration.getRacerPath();
 
         logger.debug(`racerPath=${this.racerPath}`);
 
         this.racerStatusBarItem.showTurnedOn();
-        const cargoHomePath = this.configurationManager.getCargoHomePath();
+        const cargoHomePath = this.configuration.getCargoHomePath();
         const racerSpawnOptions: SpawnOptions = {
             stdio: 'pipe',
             shell: true,
             env: Object.assign({}, process.env)
         };
 
-        const rustSourcePath = this.configurationManager.getRustSourcePath();
+        const rustSourcePath = this.configuration.getRustSourcePath();
 
         if (rustSourcePath) {
             racerSpawnOptions.env.RUST_SRC_PATH = rustSourcePath;
@@ -226,7 +226,7 @@ export default class CompletionManager {
         this.hookCapabilities();
 
         this.listeners.push(workspace.onDidChangeConfiguration(() => {
-            const newPath = this.configurationManager.getRacerPath();
+            const newPath = this.configuration.getRacerPath();
 
             if (this.racerPath !== newPath) {
                 this.restart();
