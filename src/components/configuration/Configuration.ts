@@ -1,9 +1,5 @@
 import { SpawnOptions } from 'child_process';
 
-import { access } from 'fs';
-
-import { join } from 'path';
-
 import { WorkspaceConfiguration, workspace } from 'vscode';
 
 import { RevealOutputChannelOn } from 'vscode-languageclient';
@@ -11,6 +7,12 @@ import { RevealOutputChannelOn } from 'vscode-languageclient';
 import expandTilde = require('expand-tilde');
 
 import { OutputtingProcess } from '../../OutputtingProcess';
+
+import { FileSystem } from '../file_system/FileSystem';
+
+import { Rustup } from './Rustup';
+
+import { NotRustup } from './NotRustup';
 
 export interface RlsConfiguration {
     executable: string;
@@ -28,17 +30,42 @@ export enum ActionOnStartingCommandIfThereIsRunningCommand {
     ShowDialogToLetUserDecide
 }
 
+/**
+ * The main class of the component `Configuration`.
+ * This class contains code related to Configuration
+ */
 export class Configuration {
-    private rustcSysRoot: string | undefined;
+    private rustInstallation: Rustup | NotRustup | undefined;
 
-    private rustSourcePath: string | undefined;
+    /**
+     * A path to Rust's source code specified by a user.
+     * It contains a value of either:
+     *   - the configuration parameter `rust.rustLangSrcPath`
+     *   - the environment variable `RUST_SRC_PATH`
+     * The path has higher priority than a path to Rust's source code contained within an installation
+     */
+    private pathToRustSourceCodeSpecifiedByUser: string | undefined;
 
     public static async create(): Promise<Configuration> {
-        const rustcSysRoot = await this.loadRustcSysRoot();
+        const rustcSysRoot: string | undefined = await this.loadRustcSysRoot();
 
-        const rustSourcePath = await this.loadRustSourcePath(rustcSysRoot);
+        const createRustInstallationPromise = async () => {
+            if (!rustcSysRoot) {
+                return undefined;
+            }
 
-        return new Configuration(rustcSysRoot, rustSourcePath);
+            if (Rustup.doesManageRustcSysRoot(rustcSysRoot)) {
+                return await Rustup.create(rustcSysRoot);
+            } else {
+                return new NotRustup(rustcSysRoot);
+            }
+        };
+
+        const rustInstallation: Rustup | NotRustup | undefined = await createRustInstallationPromise();
+
+        const pathToRustSourceCodeSpecifiedByUser = await this.checkPathToRustSourceCodeSpecifiedByUser();
+
+        return new Configuration(rustInstallation, pathToRustSourceCodeSpecifiedByUser);
     }
 
     public getRlsConfiguration(): RlsConfiguration | undefined {
@@ -105,8 +132,8 @@ export class Configuration {
         return actionOnSave;
     }
 
-    public getRustcSysRoot(): string | undefined {
-        return this.rustcSysRoot;
+    public getRustInstallation(): Rustup | NotRustup | undefined {
+        return this.rustInstallation;
     }
 
     public shouldShowRunningCargoTaskOutputChannel(): boolean {
@@ -164,7 +191,15 @@ export class Configuration {
     }
 
     public getRustSourcePath(): string | undefined {
-        return this.rustSourcePath;
+        if (this.pathToRustSourceCodeSpecifiedByUser) {
+            return this.pathToRustSourceCodeSpecifiedByUser;
+        }
+
+        if (this.rustInstallation instanceof Rustup) {
+            return this.rustInstallation.getPathToRustSourceCode();
+        }
+
+        return undefined;
     }
 
     public getActionOnStartingCommandIfThereIsRunningCommand(): ActionOnStartingCommandIfThereIsRunningCommand {
@@ -207,63 +242,59 @@ export class Configuration {
     }
 
     /**
-     * Loads the path of the Rust's source code.
-     * It tries to load from different places.
+     * Checks if a user specified a path to Rust's source code in the configuration and if it is, checks if the specified path does really exist
+     * @return Promise which after resolving contains either a path if the path suits otherwise undefined
+     */
+    private static async checkPathToRustSourceCodeSpecifiedByUserInConfiguration(): Promise<string | undefined> {
+        let configPath: string | undefined = this.getPathConfigParameter('rustLangSrcPath');
+
+        if (configPath) {
+            const configPathExists: boolean = await FileSystem.doesFileOrDirectoryExists(configPath);
+
+            if (!configPathExists) {
+                configPath = undefined;
+            }
+        }
+
+        return configPath;
+    }
+
+    /**
+     * Tries to find a path to Rust's source code specified by a user.
+     * The method is asynchronous because it checks if a directory-candidate exists
+     * It tries to find it in different places.
      * These places sorted by priority (the first item has the highest priority):
      * * User/Workspace configuration
      * * Environment
-     * * Rustup
      */
-    private static async loadRustSourcePath(rustcSysRoot: string | undefined): Promise<string | undefined> {
-        const configPath: string | undefined = this.getPathConfigParameter('rustLangSrcPath');
+    private static async checkPathToRustSourceCodeSpecifiedByUser(): Promise<string | undefined> {
+        const configPath: string | undefined = await this.checkPathToRustSourceCodeSpecifiedByUserInConfiguration();
 
-        const configPathExists: boolean = configPath !== undefined && await this.checkPathExists(configPath);
-
-        if (configPathExists) {
+        if (configPath) {
             return configPath;
         }
 
         const envPath: string | undefined = this.getPathEnvParameter('RUST_SRC_PATH');
 
-        const envPathExists: boolean = envPath !== undefined && await this.checkPathExists(envPath);
+        const envPathExists: boolean = envPath !== undefined && await FileSystem.doesFileOrDirectoryExists(envPath);
 
         if (envPathExists) {
             return envPath;
-        }
-
-        if (!rustcSysRoot) {
-            return undefined;
-        }
-
-        if (!rustcSysRoot.includes('.rustup')) {
-            return undefined;
-        }
-
-        const rustupPath: string = join(rustcSysRoot, 'lib', 'rustlib', 'src', 'rust', 'src');
-
-        const rustupPathExists: boolean = await this.checkPathExists(rustupPath);
-
-        if (rustupPathExists) {
-            return rustupPath;
         } else {
             return undefined;
         }
     }
 
-    private static checkPathExists(path: string): Promise<boolean> {
-        return new Promise<boolean>(resolve => {
-            access(path, err => {
-                const pathExists = !err;
+    /**
+     * Creates a new instance of the class.
+     * The constructor is private because creating a new instance should be done via the method `create`
+     * @param rustInstallation A value for the field `rustInstallation`
+     * @param pathToRustSourceCodeSpecifiedByUser A value for the field `pathToRustSourceCodeSpecifiedByUser`
+     */
+    private constructor(rustInstallation: Rustup | NotRustup | undefined, pathToRustSourceCodeSpecifiedByUser: string | undefined) {
+        this.rustInstallation = rustInstallation;
 
-                resolve(pathExists);
-            });
-        });
-    }
-
-    private constructor(rustcSysRoot: string | undefined, rustSourcePath: string | undefined) {
-        this.rustcSysRoot = rustcSysRoot;
-
-        this.rustSourcePath = rustSourcePath;
+        this.pathToRustSourceCodeSpecifiedByUser = pathToRustSourceCodeSpecifiedByUser;
     }
 
     private static getStringParameter(parameterName: string): string | null {
