@@ -14,7 +14,7 @@ import {
     window
 } from 'vscode';
 
-import { ConfigurationManager } from '../configuration/configuration_manager';
+import { Configuration } from '../configuration/Configuration';
 
 import getDocumentFilter from '../configuration/mod';
 
@@ -27,12 +27,12 @@ interface RustFmtDiff {
 }
 
 export default class FormattingManager implements DocumentFormattingEditProvider, DocumentRangeFormattingEditProvider {
-    private configurationManager: ConfigurationManager;
+    private configuration: Configuration;
 
     private newFormatRegex: RegExp = /^Diff in (.*) at line (\d+):$/;
 
-    public constructor(context: ExtensionContext, configurationManager: ConfigurationManager) {
-        this.configurationManager = configurationManager;
+    public constructor(context: ExtensionContext, configuration: Configuration) {
+        this.configuration = configuration;
 
         context.subscriptions.push(
             languages.registerDocumentFormattingEditProvider(
@@ -67,7 +67,7 @@ export default class FormattingManager implements DocumentFormattingEditProvider
                 args.push(fileName);
             }
             let env = Object.assign({ TERM: 'xterm' }, process.env);
-            cp.execFile(this.configurationManager.getRustfmtPath(), args, { env: env }, (err, stdout, stderr) => {
+            cp.execFile(this.configuration.getRustfmtPath(), args, { env: env }, (err, stdout, stderr) => {
                 try {
                     if (err && (<any>err).code === 'ENOENT') {
                         window.showInformationMessage('The "rustfmt" command is not available. Make sure it is installed.');

@@ -3,7 +3,7 @@ import * as tmp from 'tmp';
 
 import { ExtensionContext } from 'vscode';
 
-import { ConfigurationManager } from '../configuration/configuration_manager';
+import { Configuration } from '../configuration/Configuration';
 
 import CurrentWorkingDirectoryManager from '../configuration/current_working_directory_manager';
 
@@ -96,7 +96,7 @@ class UserDefinedArgs {
 }
 
 class CargoTaskManager {
-    private configurationManager: ConfigurationManager;
+    private configuration: Configuration;
 
     private currentWorkingDirectoryManager: CurrentWorkingDirectoryManager;
 
@@ -108,24 +108,24 @@ class CargoTaskManager {
 
     public constructor(
         context: ExtensionContext,
-        configurationManager: ConfigurationManager,
+        configuration: Configuration,
         currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
         logger: ChildLogger,
         stopCommandName: string
     ) {
-        this.configurationManager = configurationManager;
+        this.configuration = configuration;
 
         this.currentWorkingDirectoryManager = currentWorkingDirectoryManager;
 
         this.logger = logger;
 
         this.outputChannelTaskManager = new OutputChannelTaskManager(
-            configurationManager,
+            configuration,
             logger.createChildLogger('OutputChannelTaskManager: '),
             stopCommandName
         );
 
-        this.terminalTaskManager = new TerminalTaskManager(context, configurationManager);
+        this.terminalTaskManager = new TerminalTaskManager(context, configuration);
     }
 
     public async invokeCargoInit(crateType: CrateType, name: string, cwd: string): Promise<void> {
@@ -222,7 +222,7 @@ class CargoTaskManager {
             return;
         }
 
-        if (this.configurationManager.shouldExecuteCargoCommandInTerminal()) {
+        if (this.configuration.shouldExecuteCargoCommandInTerminal()) {
             this.terminalTaskManager.execute(command, args, cwd);
         } else {
             if (this.outputChannelTaskManager.hasRunningTask()) {
@@ -230,7 +230,7 @@ class CargoTaskManager {
                     return;
                 }
 
-                const helper = new Helper(this.configurationManager);
+                const helper = new Helper(this.configuration);
 
                 const result = await helper.handleCommandStartWhenThereIsRunningCommand();
 
@@ -246,7 +246,7 @@ class CargoTaskManager {
             // The output channel should be shown only if the user wants that.
             // The only exception is checking invoked on saving the active document - in that case the output channel shouldn't be shown.
             const shouldShowOutputChannel: boolean =
-                this.configurationManager.shouldShowRunningCargoTaskOutputChannel() &&
+                this.configuration.shouldShowRunningCargoTaskOutputChannel() &&
                 !(command === 'check' && reason === CommandInvocationReason.ActionOnSave);
 
             await this.outputChannelTaskManager.startTask(command, args, cwd, true, shouldShowOutputChannel);
@@ -263,7 +263,7 @@ export class CargoManager {
 
     public constructor(
         context: ExtensionContext,
-        configurationManager: ConfigurationManager,
+        configuration: Configuration,
         currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
         logger: ChildLogger
     ) {
@@ -271,13 +271,13 @@ export class CargoManager {
 
         this.cargoManager = new CargoTaskManager(
             context,
-            configurationManager,
+            configuration,
             currentWorkingDirectoryManager,
             logger.createChildLogger('CargoTaskManager: '),
             stopCommandName
         );
 
-        this.customConfigurationChooser = new CustomConfigurationChooser(configurationManager);
+        this.customConfigurationChooser = new CustomConfigurationChooser(configuration);
 
         this.logger = logger;
 

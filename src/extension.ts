@@ -2,9 +2,9 @@ import { ExtensionContext, window, workspace } from 'vscode';
 
 import { CargoManager, CommandInvocationReason } from './components/cargo/cargo_manager';
 
-import { RlsConfiguration } from './components/configuration/configuration_manager';
+import { RlsConfiguration } from './components/configuration/Configuration';
 
-import { ConfigurationManager } from './components/configuration/configuration_manager';
+import { Configuration } from './components/configuration/Configuration';
 
 import CurrentWorkingDirectoryManager from './components/configuration/current_working_directory_manager';
 
@@ -21,29 +21,29 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
 
     const logger = loggingManager.getLogger();
 
-    const configurationManager = await ConfigurationManager.create();
+    const configuration = await Configuration.create();
 
     const currentWorkingDirectoryManager = new CurrentWorkingDirectoryManager();
 
     const cargoManager = new CargoManager(
         ctx,
-        configurationManager,
+        configuration,
         currentWorkingDirectoryManager,
         logger.createChildLogger('Cargo Manager: ')
     );
 
-    chooseModeAndRun(ctx, logger, configurationManager, currentWorkingDirectoryManager);
+    chooseModeAndRun(ctx, logger, configuration, currentWorkingDirectoryManager);
 
-    addExecutingActionOnSave(ctx, configurationManager, cargoManager);
+    addExecutingActionOnSave(ctx, configuration, cargoManager);
 }
 
 function chooseModeAndRun(
     context: ExtensionContext,
     logger: RootLogger,
-    configurationManager: ConfigurationManager,
+    configuration: Configuration,
     currentWorkingDirectoryManager: CurrentWorkingDirectoryManager
 ): void {
-    const rlsConfiguration: RlsConfiguration | undefined = configurationManager.getRlsConfiguration();
+    const rlsConfiguration: RlsConfiguration | undefined = configuration.getRlsConfiguration();
 
     if (rlsConfiguration !== undefined) {
         let { executable, args, env, revealOutputChannelOn } = rlsConfiguration;
@@ -53,7 +53,7 @@ function chooseModeAndRun(
         }
 
         if (!env.RUST_SRC_PATH) {
-            env.RUST_SRC_PATH = configurationManager.getRustSourcePath();
+            env.RUST_SRC_PATH = configuration.getRustSourcePath();
         }
 
         const languageClientManager = new LanguageClientManager(
@@ -69,7 +69,7 @@ function chooseModeAndRun(
     } else {
         const legacyModeManager = new LegacyModeManager(
             context,
-            configurationManager,
+            configuration,
             currentWorkingDirectoryManager,
             logger.createChildLogger('Legacy Mode Manager: ')
         );
@@ -80,7 +80,7 @@ function chooseModeAndRun(
 
 function addExecutingActionOnSave(
     context: ExtensionContext,
-    configurationManager: ConfigurationManager,
+    configuration: Configuration,
     cargoManager: CargoManager
 ): void {
     context.subscriptions.push(workspace.onDidSaveTextDocument(document => {
@@ -98,7 +98,7 @@ function addExecutingActionOnSave(
             return;
         }
 
-        const actionOnSave = configurationManager.getActionOnSave();
+        const actionOnSave = configuration.getActionOnSave();
 
         if (!actionOnSave) {
             return;

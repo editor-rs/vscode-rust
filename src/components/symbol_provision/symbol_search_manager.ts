@@ -2,17 +2,17 @@ import { execFile } from 'child_process';
 
 import { SymbolInformation, window } from 'vscode';
 
-import { ConfigurationManager } from '../configuration/configuration_manager';
+import { Configuration } from '../configuration/Configuration';
 
 import SymbolInformationParser from './symbol_information_parser';
 
 export default class SymbolSearchManager {
-    private configurationManager: ConfigurationManager;
+    private configuration: Configuration;
 
     private symbolInformationParser: SymbolInformationParser;
 
-    public constructor(configurationManager: ConfigurationManager) {
-        this.configurationManager = configurationManager;
+    public constructor(configuration: Configuration) {
+        this.configuration = configuration;
 
         this.symbolInformationParser = new SymbolInformationParser();
     }
@@ -29,7 +29,7 @@ export default class SymbolSearchManager {
     }
 
     private findSymbols(args: string[]): Promise<SymbolInformation[]> {
-        const executable = this.configurationManager.getRustsymPath();
+        const executable = this.configuration.getRustsymPath();
 
         const options = { maxBuffer: 1024 * 1024 };
 

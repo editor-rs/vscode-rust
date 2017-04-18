@@ -6,14 +6,14 @@ import { ExtensionContext, commands, window, workspace } from 'vscode';
 
 import { getCommandToExecuteStatementsOneByOneIfPreviousIsSucceed } from '../../CommandLine';
 
-import { ConfigurationManager } from '../configuration/configuration_manager';
+import { Configuration } from '../configuration/Configuration';
 
 import ChildLogger from '../logging/child_logger';
 
 import MissingToolsStatusBarItem from './missing_tools_status_bar_item';
 
 export default class Installator {
-    private configurationManager: ConfigurationManager;
+    private configuration: Configuration;
 
     private logger: ChildLogger;
 
@@ -23,10 +23,10 @@ export default class Installator {
 
     public constructor(
         context: ExtensionContext,
-        configurationManager: ConfigurationManager,
+        configuration: Configuration,
         logger: ChildLogger
     ) {
-        this.configurationManager = configurationManager;
+        this.configuration = configuration;
 
         this.logger = logger;
 
@@ -71,7 +71,7 @@ export default class Installator {
     private installMissingTools(): void {
         const terminal = window.createTerminal('Rust tools installation');
         // cargo install tool && cargo install another_tool
-        const cargoBinPath = this.configurationManager.getCargoPath();
+        const cargoBinPath = this.configuration.getCargoPath();
 
         const shell: string = workspace.getConfiguration('terminal')['integrated']['shell']['windows'];
 
@@ -93,9 +93,9 @@ export default class Installator {
         logger.debug(`pathDirectories=${JSON.stringify(pathDirectories)}`);
 
         const tools: { [tool: string]: string } = {
-            'racer': this.configurationManager.getRacerPath(),
-            'rustfmt': this.configurationManager.getRustfmtPath(),
-            'rustsym': this.configurationManager.getRustsymPath()
+            'racer': this.configuration.getRacerPath(),
+            'rustfmt': this.configuration.getRustfmtPath(),
+            'rustsym': this.configuration.getRustsymPath()
         };
 
         logger.debug(`tools=${JSON.stringify(tools)}`);

@@ -6,7 +6,7 @@ import {
     languages
 } from 'vscode';
 
-import { ConfigurationManager } from '../configuration/configuration_manager';
+import { Configuration } from '../configuration/Configuration';
 
 import getDocumentFilter from '../configuration/mod';
 
@@ -15,8 +15,8 @@ import SymbolSearchManager from './symbol_search_manager';
 export default class DocumentSymbolProvisionManager implements DocumentSymbolProvider {
     private symbolSearchManager: SymbolSearchManager;
 
-    public constructor(context: ExtensionContext, configurationManager: ConfigurationManager) {
-        this.symbolSearchManager = new SymbolSearchManager(configurationManager);
+    public constructor(context: ExtensionContext, configuration: Configuration) {
+        this.symbolSearchManager = new SymbolSearchManager(configuration);
 
         context.subscriptions.push(
             languages.registerDocumentSymbolProvider(getDocumentFilter(), this)

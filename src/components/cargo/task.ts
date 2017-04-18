@@ -4,14 +4,14 @@ import kill = require('tree-kill');
 
 import * as readline from 'readline';
 
-import { ConfigurationManager } from '../configuration/configuration_manager';
+import { Configuration } from '../configuration/Configuration';
 
 import ChildLogger from '../logging/child_logger';
 
 export type ExitCode = number;
 
 export class Task {
-    private configurationManager: ConfigurationManager;
+    private configuration: Configuration;
 
     private logger: ChildLogger;
 
@@ -30,12 +30,12 @@ export class Task {
     private interrupted: boolean;
 
     public constructor(
-        configurationManager: ConfigurationManager,
+        configuration: Configuration,
         logger: ChildLogger,
         args: string[],
         cwd: string
     ) {
-        this.configurationManager = configurationManager;
+        this.configuration = configuration;
 
         this.logger = logger;
 
@@ -68,11 +68,11 @@ export class Task {
 
     public execute(): Thenable<ExitCode> {
         return new Promise<ExitCode>((resolve, reject) => {
-            const cargoPath = this.configurationManager.getCargoPath();
+            const cargoPath = this.configuration.getCargoPath();
 
             let env = Object.assign({}, process.env);
 
-            const cargoEnv = this.configurationManager.getCargoEnv();
+            const cargoEnv = this.configuration.getCargoEnv();
 
             if (cargoEnv) {
                 env = Object.assign(env, cargoEnv);

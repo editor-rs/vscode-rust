@@ -2,7 +2,7 @@ import { join } from 'path';
 
 import { DiagnosticCollection, languages, window } from 'vscode';
 
-import { ConfigurationManager } from '../configuration/configuration_manager';
+import { Configuration } from '../configuration/Configuration';
 
 import ChildLogger from '../logging/child_logger';
 
@@ -19,7 +19,7 @@ import { ExitCode, Task } from './task';
 export class OutputChannelTaskManager {
     private channel: OutputChannelWrapper;
 
-    private configurationManager: ConfigurationManager;
+    private configuration: Configuration;
 
     private logger: ChildLogger;
 
@@ -32,13 +32,13 @@ export class OutputChannelTaskManager {
     private statusBarItem: OutputChannelTaskStatusBarItem;
 
     public constructor(
-        configurationManager: ConfigurationManager,
+        configuration: Configuration,
         logger: ChildLogger,
         stopCommandName: string
     ) {
         this.channel = new OutputChannelWrapper(window.createOutputChannel('Cargo'));
 
-        this.configurationManager = configurationManager;
+        this.configuration = configuration;
 
         this.logger = logger;
 
@@ -56,7 +56,7 @@ export class OutputChannelTaskManager {
         parseOutput: boolean,
         shouldShowOutputChannnel: boolean
     ): Promise<void> {
-        const cargoCwd = this.configurationManager.getCargoCwd();
+        const cargoCwd = this.configuration.getCargoCwd();
 
         /**
          * Prepends the manifest path to arguments
@@ -103,7 +103,7 @@ export class OutputChannelTaskManager {
         }
 
         this.runningTask = new Task(
-            this.configurationManager,
+            this.configuration,
             this.logger.createChildLogger('Task: '),
             args,
             cwd

@@ -6,15 +6,15 @@ import { getCommandToSetEnvVar } from '../../CommandLine';
 
 import { CommandStartHandleResult, Helper } from './helper';
 
-import { ConfigurationManager } from '../configuration/configuration_manager';
+import { Configuration } from '../configuration/Configuration';
 
 export class TerminalTaskManager {
-    private configurationManager: ConfigurationManager;
+    private configuration: Configuration;
 
     private runningTerminal: Terminal | undefined;
 
-    public constructor(context: ExtensionContext, configurationManager: ConfigurationManager) {
-        this.configurationManager = configurationManager;
+    public constructor(context: ExtensionContext, configuration: Configuration) {
+        this.configuration = configuration;
 
         context.subscriptions.push(
             window.onDidCloseTerminal(closedTerminal => {
@@ -27,13 +27,13 @@ export class TerminalTaskManager {
 
     public async execute(command: string, args: string[], cwd: string): Promise<void> {
         if (this.runningTerminal) {
-            const helper = new Helper(this.configurationManager);
+            const helper = new Helper(this.configuration);
 
             const result = await helper.handleCommandStartWhenThereIsRunningCommand();
 
             switch (result) {
                 case CommandStartHandleResult.IgnoreNewCommand:
-            return;
+                    return;
 
                 case CommandStartHandleResult.StopRunningCommand:
                     this.runningTerminal.dispose();
@@ -46,7 +46,7 @@ export class TerminalTaskManager {
         this.runningTerminal = terminal;
 
         const setEnvironmentVariables = () => {
-            const cargoEnv = this.configurationManager.getCargoEnv();
+            const cargoEnv = this.configuration.getCargoEnv();
 
             const shell: string = workspace.getConfiguration('terminal')['integrated']['shell']['windows'];
 
@@ -62,7 +62,7 @@ export class TerminalTaskManager {
 
         setEnvironmentVariables();
 
-        const cargoCwd = this.configurationManager.getCargoCwd();
+        const cargoCwd = this.configuration.getCargoCwd();
 
         if (cargoCwd !== undefined && cargoCwd !== cwd) {
             const manifestPath = join(cwd, 'Cargo.toml');
@@ -75,7 +75,7 @@ export class TerminalTaskManager {
         // Change the current directory to a specified directory
         this.runningTerminal.sendText(`cd "${cwd}"`);
 
-        const cargoPath = this.configurationManager.getCargoPath();
+        const cargoPath = this.configuration.getCargoPath();
 
         // Start a requested command
         this.runningTerminal.sendText(`${cargoPath} ${command} ${args.join(' ')}`);

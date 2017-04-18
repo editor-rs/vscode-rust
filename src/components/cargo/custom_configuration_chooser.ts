@@ -1,6 +1,6 @@
 import { QuickPickItem, window } from 'vscode';
 
-import { ConfigurationManager } from '../configuration/configuration_manager';
+import { Configuration } from '../configuration/Configuration';
 
 interface CustomConfiguration {
     title: string;
@@ -25,14 +25,14 @@ class CustomConfigurationQuickPickItem implements QuickPickItem {
 }
 
 export default class CustomConfigurationChooser {
-    private configurationManager: ConfigurationManager;
+    private configuration: Configuration;
 
-    public constructor(configurationManager: ConfigurationManager) {
-        this.configurationManager = configurationManager;
+    public constructor(configuration: Configuration) {
+        this.configuration = configuration;
     }
 
     public choose(propertyName: string): Thenable<string[]> {
-        const configuration = ConfigurationManager.getConfiguration();
+        const configuration = Configuration.getConfiguration();
 
         const customConfigurations = configuration.get<CustomConfiguration[]>(propertyName);
 
