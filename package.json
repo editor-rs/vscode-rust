@@ -512,11 +512,13 @@
     "typescript": "2.2.1",
     "vscode": "1.1.0",
     "@types/node": "7.0.11",
-    "@types/mocha": "2.2.40"
+    "@types/mocha": "2.2.40",
+    "@types/open": "0.0.29"
   },
   "dependencies": {
     "expand-tilde": "2.0.2",
     "tmp": "0.0.31",
+    "open": "0.0.5",
     "tree-kill": "1.1.0",
     "find-up": "2.1.0",
     "elegant-spinner": "1.0.1",
