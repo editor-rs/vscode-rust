@@ -10,13 +10,13 @@ import { OutputtingProcess } from '../../OutputtingProcess';
 
 import { FileSystem } from '../file_system/FileSystem';
 
+import ChildLogger from '../logging/child_logger';
+
 import { Rustup } from './Rustup';
 
 import { NotRustup } from './NotRustup';
 
 export interface RlsConfiguration {
-    executable: string;
-
     args?: string[];
 
     env?: any;
@@ -35,6 +35,8 @@ export enum ActionOnStartingCommandIfThereIsRunningCommand {
  * This class contains code related to Configuration
  */
 export class Configuration {
+    private logger: ChildLogger;
+
     private rustInstallation: Rustup | NotRustup | undefined;
 
     /**
@@ -46,7 +48,19 @@ export class Configuration {
      */
     private pathToRustSourceCodeSpecifiedByUser: string | undefined;
 
-    public static async create(): Promise<Configuration> {
+    /**
+     * A path to the executable of RLS specified by a user.
+     * A user can specify it via the configuration parameter `rust.rls.executable`
+     * The path has higher priority than a path found automatically
+     */
+    private pathToRlsSpecifiedByUser: string | undefined;
+
+    /**
+     * Creates a new instance of the class.
+     * This method is asynchronous because it works with the file system
+     * @param logger a logger to log messages
+     */
+    public static async create(logger: ChildLogger): Promise<Configuration> {
         const rustcSysRoot: string | undefined = await this.loadRustcSysRoot();
 
         const createRustInstallationPromise = async () => {
@@ -55,7 +69,7 @@ export class Configuration {
             }
 
             if (Rustup.doesManageRustcSysRoot(rustcSysRoot)) {
-                return await Rustup.create(rustcSysRoot);
+                return await Rustup.create(logger.createChildLogger('Rustup: '), rustcSysRoot);
             } else {
                 return new NotRustup(rustcSysRoot);
             }
@@ -65,52 +79,123 @@ export class Configuration {
 
         const pathToRustSourceCodeSpecifiedByUser = await this.checkPathToRustSourceCodeSpecifiedByUser();
 
-        return new Configuration(rustInstallation, pathToRustSourceCodeSpecifiedByUser);
+        const configuration = new Configuration(
+            logger,
+            rustInstallation,
+            pathToRustSourceCodeSpecifiedByUser,
+            undefined
+        );
+
+        configuration.updatePathToRlsExecutableSpecifiedByUser();
+
+        return configuration;
     }
 
-    public getRlsConfiguration(): RlsConfiguration | undefined {
-        const configuration = Configuration.getConfiguration();
+    /**
+     * Returns either a path to the executable of RLS or undefined
+     */
+    public getPathToRlsExecutable(): string | undefined {
+        if (this.pathToRlsSpecifiedByUser) {
+            return this.pathToRlsSpecifiedByUser;
+        }
 
-        const rlsConfiguration: any | null = configuration['rls'];
+        if (this.rustInstallation instanceof Rustup) {
+            const pathToRlsExecutable = this.rustInstallation.getPathToRlsExecutable();
+
+            if (pathToRlsExecutable) {
+                return pathToRlsExecutable;
+            }
+        }
+
+        return undefined;
+    }
+
+    /**
+     * Returns a list of arguments to spawn RLS with
+     * Possible values are:
+     * * A list of arguments specified by a user with the configuration parameter `rust.rls.args`
+     * * undefined
+     */
+    public getRlsArgs(): string[] | undefined {
+        const rlsConfiguration = this.getRlsConfiguration();
 
         if (!rlsConfiguration) {
             return undefined;
         }
 
-        const executable: string = rlsConfiguration.executable;
-        const args: string[] | null = rlsConfiguration.args;
-        const env: any | null = rlsConfiguration.env;
-        const revealOutputChannelOn: string = rlsConfiguration.revealOutputChannelOn;
+        const rlsArgs = rlsConfiguration.args;
 
-        let revealOutputChannelOnEnum: RevealOutputChannelOn;
+        return rlsArgs;
+    }
 
-        switch (revealOutputChannelOn) {
-            case 'info':
-                revealOutputChannelOnEnum = RevealOutputChannelOn.Info;
-                break;
+    /**
+     * Returns an object representing an environment to run RLS in.
+     * Possible values are:
+     * * A value of the configuration parameter `rust.rls.env`
+     * * An empty object
+     * This method also tries to set RUST_SRC_PATH for any possible value
+     */
+    public getRlsEnv(): object {
+        const rlsConfiguration: any | undefined = this.getRlsConfiguration();
 
-            case 'warn':
-                revealOutputChannelOnEnum = RevealOutputChannelOn.Warn;
-                break;
+        let rlsEnv: any = {};
 
-            case 'error':
-                revealOutputChannelOnEnum = RevealOutputChannelOn.Error;
-                break;
+        if (rlsConfiguration) {
+            const rlsEnvSpecifiedByUser = rlsConfiguration.env;
 
-            case 'never':
-                revealOutputChannelOnEnum = RevealOutputChannelOn.Never;
-                break;
-
-            default:
-                revealOutputChannelOnEnum = RevealOutputChannelOn.Error;
+            if (rlsEnvSpecifiedByUser) {
+                rlsEnv = rlsEnvSpecifiedByUser;
+            }
         }
 
-        return {
-            executable,
-            args: args !== null ? args : undefined,
-            env: env !== null ? env : undefined,
-            revealOutputChannelOn: revealOutputChannelOnEnum
-        };
+        if (!rlsEnv.RUST_SRC_PATH) {
+            rlsEnv.RUST_SRC_PATH = this.getRustSourcePath();
+        }
+
+        return rlsEnv;
+    }
+
+    /**
+     * Returns a mode specifying for which kinds of messages the RLS output channel should be revealed
+     * The possible values are (the higher the greater priority):
+     * * A value specified by a user with the configuration parameter `rust.rls.revealOutputChannelOn`
+     * * A default value which is on error
+     */
+    public getRlsRevealOutputChannelOn(): RevealOutputChannelOn {
+        const rlsConfiguration: any | undefined = this.getRlsConfiguration();
+
+        const defaultValue = RevealOutputChannelOn.Error;
+
+        if (!rlsConfiguration) {
+            return defaultValue;
+        }
+
+        const valueSpecifiedByUser = rlsConfiguration.revealOutputChannelOn;
+
+        switch (valueSpecifiedByUser) {
+            case 'info':
+                return RevealOutputChannelOn.Info;
+
+            case 'warn':
+                return RevealOutputChannelOn.Warn;
+
+            case 'error':
+                return RevealOutputChannelOn.Error;
+
+            case 'never':
+                return RevealOutputChannelOn.Never;
+
+            default:
+                return defaultValue;
+        }
+    }
+
+    private getRlsConfiguration(): any | undefined {
+        const configuration = Configuration.getConfiguration();
+
+        const rlsConfiguration: any = configuration['rls'];
+
+        return rlsConfiguration;
     }
 
     public shouldExecuteCargoCommandInTerminal(): boolean {
@@ -286,15 +371,73 @@ export class Configuration {
     }
 
     /**
+     * Checks if a user specified a path to the executable of RLS via the configuration parameter.
+     * It assigns either a path specified by a user or undefined, depending on if a user specified a path and the specified path exists.
+     * This method is asynchronous because it checks if a path specified by a user exists
+     */
+    private async updatePathToRlsExecutableSpecifiedByUser(): Promise<void> {
+        function getRlsExecutable(): string | undefined {
+            const configuration = Configuration.getConfiguration();
+
+            const rlsConfiguration = configuration['rls'];
+
+            if (!rlsConfiguration) {
+                return undefined;
+            }
+
+            const pathToRlsExecutable = rlsConfiguration.executable;
+
+            if (!pathToRlsExecutable) {
+                return undefined;
+            }
+
+            return expandTilde(pathToRlsExecutable);
+        }
+
+        const logger = this.logger.createChildLogger('updatePathToRlsSpecifiedByUser: ');
+
+        const pathToRlsExecutable: string | undefined = getRlsExecutable();
+
+        if (!pathToRlsExecutable) {
+            this.pathToRlsSpecifiedByUser = undefined;
+
+            return;
+        }
+
+        const doesPathToRlsExecutableExist: boolean = await FileSystem.doesFileOrDirectoryExists(pathToRlsExecutable);
+
+        if (!doesPathToRlsExecutableExist) {
+            logger.error(`The specified path does not exist. Path=${pathToRlsExecutable}`);
+
+            this.pathToRlsSpecifiedByUser = undefined;
+
+            return;
+        }
+
+        this.pathToRlsSpecifiedByUser = pathToRlsExecutable;
+    }
+
+    /**
      * Creates a new instance of the class.
      * The constructor is private because creating a new instance should be done via the method `create`
+     * @param logger A value for the field `logger`
      * @param rustInstallation A value for the field `rustInstallation`
      * @param pathToRustSourceCodeSpecifiedByUser A value for the field `pathToRustSourceCodeSpecifiedByUser`
+     * @param pathToRlsSpecifiedByUser A value for the field `pathToRlsSpecifiedByUser`
      */
-    private constructor(rustInstallation: Rustup | NotRustup | undefined, pathToRustSourceCodeSpecifiedByUser: string | undefined) {
+    private constructor(
+        logger: ChildLogger,
+        rustInstallation: Rustup | NotRustup | undefined,
+        pathToRustSourceCodeSpecifiedByUser: string | undefined,
+        pathToRlsSpecifiedByUser: string | undefined
+    ) {
+        this.logger = logger;
+
         this.rustInstallation = rustInstallation;
 
         this.pathToRustSourceCodeSpecifiedByUser = pathToRustSourceCodeSpecifiedByUser;
+
+        this.pathToRlsSpecifiedByUser = pathToRlsSpecifiedByUser;
     }
 
     private static getStringParameter(parameterName: string): string | null {

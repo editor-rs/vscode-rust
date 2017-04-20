@@ -2,8 +2,6 @@ import { ExtensionContext, window, workspace } from 'vscode';
 
 import { CargoManager, CommandInvocationReason } from './components/cargo/cargo_manager';
 
-import { RlsConfiguration } from './components/configuration/Configuration';
-
 import { Configuration } from './components/configuration/Configuration';
 
 import CurrentWorkingDirectoryManager from './components/configuration/current_working_directory_manager';
@@ -21,7 +19,7 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
 
     const logger = loggingManager.getLogger();
 
-    const configuration = await Configuration.create();
+    const configuration = await Configuration.create(logger.createChildLogger('Configuration: '));
 
     const currentWorkingDirectoryManager = new CurrentWorkingDirectoryManager();
 
@@ -37,35 +35,55 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
     addExecutingActionOnSave(ctx, configuration, cargoManager);
 }
 
+/**
+ * Starts the extension in RLS mode
+ * @param context An extension context to use
+ * @param logger A logger to log messages
+ * @param configuration A configuration
+ * @param pathToRlsExecutable A path to the executable of RLS
+ */
+function runInRlsMode(
+    context: ExtensionContext,
+    logger: RootLogger,
+    configuration: Configuration,
+    pathToRlsExecutable: string
+): void {
+    const methodLogger = logger.createChildLogger('runInRlsMode: ');
+
+    const env = configuration.getRlsEnv();
+
+    methodLogger.debug(`env=${JSON.stringify(env)}`);
+
+    const args = configuration.getRlsArgs();
+
+    methodLogger.debug(`args=${JSON.stringify(args)}`);
+
+    let revealOutputChannelOn = configuration.getRlsRevealOutputChannelOn();
+
+    methodLogger.debug(`revealOutputChannelOn=${revealOutputChannelOn}`);
+
+    const languageClientManager = new LanguageClientManager(
+        context,
+        logger.createChildLogger('Language Client Manager: '),
+        pathToRlsExecutable,
+        args,
+        env,
+        revealOutputChannelOn
+    );
+
+    languageClientManager.initialStart();
+}
+
 function chooseModeAndRun(
     context: ExtensionContext,
     logger: RootLogger,
     configuration: Configuration,
     currentWorkingDirectoryManager: CurrentWorkingDirectoryManager
 ): void {
-    const rlsConfiguration: RlsConfiguration | undefined = configuration.getRlsConfiguration();
+    const pathToRlsExecutable = configuration.getPathToRlsExecutable();
 
-    if (rlsConfiguration !== undefined) {
-        let { executable, args, env, revealOutputChannelOn } = rlsConfiguration;
-
-        if (!env) {
-            env = {};
-        }
-
-        if (!env.RUST_SRC_PATH) {
-            env.RUST_SRC_PATH = configuration.getRustSourcePath();
-        }
-
-        const languageClientManager = new LanguageClientManager(
-            context,
-            logger.createChildLogger('Language Client Manager: '),
-            executable,
-            args,
-            env,
-            revealOutputChannelOn
-        );
-
-        languageClientManager.initialStart();
+    if (pathToRlsExecutable) {
+        runInRlsMode(context, logger, configuration, pathToRlsExecutable);
     } else {
         const legacyModeManager = new LegacyModeManager(
             context,
