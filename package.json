@@ -495,39 +495,7 @@
           }
         }
       }
-    },
-    "keybindings": [
-      {
-        "key": "ctrl+shift+b",
-        "command": "rust.cargo.build.default",
-        "when": "editorLangId == 'rust'"
-      },
-      {
-        "key": "ctrl+shift+t",
-        "command": "rust.cargo.test.default",
-        "when": "editorLangId == 'rust'"
-      },
-      {
-        "key": "ctrl+shift+r",
-        "command": "rust.cargo.run.default",
-        "when": "editorLangId == 'rust'"
-      },
-      {
-        "key": "ctrl+shift+alt+b",
-        "command": "rust.cargo.build.custom",
-        "when": "editorLangId == 'rust'"
-      },
-      {
-        "key": "ctrl+shift+alt+t",
-        "command": "rust.cargo.test.custom",
-        "when": "editorLangId == 'rust'"
-      },
-      {
-        "key": "ctrl+shift+alt+r",
-        "command": "rust.cargo.run.custom",
-        "when": "editorLangId == 'rust'"
-      }
-    ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "tsc -p .",
@@ -544,11 +512,13 @@
     "typescript": "2.2.1",
     "vscode": "1.1.0",
     "@types/node": "7.0.11",
-    "@types/mocha": "2.2.40"
+    "@types/mocha": "2.2.40",
+    "@types/open": "0.0.29"
   },
   "dependencies": {
     "expand-tilde": "2.0.2",
     "tmp": "0.0.31",
+    "open": "0.0.5",
     "tree-kill": "1.1.0",
     "find-up": "2.1.0",
     "elegant-spinner": "1.0.1",

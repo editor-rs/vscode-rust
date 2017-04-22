@@ -18,7 +18,8 @@ export function getCommandToSetEnvVar(shell: string, varName: string, varValue: 
     } else if (shell.includes('cmd')) {
         return `set ${varName}=${varValue}`;
     } else {
-        return `export ${varName}=${varValue}`;
+        // The string starts with space to make sh not save the command
+        return ` export ${varName}=${varValue}`;
     }
 }
 
@@ -43,7 +44,9 @@ export function getCommandToExecuteStatementsOneByOneIfPreviousIsSucceed(shell: 
 
         return command;
     } else {
-        let command = statements[0];
+        // The string starts with space to make sh not save the command.
+        // This code is also executed for cmd on Windows, but leading space doesn't break anything
+        let command = ' ' + statements[0];
 
         for (let i = 1; i < statements.length; ++i) {
             command += ` && ${statements[i]}`;

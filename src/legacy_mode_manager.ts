@@ -1,6 +1,6 @@
 import { ExtensionContext } from 'vscode';
 
-import { ConfigurationManager } from './components/configuration/configuration_manager';
+import { Configuration } from './components/configuration/Configuration';
 
 import CurrentWorkingDirectoryManager
     from './components/configuration/current_working_directory_manager';
@@ -22,6 +22,8 @@ import MissingToolsInstallator from './components/tools_installation/installator
 export default class LegacyModeManager {
     private context: ExtensionContext;
 
+    private configuration: Configuration;
+
     private completionManager: CompletionManager;
 
     private formattingManager: FormattingManager;
@@ -34,41 +36,47 @@ export default class LegacyModeManager {
 
     public constructor(
         context: ExtensionContext,
-        configurationManager: ConfigurationManager,
+        configuration: Configuration,
         currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
         logger: ChildLogger
     ) {
         this.context = context;
 
+        this.configuration = configuration;
+
         this.completionManager = new CompletionManager(
             context,
-            configurationManager,
+            configuration,
             logger.createChildLogger('CompletionManager: ')
         );
 
-        this.formattingManager = new FormattingManager(context, configurationManager);
+        this.formattingManager = new FormattingManager(context, configuration);
 
         this.workspaceSymbolProvisionManager = new WorkspaceSymbolProvisionManager(
             context,
-            configurationManager,
+            configuration,
             currentWorkingDirectoryManager
         );
 
         this.documentSymbolProvisionManager = new DocumentSymbolProvisionManager(
             context,
-            configurationManager
+            configuration
         );
 
         this.missingToolsInstallator = new MissingToolsInstallator(
             context,
-            configurationManager,
+            configuration,
             logger.createChildLogger('MissingToolsInstallator: ')
         );
-        this.missingToolsInstallator.addStatusBarItemIfSomeToolsAreMissing();
     }
 
-    public start(): void {
+    public async start(): Promise<void> {
         this.context.subscriptions.push(this.completionManager.disposable());
-        this.completionManager.initialStart();
+
+        await this.configuration.updatePathToRacer();
+
+        await this.missingToolsInstallator.addStatusBarItemIfSomeToolsAreMissing();
+
+        await this.completionManager.initialStart();
     }
 }

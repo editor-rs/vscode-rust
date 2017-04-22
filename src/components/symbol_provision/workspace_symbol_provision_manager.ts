@@ -6,14 +6,14 @@ import {
     window
 } from 'vscode';
 
-import { ConfigurationManager } from '../configuration/configuration_manager';
+import { Configuration } from '../configuration/Configuration';
 
 import CurrentWorkingDirectoryManager from '../configuration/current_working_directory_manager';
 
 import SymbolSearchManager from './symbol_search_manager';
 
 export default class WorkspaceSymbolProvisionManager implements WorkspaceSymbolProvider {
-    private configurationManager: ConfigurationManager;
+    private configuration: Configuration;
 
     private currentWorkingDirectoryManager: CurrentWorkingDirectoryManager;
 
@@ -21,14 +21,14 @@ export default class WorkspaceSymbolProvisionManager implements WorkspaceSymbolP
 
     public constructor(
         context: ExtensionContext,
-        configurationManager: ConfigurationManager,
+        configuration: Configuration,
         currentWorkingDirectoryManager: CurrentWorkingDirectoryManager
     ) {
-        this.configurationManager = configurationManager;
+        this.configuration = configuration;
 
         this.currentWorkingDirectoryManager = currentWorkingDirectoryManager;
 
-        this.symbolSearchManager = new SymbolSearchManager(configurationManager);
+        this.symbolSearchManager = new SymbolSearchManager(configuration);
 
         context.subscriptions.push(languages.registerWorkspaceSymbolProvider(this));
     }
