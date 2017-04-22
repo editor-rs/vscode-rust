@@ -55,7 +55,6 @@ export default class CompletionManager {
     private tmpFile: string;
     private providers: Disposable[];
     private listeners: Disposable[];
-    private racerPath: string;
     private typeMap: { [type: string]: CompletionItemKind } = {
         'Struct': CompletionItemKind.Class,
         'Module': CompletionItemKind.Module,
@@ -110,14 +109,29 @@ export default class CompletionManager {
     }
 
     /**
-     * Starts itself at first time
+     * Starts itself at first time.
+     * Starting fails if a user does not have either racer or Rust's source code
      */
-    public initialStart(): void {
+    public async initialStart(): Promise<void> {
+        const logger = this.logger.createChildLogger('initialStart: ');
+
+        const pathToRacer: string | undefined = this.configuration.getPathToRacer();
+
+        if (!pathToRacer) {
+            logger.createChildLogger('racer is not installed');
+
+            return;
+        }
+
         const isSourceCodeAvailable: boolean = this.ensureSourceCodeIsAvailable();
 
-        if (isSourceCodeAvailable) {
-            this.start();
+        if (!isSourceCodeAvailable) {
+            logger.createChildLogger('Rust\'s source is not installed');
+
+            return;
         }
+
+        this.start(pathToRacer);
     }
 
     /**
@@ -146,8 +160,9 @@ export default class CompletionManager {
 
     /**
      * Starts Racer as a daemon, adds itself as definition, completion, hover, signature provider
+     * @param pathToRacer A path to the executable of racer which does exist
      */
-    private start(): void {
+    private start(pathToRacer: string): void {
         const logger = this.logger.createChildLogger('start: ');
 
         logger.debug('enter');
@@ -159,9 +174,7 @@ export default class CompletionManager {
         this.lastCommand = '';
         this.providers = [];
 
-        this.racerPath = this.configuration.getRacerPath();
-
-        logger.debug(`racerPath=${this.racerPath}`);
+        logger.debug(`racerPath=${pathToRacer}`);
 
         this.racerStatusBarItem.showTurnedOn();
         const cargoHomePath = this.configuration.getCargoHomePath();
@@ -184,7 +197,7 @@ export default class CompletionManager {
         logger.debug(`ENV[RUST_SRC_PATH] = ${racerSpawnOptions.env['RUST_SRC_PATH']}`);
 
         this.racerDaemon = spawn(
-            this.racerPath,
+            pathToRacer,
             ['--interface=tab-text', 'daemon'],
             racerSpawnOptions
         );
@@ -198,7 +211,7 @@ export default class CompletionManager {
             } else {
                 this.racerStatusBarItem.showCrashed();
 
-                this.scheduleRestart();
+                this.scheduleRestart(pathToRacer);
             }
         });
         this.racerDaemon.on('close', (code: number, signal: string) => {
@@ -211,7 +224,7 @@ export default class CompletionManager {
             } else {
                 this.racerStatusBarItem.showCrashed();
 
-                this.scheduleRestart();
+                this.scheduleRestart(pathToRacer);
             }
         });
 
@@ -225,11 +238,13 @@ export default class CompletionManager {
 
         this.hookCapabilities();
 
-        this.listeners.push(workspace.onDidChangeConfiguration(() => {
-            const newPath = this.configuration.getRacerPath();
+        this.listeners.push(workspace.onDidChangeConfiguration(async () => {
+            await this.configuration.updatePathToRacer();
 
-            if (this.racerPath !== newPath) {
-                this.restart();
+            const newPathToRacer: string | undefined = this.configuration.getPathToRacer();
+
+            if (pathToRacer !== newPathToRacer) {
+                this.restart(newPathToRacer);
             }
         }));
     }
@@ -243,15 +258,30 @@ export default class CompletionManager {
         this.clearCommandCallbacks();
     }
 
-    public restart(): void {
+    /**
+     * Stops the current running instance of racer and starts a new one if a path is defined
+     * @param pathToRacer A path to the executable of racer
+     */
+    public restart(pathToRacer: string | undefined): void {
         this.logger.warning('restart');
 
         this.stop();
-        this.start();
+
+        if (pathToRacer) {
+            this.start(pathToRacer);
+        }
     }
 
-    private scheduleRestart(): void {
-        setTimeout(this.restart.bind(this), 3000);
+    /**
+     * Schedules a restart after some time
+     * @param pathToRacer A path to the executable of racer
+     */
+    private scheduleRestart(pathToRacer: string): void {
+        const onTimeout = () => {
+            this.restart(pathToRacer);
+        };
+
+        setTimeout(onTimeout, 3000);
     }
 
     private stopDaemon(): void {

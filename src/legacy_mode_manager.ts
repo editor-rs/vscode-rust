@@ -22,6 +22,8 @@ import MissingToolsInstallator from './components/tools_installation/installator
 export default class LegacyModeManager {
     private context: ExtensionContext;
 
+    private configuration: Configuration;
+
     private completionManager: CompletionManager;
 
     private formattingManager: FormattingManager;
@@ -39,6 +41,8 @@ export default class LegacyModeManager {
         logger: ChildLogger
     ) {
         this.context = context;
+
+        this.configuration = configuration;
 
         this.completionManager = new CompletionManager(
             context,
@@ -64,11 +68,15 @@ export default class LegacyModeManager {
             configuration,
             logger.createChildLogger('MissingToolsInstallator: ')
         );
-        this.missingToolsInstallator.addStatusBarItemIfSomeToolsAreMissing();
     }
 
-    public start(): void {
+    public async start(): Promise<void> {
         this.context.subscriptions.push(this.completionManager.disposable());
-        this.completionManager.initialStart();
+
+        await this.configuration.updatePathToRacer();
+
+        await this.missingToolsInstallator.addStatusBarItemIfSomeToolsAreMissing();
+
+        await this.completionManager.initialStart();
     }
 }

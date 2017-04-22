@@ -199,7 +199,7 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
         logger.createChildLogger('Cargo Manager: ')
     );
 
-    chooseModeAndRun(ctx, logger, configuration, currentWorkingDirectoryManager);
+    await chooseModeAndRun(ctx, logger, configuration, currentWorkingDirectoryManager);
 
     addExecutingActionOnSave(ctx, configuration, cargoManager);
 }
@@ -243,12 +243,12 @@ function runInRlsMode(
     languageClientManager.initialStart();
 }
 
-function chooseModeAndRun(
+async function chooseModeAndRun(
     context: ExtensionContext,
     logger: RootLogger,
     configuration: Configuration,
     currentWorkingDirectoryManager: CurrentWorkingDirectoryManager
-): void {
+): Promise<void> {
     const pathToRlsExecutable = configuration.getPathToRlsExecutable();
 
     if (pathToRlsExecutable) {
@@ -261,7 +261,7 @@ function chooseModeAndRun(
             logger.createChildLogger('Legacy Mode Manager: ')
         );
 
-        legacyModeManager.start();
+        await legacyModeManager.start();
     }
 }
 
