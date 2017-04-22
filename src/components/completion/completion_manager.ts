@@ -33,6 +33,8 @@ import { fileSync } from 'tmp';
 
 import { Configuration } from '../configuration/Configuration';
 
+import { Rustup } from '../configuration/Rustup';
+
 import getDocumentFilter from '../configuration/mod';
 
 import ChildLogger from '../logging/child_logger';
@@ -127,9 +129,7 @@ export default class CompletionManager {
             return true;
         }
 
-        const rustcSysRoot = this.configuration.getRustcSysRoot();
-
-        if (rustcSysRoot && rustcSysRoot.includes('.rustup')) {
+        if (this.configuration.getRustInstallation() instanceof Rustup) {
             // tslint:disable-next-line
             const message = 'You are using rustup, but don\'t have installed source code. Do you want to install it?';
             window.showErrorMessage(message, 'Yes').then(chosenItem => {
