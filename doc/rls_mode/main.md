@@ -28,6 +28,20 @@ The possible values are:
 
 ## Setting up
 
+The recommended way to set RLS up is using rustup. You should use rustup unless rustup does not suit you.
+
+If you can't answer if rustup suits you, then it suits you.
+
+### Using rustup
+
+If rustup is installed on your computer, then when the extension activates it checks if RLS is installed and if it is not, then the extension asks your permission to update rustup and install RLS.
+
+If you agree with this, the extension will do it and start itself in RLS mode.
+
+You don't have to specify either settings to make RLS work because the extension will do it automatically.
+
+### Using source
+
 First of all, you have to download the [RLS](https://github.com/rust-lang-nursery/rls) sources:
 
 ```bash

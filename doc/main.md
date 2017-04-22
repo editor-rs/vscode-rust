@@ -11,6 +11,11 @@ The extension can function in one of two modes:
 * [Legacy Mode](legacy_mode/main.md)
 * [Rust Language Server Mode](rls_mode/main.md)
 
+The first mode is called *Legacy* because this mode does its best, but the second one is better.
+The second one is recommended and at some point the first one will be removed.
+
+But Legacy Mode should work just fine and if it doesn't, open an issue.
+
 Each mode is described in detail on its own page.
 
 Furthermore, the extension provides:
