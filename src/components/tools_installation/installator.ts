@@ -92,8 +92,8 @@ export default class Installator {
 
         logger.debug(`pathDirectories=${JSON.stringify(pathDirectories)}`);
 
-        const tools: { [tool: string]: string } = {
-            'racer': this.configuration.getRacerPath(),
+        const tools: { [tool: string]: string | undefined } = {
+            'racer': this.configuration.getPathToRacer(),
             'rustfmt': this.configuration.getRustfmtPath(),
             'rustsym': this.configuration.getRustsymPath()
         };
@@ -105,6 +105,13 @@ export default class Installator {
         const missingTools = keys.map(tool => {
             // Check if the path exists as-is.
             let userPath = tools[tool];
+
+            if (!userPath) {
+                // A path is undefined, so a tool is missing
+
+                return tool;
+            }
+
             if (existsSync(userPath)) {
                 logger.debug(`${tool}'s path=${userPath}`);
 

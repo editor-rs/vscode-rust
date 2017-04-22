@@ -56,6 +56,15 @@ export class Configuration {
     private pathToRlsSpecifiedByUser: string | undefined;
 
     /**
+     * A path to the executable of racer.
+     * It contains a value of either:
+     *   - the configuration parameter `rust.racerPath`
+     *   - a path found in any of directories specified in the envirionment variable PATH
+     * The configuration parameter has higher priority than automatically found path
+     */
+    private pathToRacer: string | undefined;
+
+    /**
      * Creates a new instance of the class.
      * This method is asynchronous because it works with the file system
      * @param logger a logger to log messages
@@ -83,12 +92,64 @@ export class Configuration {
             logger,
             rustInstallation,
             pathToRustSourceCodeSpecifiedByUser,
+            undefined,
             undefined
         );
 
         configuration.updatePathToRlsExecutableSpecifiedByUser();
 
         return configuration;
+    }
+
+    /**
+     * Updates the value of the field `pathToRacer`.
+     * It checks if a user specified any path in the configuration.
+     * If no path specified or a specified path can't be used, it finds in directories specified in the environment variable PATH.
+     * This method is asynchronous because it checks if a path exists before setting it to the field
+     */
+    public async updatePathToRacer(): Promise<void> {
+        const logger = this.logger.createChildLogger('updatePathToRacer: ');
+
+        this.pathToRacer = undefined;
+
+        const pathToRacerSpecifiedByUser: string | undefined = Configuration.getPathConfigParameter('racerPath');
+
+        const doesPathToRacerSpecifiedByUserExist: boolean = pathToRacerSpecifiedByUser
+            ? await FileSystem.doesFileOrDirectoryExists(pathToRacerSpecifiedByUser)
+            : false;
+
+        if (doesPathToRacerSpecifiedByUserExist) {
+            // A user specified existing path, we will use it
+
+            logger.debug(`Path specified by a user exists. Path=${pathToRacerSpecifiedByUser}`);
+
+            this.pathToRacer = pathToRacerSpecifiedByUser;
+
+            return;
+        }
+
+        // Either a user specified an invalid path or a user specified nothing
+        // Let's try to find a path to the executable of racer
+        const foundPathToRacer: string | undefined = await FileSystem.findExecutablePath('racer');
+
+        if (!foundPathToRacer) {
+            // We couldn't find any executable of Racer
+
+            logger.debug('Failed to find racer in PATH');
+
+            return;
+        }
+
+        logger.debug(`Found racer=${foundPathToRacer}`);
+
+        this.pathToRacer = foundPathToRacer;
+    }
+
+    /**
+     * Returns a value of the field `pathToRacer`
+     */
+    public getPathToRacer(): string | undefined {
+        return this.pathToRacer;
     }
 
     /**
@@ -257,12 +318,6 @@ export class Configuration {
         return configPath || envPath || undefined;
     }
 
-    public getRacerPath(): string {
-        const racerPath = Configuration.getPathConfigParameter('racerPath');
-
-        return racerPath || 'racer';
-    }
-
     public getRustfmtPath(): string {
         const rustfmtPath = Configuration.getPathConfigParameter('rustfmtPath');
 
@@ -424,12 +479,14 @@ export class Configuration {
      * @param rustInstallation A value for the field `rustInstallation`
      * @param pathToRustSourceCodeSpecifiedByUser A value for the field `pathToRustSourceCodeSpecifiedByUser`
      * @param pathToRlsSpecifiedByUser A value for the field `pathToRlsSpecifiedByUser`
+     * @param pathToRacer A value for the field `pathToRacer`
      */
     private constructor(
         logger: ChildLogger,
         rustInstallation: Rustup | NotRustup | undefined,
         pathToRustSourceCodeSpecifiedByUser: string | undefined,
-        pathToRlsSpecifiedByUser: string | undefined
+        pathToRlsSpecifiedByUser: string | undefined,
+        pathToRacer: string | undefined
     ) {
         this.logger = logger;
 
@@ -438,6 +495,8 @@ export class Configuration {
         this.pathToRustSourceCodeSpecifiedByUser = pathToRustSourceCodeSpecifiedByUser;
 
         this.pathToRlsSpecifiedByUser = pathToRlsSpecifiedByUser;
+
+        this.pathToRacer = pathToRacer;
     }
 
     private static getStringParameter(parameterName: string): string | null {
