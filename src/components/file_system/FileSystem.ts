@@ -1,6 +1,6 @@
 import { access } from 'fs';
 
-import { delimiter, extname, join } from 'path';
+import which = require('which');
 
 /**
  * Code related to file system
@@ -27,28 +27,14 @@ export class FileSystem {
      * @return A path to the executable if it has been found otherwise undefined
      */
     public static async findExecutablePath(executable: string): Promise<string | undefined> {
-        if (!process.env.PATH) {
-            return undefined;
-        }
-
-        // A executable on Windows ends with ".exe".
-        // Since this method can be called without the extension we need to add it if it is necessary
-        if (process.platform === 'win32' && extname(executable).length === 0) {
-            executable += '.exe';
-        }
-
-        const paths: string[] = process.env.PATH.split(delimiter);
-
-        for (const path of paths) {
-            const possibleExecutablePath = join(path, executable);
-
-            const doesPathExist: boolean = await FileSystem.doesPathExist(possibleExecutablePath);
-
-            if (doesPathExist) {
-                return possibleExecutablePath;
-            }
-        }
-
-        return undefined;
+        return new Promise<string | undefined>(resolve => {
+            which(executable, (err, path) => {
+                if (err) {
+                    resolve(undefined);
+                } else {
+                    resolve(path);
+                }
+            });
+        });
     }
 }

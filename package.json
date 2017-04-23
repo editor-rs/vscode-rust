@@ -513,7 +513,8 @@
     "vscode": "1.1.0",
     "@types/node": "7.0.11",
     "@types/mocha": "2.2.40",
-    "@types/open": "0.0.29"
+    "@types/open": "0.0.29",
+    "@types/which": "1.0.28"
   },
   "dependencies": {
     "expand-tilde": "2.0.2",
@@ -522,6 +523,7 @@
     "tree-kill": "1.1.0",
     "find-up": "2.1.0",
     "elegant-spinner": "1.0.1",
-    "vscode-languageclient": "3.2.0"
+    "vscode-languageclient": "3.2.0",
+    "which": "1.2.14"
   }
 }
