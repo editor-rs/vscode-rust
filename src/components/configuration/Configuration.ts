@@ -175,17 +175,21 @@ export class Configuration {
      * Returns a list of arguments to spawn RLS with
      * Possible values are:
      * * A list of arguments specified by a user with the configuration parameter `rust.rls.args`
-     * * undefined
+     * * An empty list
      */
-    public getRlsArgs(): string[] | undefined {
-        const rlsConfiguration = this.getRlsConfiguration();
-
-        if (!rlsConfiguration) {
-            return undefined;
-        }
-
-        const rlsArgs = rlsConfiguration.args;
-
+    public getRlsArgs(): string[] {
+        const getRlsArgsSpecifiedByUser = () => {
+            const rlsConfiguration: any = this.getRlsConfiguration();
+            if (!rlsConfiguration) {
+                return undefined;
+            }
+            const rlsArgsSpecifiedByUser: any = rlsConfiguration.args;
+            if (!rlsArgsSpecifiedByUser) {
+                return undefined;
+            }
+            return rlsArgsSpecifiedByUser;
+        };
+        const rlsArgs = getRlsArgsSpecifiedByUser() || [];
         return rlsArgs;
     }
 
@@ -197,22 +201,21 @@ export class Configuration {
      * This method also tries to set RUST_SRC_PATH for any possible value
      */
     public getRlsEnv(): object {
-        const rlsConfiguration: any | undefined = this.getRlsConfiguration();
-
-        let rlsEnv: any = {};
-
-        if (rlsConfiguration) {
-            const rlsEnvSpecifiedByUser = rlsConfiguration.env;
-
-            if (rlsEnvSpecifiedByUser) {
-                rlsEnv = rlsEnvSpecifiedByUser;
+        const getRlsEnvSpecifiedByUser = () => {
+            const rlsConfiguration: any = this.getRlsConfiguration();
+            if (!rlsConfiguration) {
+                return undefined;
             }
-        }
-
+            const rlsEnvSpecifiedByUser: any = rlsConfiguration.env;
+            if (!rlsEnvSpecifiedByUser) {
+                return undefined;
+            }
+            return rlsEnvSpecifiedByUser;
+        };
+        const rlsEnv = getRlsEnvSpecifiedByUser() || {};
         if (!rlsEnv.RUST_SRC_PATH) {
             rlsEnv.RUST_SRC_PATH = this.getRustSourcePath();
         }
-
         return rlsEnv;
     }
 
