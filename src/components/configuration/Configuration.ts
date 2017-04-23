@@ -53,7 +53,7 @@ export class Configuration {
      * A user can specify it via the configuration parameter `rust.rls.executable`
      * The path has higher priority than a path found automatically
      */
-    private pathToRlsSpecifiedByUser: string | undefined;
+    private userRlsPath: string | undefined;
 
     /**
      * A path to the executable of racer.
@@ -62,7 +62,7 @@ export class Configuration {
      *   - a path found in any of directories specified in the envirionment variable PATH
      * The configuration parameter has higher priority than automatically found path
      */
-    private pathToRacer: string | undefined;
+    private racerPath: string | undefined;
 
     /**
      * Creates a new instance of the class.
@@ -96,7 +96,7 @@ export class Configuration {
             undefined
         );
 
-        configuration.updatePathToRlsExecutableSpecifiedByUser();
+        configuration.updateUserRlsPath();
 
         return configuration;
     }
@@ -109,55 +109,43 @@ export class Configuration {
      */
     public async updatePathToRacer(): Promise<void> {
         const logger = this.logger.createChildLogger('updatePathToRacer: ');
+        this.racerPath = undefined;
 
-        this.pathToRacer = undefined;
-
-        const pathToRacerSpecifiedByUser: string | undefined = Configuration.getPathConfigParameter('racerPath');
-
-        const doesPathToRacerSpecifiedByUserExist: boolean = pathToRacerSpecifiedByUser
-            ? await FileSystem.doesFileOrDirectoryExists(pathToRacerSpecifiedByUser)
-            : false;
-
-        if (doesPathToRacerSpecifiedByUserExist) {
+        const userRacerPath: string | undefined = Configuration.getPathConfigParameter('racerPath');
+        if (userRacerPath != null && await FileSystem.which(userRacerPath) != null) {
             // A user specified existing path, we will use it
-
-            logger.debug(`Path specified by a user exists. Path=${pathToRacerSpecifiedByUser}`);
-
-            this.pathToRacer = pathToRacerSpecifiedByUser;
-
+            logger.debug(`User-specified racer exists. Path=${userRacerPath}`);
+            this.racerPath = userRacerPath;
             return;
         }
 
         // Either a user specified an invalid path or a user specified nothing
         // Let's try to find a path to the executable of racer
-        const foundPathToRacer: string | undefined = await FileSystem.findExecutablePath('racer');
+        const systemRacerPath: string | undefined = await FileSystem.which('racer');
 
-        if (!foundPathToRacer) {
-            // We couldn't find any executable of Racer
-
-            logger.debug('Failed to find racer in PATH');
-
-            return;
+        if (systemRacerPath != null) {
+            logger.debug(`Found racer=${systemRacerPath}`);
+            this.racerPath = 'racer';
         }
 
-        logger.debug(`Found racer=${foundPathToRacer}`);
-
-        this.pathToRacer = foundPathToRacer;
+        // We couldn't find any executable of Racer
+        logger.debug('Failed to find racer in PATH');
+        return;
     }
 
     /**
      * Returns a value of the field `pathToRacer`
      */
     public getPathToRacer(): string | undefined {
-        return this.pathToRacer;
+        return this.racerPath;
     }
 
     /**
      * Returns either a path to the executable of RLS or undefined
      */
     public getPathToRlsExecutable(): string | undefined {
-        if (this.pathToRlsSpecifiedByUser) {
-            return this.pathToRlsSpecifiedByUser;
+        if (this.userRlsPath) {
+            return this.userRlsPath;
         }
 
         if (this.rustInstallation instanceof Rustup) {
@@ -389,7 +377,7 @@ export class Configuration {
         let configPath: string | undefined = this.getPathConfigParameter('rustLangSrcPath');
 
         if (configPath) {
-            const configPathExists: boolean = await FileSystem.doesFileOrDirectoryExists(configPath);
+            const configPathExists: boolean = await FileSystem.pathExists(configPath);
 
             if (!configPathExists) {
                 configPath = undefined;
@@ -416,7 +404,7 @@ export class Configuration {
 
         const envPath: string | undefined = this.getPathEnvParameter('RUST_SRC_PATH');
 
-        const envPathExists: boolean = envPath !== undefined && await FileSystem.doesFileOrDirectoryExists(envPath);
+        const envPathExists: boolean = envPath !== undefined && await FileSystem.pathExists(envPath);
 
         if (envPathExists) {
             return envPath;
@@ -430,46 +418,33 @@ export class Configuration {
      * It assigns either a path specified by a user or undefined, depending on if a user specified a path and the specified path exists.
      * This method is asynchronous because it checks if a path specified by a user exists
      */
-    private async updatePathToRlsExecutableSpecifiedByUser(): Promise<void> {
+    private async updateUserRlsPath(): Promise<void> {
         function getRlsExecutable(): string | undefined {
             const configuration = Configuration.getConfiguration();
-
             const rlsConfiguration = configuration['rls'];
-
             if (!rlsConfiguration) {
                 return undefined;
             }
-
-            const pathToRlsExecutable = rlsConfiguration.executable;
-
-            if (!pathToRlsExecutable) {
+            const rlsPath = rlsConfiguration.executable;
+            if (!rlsPath) {
                 return undefined;
             }
-
-            return expandTilde(pathToRlsExecutable);
+            return expandTilde(rlsPath);
         }
 
         const logger = this.logger.createChildLogger('updatePathToRlsSpecifiedByUser: ');
 
-        const pathToRlsExecutable: string | undefined = getRlsExecutable();
-
-        if (!pathToRlsExecutable) {
-            this.pathToRlsSpecifiedByUser = undefined;
-
+        const rlsPath: string | undefined = getRlsExecutable();
+        if (!rlsPath) {
+            this.userRlsPath = undefined;
             return;
         }
-
-        const doesPathToRlsExecutableExist: boolean = await FileSystem.doesFileOrDirectoryExists(pathToRlsExecutable);
-
-        if (!doesPathToRlsExecutableExist) {
-            logger.error(`The specified path does not exist. Path=${pathToRlsExecutable}`);
-
-            this.pathToRlsSpecifiedByUser = undefined;
-
+        if (await FileSystem.which(rlsPath) == null) {
+            logger.error(`The specified path does not exist. Path=${rlsPath}`);
+            this.userRlsPath = undefined;
             return;
         }
-
-        this.pathToRlsSpecifiedByUser = pathToRlsExecutable;
+        this.userRlsPath = rlsPath;
     }
 
     /**
@@ -485,8 +460,8 @@ export class Configuration {
         logger: ChildLogger,
         rustInstallation: Rustup | NotRustup | undefined,
         pathToRustSourceCodeSpecifiedByUser: string | undefined,
-        pathToRlsSpecifiedByUser: string | undefined,
-        pathToRacer: string | undefined
+        userRlsPath: string | undefined,
+        racerPath: string | undefined
     ) {
         this.logger = logger;
 
@@ -494,9 +469,9 @@ export class Configuration {
 
         this.pathToRustSourceCodeSpecifiedByUser = pathToRustSourceCodeSpecifiedByUser;
 
-        this.pathToRlsSpecifiedByUser = pathToRlsSpecifiedByUser;
+        this.userRlsPath = userRlsPath;
 
-        this.pathToRacer = pathToRacer;
+        this.racerPath = racerPath;
     }
 
     private static getStringParameter(parameterName: string): string | null {

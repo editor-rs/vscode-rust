@@ -145,7 +145,7 @@ export class Rustup {
     public async updatePathToRustSourceCodePath(): Promise<void> {
         const pathToRustSourceCode = join(this.pathToRustcSysRoot, 'lib', 'rustlib', 'src', 'rust', 'src');
 
-        const isRustSourceCodeInstalled: boolean = await FileSystem.doesFileOrDirectoryExists(pathToRustSourceCode);
+        const isRustSourceCodeInstalled: boolean = await FileSystem.pathExists(pathToRustSourceCode);
 
         if (isRustSourceCodeInstalled) {
             this.pathToRustSourceCode = pathToRustSourceCode;
@@ -184,7 +184,7 @@ export class Rustup {
             return;
         }
 
-        const pathToRlsExecutable: string | undefined = await FileSystem.findExecutablePath(Rustup.getRlsComponentName());
+        const pathToRlsExecutable: string | undefined = await FileSystem.which(Rustup.getRlsComponentName());
 
         if (!pathToRlsExecutable) {
             // RLS is installed via Rustup, but isn't found. Let a user know about it

@@ -504,24 +504,26 @@
     "postinstall": "node ./node_modules/vscode/bin/install"
   },
   "devDependencies": {
+    "@types/mocha": "2.2.40",
+    "@types/node": "7.0.11",
+    "@types/open": "0.0.29",
     "gulp": "3.9.1",
     "gulp-shell": "0.5.2",
     "gulp-tslint": "7.1.0",
     "mocha": "3.2.0",
     "tslint": "4.5.1",
     "typescript": "2.2.1",
-    "vscode": "1.1.0",
-    "@types/node": "7.0.11",
-    "@types/mocha": "2.2.40",
-    "@types/open": "0.0.29"
+    "vscode": "1.1.0"
   },
   "dependencies": {
-    "expand-tilde": "2.0.2",
-    "tmp": "0.0.31",
-    "open": "0.0.5",
-    "tree-kill": "1.1.0",
-    "find-up": "2.1.0",
+    "@types/which": "^1.0.28",
     "elegant-spinner": "1.0.1",
-    "vscode-languageclient": "3.2.0"
+    "expand-tilde": "2.0.2",
+    "find-up": "2.1.0",
+    "open": "0.0.5",
+    "tmp": "0.0.31",
+    "tree-kill": "1.1.0",
+    "vscode-languageclient": "3.2.0",
+    "which": "^1.2.14"
   }
 }
