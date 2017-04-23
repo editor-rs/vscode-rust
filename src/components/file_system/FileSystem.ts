@@ -11,7 +11,7 @@ export class FileSystem {
      * @param path a path to check
      * @return true if there is a file or a directory otherwise false
      */
-    public static doesFileOrDirectoryExists(path: string): Promise<boolean> {
+    public static doesPathExist(path: string): Promise<boolean> {
         return new Promise<boolean>(resolve => {
             access(path, err => {
                 const pathExists = !err;
@@ -42,7 +42,7 @@ export class FileSystem {
         for (const path of paths) {
             const possibleExecutablePath = join(path, executable);
 
-            const doesPathExist: boolean = await FileSystem.doesFileOrDirectoryExists(possibleExecutablePath);
+            const doesPathExist: boolean = await FileSystem.doesPathExist(possibleExecutablePath);
 
             if (doesPathExist) {
                 return possibleExecutablePath;

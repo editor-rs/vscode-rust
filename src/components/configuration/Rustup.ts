@@ -145,7 +145,7 @@ export class Rustup {
     public async updatePathToRustSourceCodePath(): Promise<void> {
         const pathToRustSourceCode = join(this.pathToRustcSysRoot, 'lib', 'rustlib', 'src', 'rust', 'src');
 
-        const isRustSourceCodeInstalled: boolean = await FileSystem.doesFileOrDirectoryExists(pathToRustSourceCode);
+        const isRustSourceCodeInstalled: boolean = await FileSystem.doesPathExist(pathToRustSourceCode);
 
         if (isRustSourceCodeInstalled) {
             this.pathToRustSourceCode = pathToRustSourceCode;
