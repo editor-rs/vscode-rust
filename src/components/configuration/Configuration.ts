@@ -115,7 +115,7 @@ export class Configuration {
         const pathToRacerSpecifiedByUser: string | undefined = Configuration.getPathConfigParameter('racerPath');
 
         const doesPathToRacerSpecifiedByUserExist: boolean = pathToRacerSpecifiedByUser
-            ? await FileSystem.doesFileOrDirectoryExists(pathToRacerSpecifiedByUser)
+            ? await FileSystem.doesPathExist(pathToRacerSpecifiedByUser)
             : false;
 
         if (doesPathToRacerSpecifiedByUserExist) {
@@ -392,7 +392,7 @@ export class Configuration {
         let configPath: string | undefined = this.getPathConfigParameter('rustLangSrcPath');
 
         if (configPath) {
-            const configPathExists: boolean = await FileSystem.doesFileOrDirectoryExists(configPath);
+            const configPathExists: boolean = await FileSystem.doesPathExist(configPath);
 
             if (!configPathExists) {
                 configPath = undefined;
@@ -419,7 +419,7 @@ export class Configuration {
 
         const envPath: string | undefined = this.getPathEnvParameter('RUST_SRC_PATH');
 
-        const envPathExists: boolean = envPath !== undefined && await FileSystem.doesFileOrDirectoryExists(envPath);
+        const envPathExists: boolean = envPath !== undefined && await FileSystem.doesPathExist(envPath);
 
         if (envPathExists) {
             return envPath;
@@ -462,7 +462,7 @@ export class Configuration {
             return;
         }
 
-        const doesPathToRlsExecutableExist: boolean = await FileSystem.doesFileOrDirectoryExists(pathToRlsExecutable);
+        const doesPathToRlsExecutableExist: boolean = await FileSystem.doesPathExist(pathToRlsExecutable);
 
         if (!doesPathToRlsExecutableExist) {
             logger.error(`The specified path does not exist. Path=${pathToRlsExecutable}`);
