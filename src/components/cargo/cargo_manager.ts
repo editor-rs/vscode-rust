@@ -308,58 +308,6 @@ export class CargoManager {
         this.cargoManager.invokeCargoTestUsingTestArgs(reason);
     }
 
-    private registerCommands(context: ExtensionContext, stopCommandName: string): void {
-        // Cargo init
-        context.subscriptions.push(this.registerCommandHelpingCreatePlayground('rust.cargo.new.playground'));
-
-        // Cargo new
-        context.subscriptions.push(this.registerCommandHelpingCreateProject('rust.cargo.new.bin', true));
-
-        context.subscriptions.push(this.registerCommandHelpingCreateProject('rust.cargo.new.lib', false));
-
-        // Cargo build
-        context.subscriptions.push(this.registerCommandInvokingCargoBuildUsingBuildArgs('rust.cargo.build.default'));
-
-        context.subscriptions.push(this.registerCommandHelpingChooseArgsAndInvokingCargoBuild('rust.cargo.build.custom'));
-
-        // Cargo run
-        context.subscriptions.push(this.registerCommandInvokingCargoRunUsingRunArgs('rust.cargo.run.default'));
-
-        context.subscriptions.push(this.registerCommandHelpingChooseArgsAndInvokingCargoRun('rust.cargo.run.custom'));
-
-        // Cargo test
-        context.subscriptions.push(this.registerCommandInvokingCargoTestUsingTestArgs('rust.cargo.test.default'));
-
-        context.subscriptions.push(this.registerCommandHelpingChooseArgsAndInvokingCargoTest('rust.cargo.test.custom'));
-
-        // Cargo bench
-        context.subscriptions.push(this.registerCommandInvokingCargoWithArgs('rust.cargo.bench', 'bench'));
-
-        // Cargo doc
-        context.subscriptions.push(this.registerCommandInvokingCargoDocUsingDocArgs('rust.cargo.doc.default'));
-
-        context.subscriptions.push(this.registerCommandHelpingChooseArgsAndInvokingCargoDoc('rust.cargo.doc.custom'));
-
-        // Cargo update
-        context.subscriptions.push(this.registerCommandInvokingCargoWithArgs('rust.cargo.update', 'update'));
-
-        // Cargo clean
-        context.subscriptions.push(this.registerCommandInvokingCargoWithArgs('rust.cargo.clean', 'clean'));
-
-        // Cargo check
-        context.subscriptions.push(this.registerCommandInvokingCargoCheckUsingCheckArgs('rust.cargo.check.default'));
-
-        context.subscriptions.push(this.registerCommandHelpingChooseArgsAndInvokingCargoCheck('rust.cargo.check.custom'));
-
-        // Cargo clippy
-        context.subscriptions.push(this.registerCommandInvokingCargoClippyUsingClippyArgs('rust.cargo.clippy.default'));
-
-        context.subscriptions.push(this.registerCommandHelpingChooseArgsAndInvokingCargoClippy('rust.cargo.clippy.custom'));
-
-        // Cargo terminate
-        context.subscriptions.push(this.registerCommandStoppingCargoTask(stopCommandName));
-    }
-
     public registerCommandHelpingCreatePlayground(commandName: string): vscode.Disposable {
         return vscode.commands.registerCommand(commandName, () => {
             this.helpCreatePlayground();
@@ -483,6 +431,58 @@ export class CargoManager {
         return vscode.commands.registerCommand(commandName, () => {
             this.cargoManager.stopTask();
         });
+    }
+
+    private registerCommands(context: ExtensionContext, stopCommandName: string): void {
+        // Cargo init
+        context.subscriptions.push(this.registerCommandHelpingCreatePlayground('rust.cargo.new.playground'));
+
+        // Cargo new
+        context.subscriptions.push(this.registerCommandHelpingCreateProject('rust.cargo.new.bin', true));
+
+        context.subscriptions.push(this.registerCommandHelpingCreateProject('rust.cargo.new.lib', false));
+
+        // Cargo build
+        context.subscriptions.push(this.registerCommandInvokingCargoBuildUsingBuildArgs('rust.cargo.build.default'));
+
+        context.subscriptions.push(this.registerCommandHelpingChooseArgsAndInvokingCargoBuild('rust.cargo.build.custom'));
+
+        // Cargo run
+        context.subscriptions.push(this.registerCommandInvokingCargoRunUsingRunArgs('rust.cargo.run.default'));
+
+        context.subscriptions.push(this.registerCommandHelpingChooseArgsAndInvokingCargoRun('rust.cargo.run.custom'));
+
+        // Cargo test
+        context.subscriptions.push(this.registerCommandInvokingCargoTestUsingTestArgs('rust.cargo.test.default'));
+
+        context.subscriptions.push(this.registerCommandHelpingChooseArgsAndInvokingCargoTest('rust.cargo.test.custom'));
+
+        // Cargo bench
+        context.subscriptions.push(this.registerCommandInvokingCargoWithArgs('rust.cargo.bench', 'bench'));
+
+        // Cargo doc
+        context.subscriptions.push(this.registerCommandInvokingCargoDocUsingDocArgs('rust.cargo.doc.default'));
+
+        context.subscriptions.push(this.registerCommandHelpingChooseArgsAndInvokingCargoDoc('rust.cargo.doc.custom'));
+
+        // Cargo update
+        context.subscriptions.push(this.registerCommandInvokingCargoWithArgs('rust.cargo.update', 'update'));
+
+        // Cargo clean
+        context.subscriptions.push(this.registerCommandInvokingCargoWithArgs('rust.cargo.clean', 'clean'));
+
+        // Cargo check
+        context.subscriptions.push(this.registerCommandInvokingCargoCheckUsingCheckArgs('rust.cargo.check.default'));
+
+        context.subscriptions.push(this.registerCommandHelpingChooseArgsAndInvokingCargoCheck('rust.cargo.check.custom'));
+
+        // Cargo clippy
+        context.subscriptions.push(this.registerCommandInvokingCargoClippyUsingClippyArgs('rust.cargo.clippy.default'));
+
+        context.subscriptions.push(this.registerCommandHelpingChooseArgsAndInvokingCargoClippy('rust.cargo.clippy.custom'));
+
+        // Cargo terminate
+        context.subscriptions.push(this.registerCommandStoppingCargoTask(stopCommandName));
     }
 
     private helpCreatePlayground(): void {

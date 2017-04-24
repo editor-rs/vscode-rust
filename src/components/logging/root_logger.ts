@@ -11,14 +11,14 @@ export const WARNING_MESSAGE_PREFIX = 'WARNING: ';
 export default class RootLogger extends Logger {
     private logFunction: ((message: string) => void) | undefined;
 
-    public createChildLogger(loggingMessagePrefix: (() => string) | string): ChildLogger {
-        return new ChildLogger(loggingMessagePrefix, this);
-    }
-
     public constructor(loggingMessagePrefix: ((() => string) | string)) {
         super(loggingMessagePrefix);
 
         this.logFunction = undefined;
+    }
+
+    public createChildLogger(loggingMessagePrefix: (() => string) | string): ChildLogger {
+        return new ChildLogger(loggingMessagePrefix, this);
     }
 
     public setLogFunction(logFunction: ((message: string) => void) | undefined): void {

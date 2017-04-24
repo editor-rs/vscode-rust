@@ -101,6 +101,12 @@ export class Configuration {
         return configuration;
     }
 
+    public static getConfiguration(): WorkspaceConfiguration {
+        const configuration = workspace.getConfiguration('rust');
+
+        return configuration;
+    }
+
     /**
      * Updates the value of the field `pathToRacer`.
      * It checks if a user specified any path in the configuration.
@@ -243,14 +249,6 @@ export class Configuration {
         }
     }
 
-    private getRlsConfiguration(): any | undefined {
-        const configuration = Configuration.getConfiguration();
-
-        const rlsConfiguration: any = configuration['rls'];
-
-        return rlsConfiguration;
-    }
-
     public shouldExecuteCargoCommandInTerminal(): boolean {
         // When RLS is used any cargo command is executed in an integrated terminal.
         if (this.getRlsConfiguration() !== undefined) {
@@ -351,12 +349,6 @@ export class Configuration {
         }
     }
 
-    public static getConfiguration(): WorkspaceConfiguration {
-        const configuration = workspace.getConfiguration('rust');
-
-        return configuration;
-    }
-
     private static async loadRustcSysRoot(): Promise<string | undefined> {
         const executable = 'rustc';
 
@@ -417,29 +409,32 @@ export class Configuration {
         }
     }
 
-    /**
-     * Checks if a user specified a path to the executable of RLS via the configuration parameter.
-     * It assigns either a path specified by a user or undefined, depending on if a user specified a path and the specified path exists.
-     * This method is asynchronous because it checks if a path specified by a user exists
-     */
-    private async updatePathToRlsExecutableSpecifiedByUser(): Promise<void> {
-        const logger = this.logger.createChildLogger('updatePathToRlsSpecifiedByUser: ');
-        this.rlsPathSpecifiedByUser = undefined;
-        const rlsConfiguration = this.getRlsConfiguration();
-        if (!rlsConfiguration) {
-            return;
+    private static getStringParameter(parameterName: string): string | null {
+        const configuration = workspace.getConfiguration('rust');
+
+        const parameter: string | null = configuration[parameterName];
+
+        return parameter;
+    }
+
+    private static getPathConfigParameter(parameterName: string): string | undefined {
+        const parameter = this.getStringParameter(parameterName);
+
+        if (parameter) {
+            return expandTilde(parameter);
+        } else {
+            return undefined;
         }
-        const rlsPathSpecifiedByUser: string | undefined | null = rlsConfiguration.executable;
-        if (!rlsPathSpecifiedByUser) {
-            return;
+    }
+
+    private static getPathEnvParameter(parameterName: string): string | undefined {
+        const parameter = process.env[parameterName];
+
+        if (parameter) {
+            return expandTilde(parameter);
+        } else {
+            return undefined;
         }
-        const rlsPath = expandTilde(rlsPathSpecifiedByUser);
-        const doesRlsPathExist: boolean = await FileSystem.doesPathExist(rlsPath);
-        if (!doesRlsPathExist) {
-            logger.error(`The specified path does not exist. Path=${rlsPath}`);
-            return;
-        }
-        this.rlsPathSpecifiedByUser = rlsPath;
     }
 
     /**
@@ -469,31 +464,36 @@ export class Configuration {
         this.racerPath = pathToRacer;
     }
 
-    private static getStringParameter(parameterName: string): string | null {
-        const configuration = workspace.getConfiguration('rust');
+    private getRlsConfiguration(): any | undefined {
+        const configuration = Configuration.getConfiguration();
 
-        const parameter: string | null = configuration[parameterName];
+        const rlsConfiguration: any = configuration['rls'];
 
-        return parameter;
+        return rlsConfiguration;
     }
 
-    private static getPathConfigParameter(parameterName: string): string | undefined {
-        const parameter = this.getStringParameter(parameterName);
-
-        if (parameter) {
-            return expandTilde(parameter);
-        } else {
-            return undefined;
+    /**
+     * Checks if a user specified a path to the executable of RLS via the configuration parameter.
+     * It assigns either a path specified by a user or undefined, depending on if a user specified a path and the specified path exists.
+     * This method is asynchronous because it checks if a path specified by a user exists
+     */
+    private async updatePathToRlsExecutableSpecifiedByUser(): Promise<void> {
+        const logger = this.logger.createChildLogger('updatePathToRlsSpecifiedByUser: ');
+        this.rlsPathSpecifiedByUser = undefined;
+        const rlsConfiguration = this.getRlsConfiguration();
+        if (!rlsConfiguration) {
+            return;
         }
-    }
-
-    private static getPathEnvParameter(parameterName: string): string | undefined {
-        const parameter = process.env[parameterName];
-
-        if (parameter) {
-            return expandTilde(parameter);
-        } else {
-            return undefined;
+        const rlsPathSpecifiedByUser: string | undefined | null = rlsConfiguration.executable;
+        if (!rlsPathSpecifiedByUser) {
+            return;
         }
+        const rlsPath = expandTilde(rlsPathSpecifiedByUser);
+        const doesRlsPathExist: boolean = await FileSystem.doesPathExist(rlsPath);
+        if (!doesRlsPathExist) {
+            logger.error(`The specified path does not exist. Path=${rlsPath}`);
+            return;
+        }
+        this.rlsPathSpecifiedByUser = rlsPath;
     }
 }
