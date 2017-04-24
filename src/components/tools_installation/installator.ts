@@ -127,7 +127,7 @@ export default class Installator {
 
             // Check if the tool exists on the PATH
             for (const part of pathDirectories) {
-                let binPath = path.join(part, userPath);
+                const binPath = path.join(part, userPath);
 
                 if (existsSync(binPath)) {
                     return undefined;

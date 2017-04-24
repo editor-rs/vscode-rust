@@ -227,7 +227,7 @@ function runInRlsMode(
 
     methodLogger.debug(`args=${JSON.stringify(args)}`);
 
-    let revealOutputChannelOn = configuration.getRlsRevealOutputChannelOn();
+    const revealOutputChannelOn = configuration.getRlsRevealOutputChannelOn();
 
     methodLogger.debug(`revealOutputChannelOn=${revealOutputChannelOn}`);
 

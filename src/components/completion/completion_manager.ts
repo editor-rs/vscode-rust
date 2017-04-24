@@ -98,7 +98,7 @@ export default class CompletionManager {
             })
         );
 
-        let tmpFile = fileSync();
+        const tmpFile = fileSync();
         this.tmpFile = tmpFile.name;
     }
 
@@ -304,7 +304,7 @@ export default class CompletionManager {
     }
 
     private showErrorBuffer(): void {
-        let channel = window.createOutputChannel('Racer Error');
+        const channel = window.createOutputChannel('Racer Error');
         channel.clear();
         channel.append(`Last command: \n${this.lastCommand}\n`);
         channel.append(`Racer Output: \n${this.linesBuffer.join('\n')}\n`);
@@ -313,17 +313,17 @@ export default class CompletionManager {
     }
 
     private definitionProvider(document: TextDocument, position: Position): Thenable<Definition | undefined> {
-        let commandArgs = [position.line + 1, position.character, document.fileName, this.tmpFile];
+        const commandArgs = [position.line + 1, position.character, document.fileName, this.tmpFile];
         return this.runCommand(document, 'find-definition', commandArgs).then(lines => {
             if (lines.length === 0) {
                 return undefined;
             }
 
-            let result = lines[0];
-            let parts = result.split('\t');
-            let line = Number(parts[2]) - 1;
-            let character = Number(parts[3]);
-            let uri = Uri.file(parts[4]);
+            const result = lines[0];
+            const parts = result.split('\t');
+            const line = Number(parts[2]) - 1;
+            const character = Number(parts[3]);
+            const uri = Uri.file(parts[4]);
 
             return new Location(uri, new Position(line, character));
         });
@@ -331,28 +331,28 @@ export default class CompletionManager {
 
     private hoverProvider(document: TextDocument, position: Position): Thenable<Hover | undefined> | undefined {
         // Could potentially use `document.getWordRangeAtPosition`.
-        let line = document.lineAt(position.line);
-        let wordStartIndex = line.text.slice(0, position.character + 1).search(/[a-z0-9_]+$/i);
-        let lastCharIndex = line.text.slice(position.character).search(/[^a-z0-9_]/i);
-        let wordEndIndex = lastCharIndex === -1 ? 1 + position.character : lastCharIndex + position.character;
-        let lineTail = line.text.slice(wordEndIndex).trim();
-        let isFunction = lineTail === '' ? false : lineTail[0] === '(';
+        const line = document.lineAt(position.line);
+        const wordStartIndex = line.text.slice(0, position.character + 1).search(/[a-z0-9_]+$/i);
+        const lastCharIndex = line.text.slice(position.character).search(/[^a-z0-9_]/i);
+        const wordEndIndex = lastCharIndex === -1 ? 1 + position.character : lastCharIndex + position.character;
+        const lineTail = line.text.slice(wordEndIndex).trim();
+        const isFunction = lineTail === '' ? false : lineTail[0] === '(';
 
-        let word = line.text.slice(wordStartIndex, wordEndIndex);
+        const word = line.text.slice(wordStartIndex, wordEndIndex);
         if (!word) {
             return undefined;
         }
 
         // We are using `complete-with-snippet` instead of `find-definition` because it contains
         // extra information that is not contained in the `find`definition` command, such as documentation.
-        let commandArgs = [position.line + 1, wordEndIndex, document.fileName, this.tmpFile];
+        const commandArgs = [position.line + 1, wordEndIndex, document.fileName, this.tmpFile];
         return this.runCommand(document, 'complete-with-snippet', commandArgs).then(lines => {
             if (lines.length <= 1) {
                 return undefined;
             }
 
-            let results = lines.slice(1).map(x => x.split('\t'));
-            let result =
+            const results = lines.slice(1).map(x => x.split('\t'));
+            const result =
                 isFunction
                     ? results.find(parts => parts[2].startsWith(word + '(') && parts[6] === 'Function')
                     : results.find(parts => parts[2] === word);
@@ -362,17 +362,17 @@ export default class CompletionManager {
                 return undefined;
             }
 
-            let match = result[2];
-            let type = result[6];
+            const match = result[2];
+            const type = result[6];
             let definition = type === 'Module' ? 'module ' + match : result[7];
-            let docs = JSON.parse(result[8].replace(/\\'/g, "'")).split('\n');
+            const docs = JSON.parse(result[8].replace(/\\'/g, "'")).split('\n');
 
-            let bracketIndex = definition.indexOf('{');
+            const bracketIndex = definition.indexOf('{');
             if (bracketIndex !== -1) {
                 definition = definition.substring(0, bracketIndex);
             }
 
-            let processedDocs: MarkedString[] = [{
+            const processedDocs: MarkedString[] = [{
                 language: 'rust',
                 value: definition.trim()
             }];
@@ -397,7 +397,7 @@ export default class CompletionManager {
             }
 
             for (let i = 0; i < docs.length; i++) {
-                let docLine = docs[i];
+                const docLine = docs[i];
 
                 if (docLine.trim().startsWith('```')) {
                     if (currentBlock.length) {
@@ -424,7 +424,7 @@ export default class CompletionManager {
                 // The preferred alternative would be to just make the headers a little
                 // smaller and otherwise draw them as is.
                 if (docLine.trim().startsWith('#')) {
-                    let headerMarkupEnd = docLine.trim().search(/[^# ]/);
+                    const headerMarkupEnd = docLine.trim().search(/[^# ]/);
                     currentBlock.push('[' + docLine.trim().slice(headerMarkupEnd) + ']()');
 
                     continue;
@@ -442,18 +442,18 @@ export default class CompletionManager {
     }
 
     private completionProvider(document: TextDocument, position: Position): Thenable<CompletionItem[]> {
-        let commandArgs = [position.line + 1, position.character, document.fileName, this.tmpFile];
+        const commandArgs = [position.line + 1, position.character, document.fileName, this.tmpFile];
         return this.runCommand(document, 'complete-with-snippet', commandArgs).then(lines => {
             lines.shift();
 
             // Split on MATCH, as a definition can span more than one line
             lines = lines.map(l => l.trim()).join('').split('MATCH\t').slice(1);
 
-            let completions = [];
-            for (let line of lines) {
-                let parts = line.split('\t');
-                let label = parts[0];
-                let type = parts[5];
+            const completions = [];
+            for (const line of lines) {
+                const parts = line.split('\t');
+                const label = parts[0];
+                const type = parts[5];
                 let detail = parts[6];
 
                 let kind: CompletionItemKind;
@@ -482,16 +482,15 @@ export default class CompletionManager {
     }
 
     private parseParameters(text: string, startingPosition: number): [string[], number, number] {
-
-        let stopPosition = text.length;
-        let parameters = [];
+        const stopPosition = text.length;
+        const parameters = [];
         let currentParameter = '';
         let currentDepth = 0;
         let parameterStart = -1;
         let parameterEnd = -1;
 
         for (let i = startingPosition; i < stopPosition; i++) {
-            let char = text.charAt(i);
+            const char = text.charAt(i);
 
             if (char === '(') {
                 if (currentDepth === 0) {
@@ -526,27 +525,28 @@ export default class CompletionManager {
     }
 
     private parseCall(name: string, args: string[], definition: string, callText: string): SignatureHelp {
-        let nameEnd = definition.indexOf(name) + name.length;
+        const nameEnd = definition.indexOf(name) + name.length;
+        // tslint:disable-next-line
         let [params, paramStart, paramEnd] = this.parseParameters(definition, nameEnd);
-        let [callParameters] = this.parseParameters(callText, 0);
-        let currentParameter = callParameters.length - 1;
+        const [callParameters] = this.parseParameters(callText, 0);
+        const currentParameter = callParameters.length - 1;
 
-        let nameTemplate = definition.substring(0, paramStart);
+        const nameTemplate = definition.substring(0, paramStart);
 
         // If function is used as a method, ignore the self parameter
         if ((args ? args.length : 0) < params.length) {
             params = params.slice(1);
         }
 
-        let result = new SignatureHelp();
+        const result = new SignatureHelp();
         result.activeSignature = 0;
         result.activeParameter = currentParameter;
 
-        let signature = new SignatureInformation(nameTemplate);
+        const signature = new SignatureInformation(nameTemplate);
         signature.label += '(';
 
         params.forEach((param, i) => {
-            let parameter = new ParameterInformation(param, '');
+            const parameter = new ParameterInformation(param, '');
             signature.label += parameter.label;
             signature.parameters.push(parameter);
 
@@ -570,12 +570,12 @@ export default class CompletionManager {
     }
 
     private firstDanglingParen(document: TextDocument, position: Position): Position | undefined {
-        let text = document.getText();
+        const text = document.getText();
         let offset = document.offsetAt(position) - 1;
         let currentDepth = 0;
 
         while (offset > 0) {
-            let char = text.charAt(offset);
+            const char = text.charAt(offset);
 
             if (char === ')') {
                 currentDepth += 1;
@@ -641,12 +641,12 @@ export default class CompletionManager {
     }
 
     private hookCapabilities(): void {
-        let definitionProvider = { provideDefinition: this.definitionProvider.bind(this) };
+        const definitionProvider = { provideDefinition: this.definitionProvider.bind(this) };
         this.providers.push(
             languages.registerDefinitionProvider(getDocumentFilter(), definitionProvider)
         );
 
-        let completionProvider = { provideCompletionItems: this.completionProvider.bind(this) };
+        const completionProvider = { provideCompletionItems: this.completionProvider.bind(this) };
         this.providers.push(
             languages.registerCompletionItemProvider(
                 getDocumentFilter(),
@@ -655,7 +655,7 @@ export default class CompletionManager {
             )
         );
 
-        let signatureProvider = { provideSignatureHelp: this.signatureHelpProvider.bind(this) };
+        const signatureProvider = { provideSignatureHelp: this.signatureHelpProvider.bind(this) };
         this.providers.push(
             languages.registerSignatureHelpProvider(
                 getDocumentFilter(),
@@ -664,7 +664,7 @@ export default class CompletionManager {
             )
         );
 
-        let hoverProvider = { provideHover: this.hoverProvider.bind(this) };
+        const hoverProvider = { provideHover: this.hoverProvider.bind(this) };
         this.providers.push(languages.registerHoverProvider(getDocumentFilter(), hoverProvider));
     }
 
@@ -674,17 +674,17 @@ export default class CompletionManager {
         // flush it one part at a time, if we don't wait for the whole line to
         // be flushed, we will consider each part of the original line a separate
         // line.
-        let dataStr = data.toString();
+        const dataStr = data.toString();
 
         if (!/\r?\n$/.test(dataStr)) {
             this.dataBuffer += dataStr;
             return;
         }
 
-        let lines = (this.dataBuffer + dataStr).split(/\r?\n/);
+        const lines = (this.dataBuffer + dataStr).split(/\r?\n/);
         this.dataBuffer = '';
 
-        for (let line of lines) {
+        for (const line of lines) {
             if (line.length === 0) {
                 continue;
             } else if (line.startsWith('END')) {
@@ -712,11 +712,11 @@ export default class CompletionManager {
 
         this.updateTmpFile(document);
 
-        let queryString = [command, ...args].join('\t') + '\n';
+        const queryString = [command, ...args].join('\t') + '\n';
 
         this.lastCommand = queryString;
 
-        let promise = new Promise(resolve => {
+        const promise = new Promise(resolve => {
             this.commandCallbacks.push(resolve);
         });
 

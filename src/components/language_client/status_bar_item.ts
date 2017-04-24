@@ -27,7 +27,7 @@ export class StatusBarItem {
         // There is an error in the definition of StatusBarItem.command.
         // The expected type is `string | undefined`, but actual is `string`.
         // This is workaround.
-        let statusBarItem: any = this.statusBarItem;
+        const statusBarItem: any = this.statusBarItem;
         // Disable clicking.
         statusBarItem.command = undefined;
         // Remove tooltip because we don't want to say the user that we may click on the indicator which is disabled
