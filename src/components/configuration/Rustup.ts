@@ -201,29 +201,6 @@ export class Rustup {
     }
 
     /**
-     * Constructs a new instance of the class.
-     * The constructor is private because creating a new instance should be done via the method `create`
-     * @param logger A value for the field `logger`
-     * @param pathToRustcSysRoot A value for the field `pathToRustcSysRoot`
-     * @param pathToRustSourceCode A value for the field `pathToRustSourceCode`
-     * @param pathToRlsExecutable A value fo the field `pathToRlsExecutable`
-     */
-    private constructor(
-        logger: ChildLogger,
-        pathToRustcSysRoot: string,
-        pathToRustSourceCode: string | undefined,
-        pathToRlsExecutable: string | undefined
-    ) {
-        this.logger = logger;
-
-        this.pathToRustcSysRoot = pathToRustcSysRoot;
-
-        this.pathToRustSourceCode = pathToRustSourceCode;
-
-        this.pathToRlsExecutable = pathToRlsExecutable;
-    }
-
-    /**
      * Requests Rustup give a list of components, parses it, checks if RLS is present in the list and returns if it is
      * @returns true if RLS can be installed otherwise false
      */
@@ -251,6 +228,50 @@ export class Rustup {
         }
 
         return true;
+    }
+
+    /**
+     * Returns the executable of Rustup
+     */
+    private static getRustupExecutable(): string {
+        return 'rustup';
+    }
+
+    /**
+     * Returns the name of the component RLS
+     */
+    private static getRlsComponentName(): string {
+        return 'rls';
+    }
+
+    /**
+     * Returns a suffix which any installed component ends with
+     */
+    private static getSuffixForInstalledComponent(): string {
+        return ' (installed)';
+    }
+
+    /**
+     * Constructs a new instance of the class.
+     * The constructor is private because creating a new instance should be done via the method `create`
+     * @param logger A value for the field `logger`
+     * @param pathToRustcSysRoot A value for the field `pathToRustcSysRoot`
+     * @param pathToRustSourceCode A value for the field `pathToRustSourceCode`
+     * @param pathToRlsExecutable A value fo the field `pathToRlsExecutable`
+     */
+    private constructor(
+        logger: ChildLogger,
+        pathToRustcSysRoot: string,
+        pathToRustSourceCode: string | undefined,
+        pathToRlsExecutable: string | undefined
+    ) {
+        this.logger = logger;
+
+        this.pathToRustcSysRoot = pathToRustcSysRoot;
+
+        this.pathToRustSourceCode = pathToRustSourceCode;
+
+        this.pathToRlsExecutable = pathToRlsExecutable;
     }
 
     /**
@@ -325,26 +346,5 @@ export class Rustup {
         });
 
         return installedComponents;
-    }
-
-    /**
-     * Returns the executable of Rustup
-     */
-    private static getRustupExecutable(): string {
-        return 'rustup';
-    }
-
-    /**
-     * Returns the name of the component RLS
-     */
-    private static getRlsComponentName(): string {
-        return 'rls';
-    }
-
-    /**
-     * Returns a suffix which any installed component ends with
-     */
-    private static getSuffixForInstalledComponent(): string {
-        return ' (installed)';
     }
 }

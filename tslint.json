@@ -22,10 +22,22 @@
     "label-position": true,
     "member-access": true,
     "member-ordering": [
-      false,
-      "public-before-private",
-      "static-before-instance",
-      "variables-before-functions"
+      true,
+      {
+        "order": [
+          "static-field",
+          "instance-field",
+          "public-static-method",
+          "public-constructor",
+          "public-instance-method",
+          "protected-static-method",
+          "protected-constructor",
+          "protected-instance-method",
+          "private-static-method",
+          "private-constructor",
+          "private-instance-method"
+        ]
+      }
     ],
     "no-any": false,
     "no-arg": true,

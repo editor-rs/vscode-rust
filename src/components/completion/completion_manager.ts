@@ -134,6 +134,29 @@ export default class CompletionManager {
         this.start(pathToRacer);
     }
 
+    public stop(): void {
+        this.logger.debug('stop');
+
+        this.stopDaemon();
+        this.racerStatusBarItem.showTurnedOff();
+        this.stopListeners();
+        this.clearCommandCallbacks();
+    }
+
+    /**
+     * Stops the current running instance of racer and starts a new one if a path is defined
+     * @param pathToRacer A path to the executable of racer
+     */
+    public restart(pathToRacer: string | undefined): void {
+        this.logger.warning('restart');
+
+        this.stop();
+
+        if (pathToRacer) {
+            this.start(pathToRacer);
+        }
+    }
+
     /**
      * Ensures that Rust's source code is available to use
      * @returns flag indicating whether the source code if available or not
@@ -247,29 +270,6 @@ export default class CompletionManager {
                 this.restart(newPathToRacer);
             }
         }));
-    }
-
-    public stop(): void {
-        this.logger.debug('stop');
-
-        this.stopDaemon();
-        this.racerStatusBarItem.showTurnedOff();
-        this.stopListeners();
-        this.clearCommandCallbacks();
-    }
-
-    /**
-     * Stops the current running instance of racer and starts a new one if a path is defined
-     * @param pathToRacer A path to the executable of racer
-     */
-    public restart(pathToRacer: string | undefined): void {
-        this.logger.warning('restart');
-
-        this.stop();
-
-        if (pathToRacer) {
-            this.start(pathToRacer);
-        }
     }
 
     /**
