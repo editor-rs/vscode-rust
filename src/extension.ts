@@ -72,7 +72,7 @@ async function handleMissingRls(logger: RootLogger, configuration: Configuration
     const rustup = configuration.getRustInstallation();
     if (!(rustup instanceof Rustup)) {
         functionLogger.debug('Rust is either not installed or installed not via Rustup');
-        await window.showInformationMessage('You do not use Rustup. Rustup is a preffered way to install Rust and its components');
+        window.showInformationMessage('You do not use Rustup. Rustup is a preffered way to install Rust and its components');
         return;
     }
     const permissionToInstallRlsGranted: boolean = await askPermissionToInstallRls(logger);
@@ -88,21 +88,41 @@ async function handleMissingRls(logger: RootLogger, configuration: Configuration
     const rustupUpdated: boolean = await rustup.update();
     functionLogger.debug(`rustupUpdated=${rustupUpdated}`);
     if (!rustupUpdated) {
+        window.showErrorMessage('Rustup failed to update. Check the output channel "Rust Logging"');
         return;
     }
-    const rlsCanBeInstalled: boolean = await rustup.canInstallRls();
+    async function installComponent(componentName: string, installComponent: () => Promise<boolean>): Promise<boolean> {
+        window.showInformationMessage(`${componentName} is being installed. It can take a while`);
+        const componentInstalled: boolean = await installComponent();
+        functionLogger.debug(`${componentName} has been installed=${componentInstalled}`);
+        if (componentInstalled) {
+            window.showInformationMessage(`${componentName} has been installed successfully`);
+        } else {
+            window.showErrorMessage(`${componentName} has not been installed. Check the output channel "Rust Logging"`);
+        }
+        return componentInstalled;
+    }
+    const rlsCanBeInstalled: boolean = rustup.canInstallRls();
     functionLogger.debug(`rlsCanBeInstalled=${rlsCanBeInstalled}`);
     if (!rlsCanBeInstalled) {
         return;
     }
-    window.showInformationMessage('RLS is being installed. It can take a while');
-    const rlsInstalled: boolean = await rustup.installRls();
-    functionLogger.debug(`rlsInstalled=${rlsInstalled}`);
-    if (rlsInstalled) {
-        await window.showInformationMessage('RLS has been installed successfully');
-    } else {
-        await window.showErrorMessage('RLS has not been installed. Check the output channel "Rust Logging"');
+    const rlsInstalled: boolean = await installComponent(
+        'RLS',
+        async () => { return await rustup.installRls(); }
+    );
+    if (!rlsInstalled) {
+        return;
     }
+    const rustAnalysisCanBeInstalled: boolean = rustup.canInstallRustAnalysis();
+    functionLogger.debug(`rustAnalysisCanBeInstalled=${rustAnalysisCanBeInstalled}`);
+    if (!rustAnalysisCanBeInstalled) {
+        return;
+    }
+    await installComponent(
+        'rust-analysis',
+        async () => { return await rustup.installRustAnalysis(); }
+    );
 }
 
 export async function activate(ctx: ExtensionContext): Promise<void> {
