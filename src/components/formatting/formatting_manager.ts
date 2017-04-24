@@ -56,17 +56,17 @@ export default class FormattingManager implements DocumentFormattingEditProvider
 
     private formattingEdits(document: TextDocument, range?: Range): Thenable<TextEdit[]> {
         return new Promise((resolve, reject) => {
-            let fileName = document.fileName + '.fmt';
+            const fileName = document.fileName + '.fmt';
             fs.writeFileSync(fileName, document.getText());
 
-            let args = ['--skip-children', '--write-mode=diff'];
+            const args = ['--skip-children', '--write-mode=diff'];
             if (range !== undefined) {
                 args.push('--file-lines',
                     `[{"file":"${fileName}","range":[${range.start.line + 1}, ${range.end.line + 1}]}]`);
             } else {
                 args.push(fileName);
             }
-            let env = Object.assign({ TERM: 'xterm' }, process.env);
+            const env = Object.assign({ TERM: 'xterm' }, process.env);
             cp.execFile(this.configuration.getRustfmtPath(), args, { env: env }, (err, stdout, stderr) => {
                 try {
                     if (err && (<any>err).code === 'ENOENT') {
@@ -78,7 +78,7 @@ export default class FormattingManager implements DocumentFormattingEditProvider
                     // be automatically formatted. However, it will continue to format the rest of the file.
                     // New releases will return exit code 4 when the write mode is diff and a valid diff is provided.
                     // For these reasons, if the exit code is 1 or 2, then it should be treated as an error.
-                    let hasFatalError = (err && (err as any).code < 3);
+                    const hasFatalError = (err && (err as any).code < 3);
 
                     if ((err || stderr.length) && hasFatalError) {
                         window.setStatusBarMessage('$(alert) Cannot format due to syntax errors', 5000);
@@ -108,11 +108,11 @@ export default class FormattingManager implements DocumentFormattingEditProvider
     }
 
     private parseDiffOldFormat(fileToProcess: Uri, diff: string): RustFmtDiff[] {
-        let patches: RustFmtDiff[] = [];
+        const patches: RustFmtDiff[] = [];
         let currentPatch: RustFmtDiff | undefined = undefined;
         let currentFile: Uri | undefined = undefined;
 
-        for (let line of diff.split(/\n/)) {
+        for (const line of diff.split(/\n/)) {
             if (line.startsWith('Diff of')) {
                 currentFile = Uri.file(line.slice('Diff of '.length, -1));
             }
@@ -155,11 +155,11 @@ export default class FormattingManager implements DocumentFormattingEditProvider
     }
 
     private parseDiffNewFormat(fileToProcess: Uri, diff: string): RustFmtDiff[] {
-        let patches: RustFmtDiff[] = [];
+        const patches: RustFmtDiff[] = [];
         let currentPatch: RustFmtDiff | undefined = undefined;
         let currentFile: Uri | undefined = undefined;
 
-        for (let line of diff.split(/\n/)) {
+        for (const line of diff.split(/\n/)) {
             if (line.startsWith('Diff in')) {
                 const matches = this.newFormatRegex.exec(line);
 
@@ -229,17 +229,17 @@ export default class FormattingManager implements DocumentFormattingEditProvider
         }
 
         let cummulativeOffset = 0;
-        let textEdits = patches.map(patch => {
-            let newLines = patch.newLines;
-            let removedLines = patch.removedLines;
+        const textEdits = patches.map(patch => {
+            const newLines = patch.newLines;
+            const removedLines = patch.removedLines;
 
-            let startLine = patch.startLine - 1 + cummulativeOffset;
-            let endLine = removedLines === 0 ? startLine : startLine + removedLines - 1;
-            let range = new Range(startLine, 0, endLine, Number.MAX_SAFE_INTEGER);
+            const startLine = patch.startLine - 1 + cummulativeOffset;
+            const endLine = removedLines === 0 ? startLine : startLine + removedLines - 1;
+            const range = new Range(startLine, 0, endLine, Number.MAX_SAFE_INTEGER);
 
             cummulativeOffset += (removedLines - newLines.length);
 
-            let lastLineIndex = newLines.length - 1;
+            const lastLineIndex = newLines.length - 1;
             newLines[lastLineIndex] = newLines[lastLineIndex].replace('\n', '');
 
             return TextEdit.replace(range, newLines.join(''));
