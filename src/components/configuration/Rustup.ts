@@ -167,11 +167,7 @@ export class Rustup {
     public async updatePathToRlsExecutable(): Promise<void> {
         const logger = this.logger.createChildLogger('updatePathToRlsExecutable: ');
         this.pathToRlsExecutable = undefined;
-        const installedComponents: string[] = this.getInstalledComponents();
-        const rlsComponent = installedComponents.find(component => {
-            return component.startsWith(Rustup.getRlsComponentName());
-        });
-        const rlsInstalled = rlsComponent !== undefined;
+        const rlsInstalled: boolean = this.isComponentInstalled(Rustup.getRlsComponentName());
         logger.debug(`rlsInstalled=${rlsInstalled}`);
         if (!rlsInstalled) {
             return;
