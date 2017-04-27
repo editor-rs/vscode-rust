@@ -158,11 +158,11 @@ function runInRlsMode(
 ): void {
     const methodLogger = logger.createChildLogger('runInRlsMode: ');
 
-    const env = configuration.getRlsEnv();
+    const env = configuration.getRlsEnv() || {};
 
     methodLogger.debug(`env=${JSON.stringify(env)}`);
 
-    const args = configuration.getRlsArgs();
+    const args = configuration.getRlsArgs() || [];
 
     methodLogger.debug(`args=${JSON.stringify(args)}`);
 

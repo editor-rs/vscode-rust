@@ -33,8 +33,8 @@ export class Creator {
 
     public constructor(
         executable: string,
-        args: string[] | undefined,
-        env: any | undefined,
+        args: string[],
+        env: any,
         revealOutputChannelOn: RevealOutputChannelOn,
         onClosed: () => void
     ) {
