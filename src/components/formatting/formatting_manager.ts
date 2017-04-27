@@ -18,6 +18,8 @@ import { Configuration } from '../configuration/Configuration';
 
 import getDocumentFilter from '../configuration/mod';
 
+import { FileSystem } from '../file_system/FileSystem';
+
 const ansiRegex = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
 
 interface RustFmtDiff {
@@ -31,9 +33,29 @@ export default class FormattingManager implements DocumentFormattingEditProvider
 
     private newFormatRegex: RegExp = /^Diff in (.*) at line (\d+):$/;
 
-    public constructor(context: ExtensionContext, configuration: Configuration) {
-        this.configuration = configuration;
+    public static async create(context: ExtensionContext, configuration: Configuration): Promise<FormattingManager | undefined> {
+        const rustfmtPath: string | undefined = await FileSystem.findExecutablePath(configuration.getRustfmtPath());
+        if (rustfmtPath === undefined) {
+            return undefined;
+        }
+        return new FormattingManager(context, configuration);
+    }
 
+    public provideDocumentFormattingEdits(document: TextDocument): Thenable<TextEdit[]> {
+        return this.formattingEdits(document);
+    }
+
+    public provideDocumentRangeFormattingEdits(document: TextDocument, range: Range): Thenable<TextEdit[]> {
+        return this.formattingEdits(document, range);
+    }
+
+    /**
+     * To create an instance of the class use the method `create`
+     * @param context The extension context
+     * @param configuration The configuration
+     */
+    private constructor(context: ExtensionContext, configuration: Configuration) {
+        this.configuration = configuration;
         context.subscriptions.push(
             languages.registerDocumentFormattingEditProvider(
                 getDocumentFilter(),
@@ -44,14 +66,6 @@ export default class FormattingManager implements DocumentFormattingEditProvider
                 this
             )
         );
-    }
-
-    public provideDocumentFormattingEdits(document: TextDocument): Thenable<TextEdit[]> {
-        return this.formattingEdits(document);
-    }
-
-    public provideDocumentRangeFormattingEdits(document: TextDocument, range: Range): Thenable<TextEdit[]> {
-        return this.formattingEdits(document, range);
     }
 
     private formattingEdits(document: TextDocument, range?: Range): Thenable<TextEdit[]> {
