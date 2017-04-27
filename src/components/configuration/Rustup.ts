@@ -36,6 +36,11 @@ export class Rustup {
     private pathToRlsExecutable: string | undefined;
 
     /**
+     * Components received by invoking rustup
+     */
+    private components: string[];
+
+    /**
      * Checks if Rustup manages a specified Rust's installation root
      * @param rustcSysRoot a path to Rust's installation root to check
      * @returns true if Rustup manages it otherwire false
@@ -52,11 +57,9 @@ export class Rustup {
      */
     public static async create(logger: ChildLogger, pathToRustcSysRoot: string): Promise<Rustup> {
         const rustup = new Rustup(logger, pathToRustcSysRoot, undefined, undefined);
-
         await rustup.updatePathToRustSourceCodePath();
-
+        await rustup.updateComponents();
         await rustup.updatePathToRlsExecutable();
-
         return rustup;
     }
 
@@ -103,38 +106,40 @@ export class Rustup {
      */
     public async installRls(): Promise<boolean> {
         const logger = this.logger.createChildLogger('installRls: ');
-
-        if (this.pathToRlsExecutable) {
-            logger.error('RLS is already installed. The method should not have been called');
-
-            // We return true because RLS is installed, but anyway it is an exceptional situation
-            return true;
-        }
-
-        const args = [
-            'component',
-            'add',
-            Rustup.getRlsComponentName()
-        ];
-
-        const stdoutData: string | undefined = await this.invokeRustup(args);
-
-        // Some error occurred. It is already logged in the method invokeRustup.
-        // So we just need to notify a caller that the installation failed
-        if (stdoutData === undefined) {
+        const isComponentInstalled: boolean = await this.installComponent(Rustup.getRlsComponentName());
+        if (!isComponentInstalled) {
             return false;
         }
-
         // We need to update the field
         await this.updatePathToRlsExecutable();
-
         if (!this.pathToRlsExecutable) {
-            logger.createChildLogger('RLS had been installed successfully, but then Rustup reported that RLS was not installed. This should have not happened');
+            logger.error('RLS had been installed successfully, but we failed to find it in PATH. This should have not happened');
 
             return false;
         }
-
         return true;
+    }
+
+    /**
+     * Requests Rustup install rust-analysis
+     * @return true if no error occurred and rust-analysis has been installed otherwise false
+     */
+    public async installRustAnalysis(): Promise<boolean> {
+        return await this.installComponent(Rustup.getRustAnalysisComponentName());
+    }
+
+    /**
+     * Requests rustup to give components list and saves them in the field `components`
+     */
+    public async updateComponents(): Promise<void> {
+        const logger = this.logger.createChildLogger('updateComponents: ');
+        const stdoutData: string | undefined = await this.invokeRustup(['component', 'list']);
+        if (!stdoutData) {
+            logger.error(`stdoutData=${stdoutData}`);
+            return undefined;
+        }
+        this.components = stdoutData.split('\n');
+        logger.debug(`this.components=${JSON.stringify(this.components)}`);
     }
 
     /**
@@ -161,73 +166,51 @@ export class Rustup {
      */
     public async updatePathToRlsExecutable(): Promise<void> {
         const logger = this.logger.createChildLogger('updatePathToRlsExecutable: ');
-
-        const installedComponents: string[] | undefined = await this.getInstalledComponents();
-
-        if (!installedComponents) {
-            this.pathToRlsExecutable = undefined;
-
+        this.pathToRlsExecutable = undefined;
+        const rlsInstalled: boolean = this.isComponentInstalled(Rustup.getRlsComponentName());
+        logger.debug(`rlsInstalled=${rlsInstalled}`);
+        if (!rlsInstalled) {
             return;
         }
-
-        const rlsComponent = installedComponents.find(component => {
-            return component.startsWith(Rustup.getRlsComponentName());
-        });
-
-        const isRlsInstalled = rlsComponent !== undefined;
-
-        if (!isRlsInstalled) {
-            logger.debug('RLS is not installed');
-
-            this.pathToRlsExecutable = undefined;
-
-            return;
-        }
-
-        const pathToRlsExecutable: string | undefined = await FileSystem.findExecutablePath(Rustup.getRlsComponentName());
-
-        if (!pathToRlsExecutable) {
+        const rlsPath: string | undefined = await FileSystem.findExecutablePath('rls');
+        logger.debug(`rlsPath=${rlsPath}`);
+        if (!rlsPath) {
             // RLS is installed via Rustup, but isn't found. Let a user know about it
             logger.error(`Rustup had reported that RLS had been installed, but RLS wasn't found in PATH=${process.env.PATH}`);
-
-            this.pathToRlsExecutable = undefined;
-
             return;
         }
-
-        this.pathToRlsExecutable = pathToRlsExecutable;
-
-        logger.debug(`RLS is installed. Path=${this.pathToRlsExecutable}`);
+        this.pathToRlsExecutable = rlsPath;
     }
 
     /**
      * Requests Rustup give a list of components, parses it, checks if RLS is present in the list and returns if it is
      * @returns true if RLS can be installed otherwise false
      */
-    public async canInstallRls(): Promise<boolean> {
-        const logger = this.logger.createChildLogger('canRlsBeInstalled: ');
-
-        const components: string[] | undefined = await this.getComponents();
-
-        if (!components) {
-            return false;
-        }
-
-        const rlsComponent = components.find(component => component.startsWith(Rustup.getRlsComponentName()));
-
+    public canInstallRls(): boolean {
+        const logger = this.logger.createChildLogger('canInstallRls: ');
+        const rlsComponent = this.components.find(component => component.startsWith(Rustup.getRlsComponentName()));
         if (!rlsComponent) {
             return false;
         }
-
-        const isRlsComponentAlreadyInstalled = rlsComponent.endsWith(Rustup.getSuffixForInstalledComponent());
-
-        if (isRlsComponentAlreadyInstalled) {
+        const rlsInstalled = rlsComponent.endsWith(Rustup.getSuffixForInstalledComponent());
+        if (rlsInstalled) {
             logger.error('RLS is already installed. The method should not have been called');
-
             return false;
         }
-
         return true;
+    }
+
+    /**
+     * Returns true if the component `rust-analysis` can be installed otherwise false.
+     * If the component is already installed, the method returns false
+     */
+    public canInstallRustAnalysis(): boolean {
+        const component: string | undefined = this.components.find(c => c.startsWith(Rustup.getRustAnalysisComponentName()));
+        if (!component) {
+            return false;
+        }
+        const componentInstalled: boolean = component.endsWith(Rustup.getSuffixForInstalledComponent());
+        return !componentInstalled;
     }
 
     /**
@@ -235,6 +218,13 @@ export class Rustup {
      */
     private static getRustupExecutable(): string {
         return 'rustup';
+    }
+
+    /**
+     * Returns the name of the component rust-analysis
+     */
+    private static getRustAnalysisComponentName(): string {
+        return 'rust-analysis';
     }
 
     /**
@@ -272,32 +262,8 @@ export class Rustup {
         this.pathToRustSourceCode = pathToRustSourceCode;
 
         this.pathToRlsExecutable = pathToRlsExecutable;
-    }
 
-    /**
-     * Requests Rustup give a list of components, parses it and returns it
-     * This method is asynchronous because it requests Rustup
-     * @returns a list of components if no error occurred otherwise undefined
-     */
-    private async getComponents(): Promise<string[] | undefined> {
-        const logger = this.logger.createChildLogger('getComponents: ');
-
-        const stdoutData: string | undefined = await this.invokeRustup(['component', 'list']);
-
-        if (!stdoutData) {
-            return undefined;
-        }
-
-        const components: string[] = stdoutData.split('\n');
-
-        if (components.length === 0) {
-            // It actually shouldn't happen, but sometimes strange things happen
-            logger.error(`Rustup returned no output`);
-
-            return undefined;
-        }
-
-        return components;
+        this.components = [];
     }
 
     /**
@@ -331,20 +297,46 @@ export class Rustup {
     }
 
     /**
-     * Requests Rustup give a list of components, parses it, filters only installed and returns it
-     * @returns a list of installed components if no error occurred otherwise undefined
+     * Takes from the field `components` only installed components
+     * @returns a list of installed components
      */
-    private async getInstalledComponents(): Promise<string[] | undefined> {
-        const components: string[] | undefined = await this.getComponents();
-
-        if (!components) {
-            return undefined;
-        }
-
-        const installedComponents = components.filter(component => {
+    private getInstalledComponents(): string[] {
+        const installedComponents = this.components.filter(component => {
             return component.endsWith(Rustup.getSuffixForInstalledComponent());
         });
-
         return installedComponents;
+    }
+
+    /**
+     * Returns true if the component is installed otherwise false
+     * @param componentName The component's name
+     */
+    private isComponentInstalled(componentName: string): boolean {
+        const installedComponents: string[] = this.getInstalledComponents();
+        const component: string | undefined = installedComponents.find(c => c.startsWith(componentName));
+        const isComponentInstalled = component !== undefined;
+        return isComponentInstalled;
+    }
+
+    private async installComponent(componentName: string): Promise<boolean> {
+        const logger = this.logger.createChildLogger(`installComponent(${componentName}: `);
+        if (this.isComponentInstalled(componentName)) {
+            logger.error(`${componentName} is already installed. The method should not have been called`);
+            // We return true because the component is installed, but anyway it is an exceptional situation
+            return true;
+        }
+        const args = ['component', 'add', componentName];
+        const stdoutData: string | undefined = await this.invokeRustup(args);
+        // Some error occurred. It is already logged in the method invokeRustup.
+        // So we just need to notify a caller that the installation failed
+        if (stdoutData === undefined) {
+            return false;
+        }
+        await this.updateComponents();
+        if (this.isComponentInstalled(componentName)) {
+            logger.error(`${componentName} had been installed successfully, but then Rustup reported that the component was not installed. This should have not happened`);
+            return false;
+        }
+        return true;
     }
 }
