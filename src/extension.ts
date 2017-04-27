@@ -193,7 +193,7 @@ async function chooseModeAndRun(
     if (pathToRlsExecutable) {
         runInRlsMode(context, logger, configuration, pathToRlsExecutable);
     } else {
-        const legacyModeManager = new LegacyModeManager(
+        const legacyModeManager = await LegacyModeManager.create(
             context,
             configuration,
             currentWorkingDirectoryManager,
