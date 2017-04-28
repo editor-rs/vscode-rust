@@ -154,31 +154,24 @@ function runInRlsMode(
     context: ExtensionContext,
     logger: RootLogger,
     configuration: Configuration,
-    pathToRlsExecutable: string
+    rlsPath: string
 ): void {
-    const methodLogger = logger.createChildLogger('runInRlsMode: ');
-
+    const functionLogger = logger.createChildLogger('runInRlsMode: ');
+    functionLogger.debug(`rlsPath=${rlsPath}`);
     const env = configuration.getRlsEnv();
-
-    methodLogger.debug(`env=${JSON.stringify(env)}`);
-
+    functionLogger.debug(`env=${JSON.stringify(env)}`);
     const args = configuration.getRlsArgs();
-
-    methodLogger.debug(`args=${JSON.stringify(args)}`);
-
+    functionLogger.debug(`args=${JSON.stringify(args)}`);
     const revealOutputChannelOn = configuration.getRlsRevealOutputChannelOn();
-
-    methodLogger.debug(`revealOutputChannelOn=${revealOutputChannelOn}`);
-
+    functionLogger.debug(`revealOutputChannelOn=${revealOutputChannelOn}`);
     const languageClientManager = new LanguageClientManager(
         context,
         logger.createChildLogger('Language Client Manager: '),
-        pathToRlsExecutable,
+        rlsPath,
         args,
         env,
         revealOutputChannelOn
     );
-
     languageClientManager.initialStart();
 }
 
