@@ -333,7 +333,7 @@ export class Rustup {
             return false;
         }
         await this.updateComponents();
-        if (this.isComponentInstalled(componentName)) {
+        if (!this.isComponentInstalled(componentName)) {
             logger.error(`${componentName} had been installed successfully, but then Rustup reported that the component was not installed. This should have not happened`);
             return false;
         }
