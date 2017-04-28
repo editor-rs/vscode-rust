@@ -47,14 +47,13 @@ export class TerminalTaskManager {
 
         const setEnvironmentVariables = () => {
             const cargoEnv = this.configuration.getCargoEnv();
-
             const shell: string = workspace.getConfiguration('terminal')['integrated']['shell']['windows'];
-
             // Set environment variables
-            for (const name of cargoEnv) {
-                const value = cargoEnv[name];
-
-                terminal.sendText(getCommandToSetEnvVar(shell, name, value));
+            for (const name in cargoEnv) {
+                if (name in cargoEnv) {
+                    const value = cargoEnv[name];
+                    terminal.sendText(getCommandToSetEnvVar(shell, name, value));
+                }
             }
         };
 
