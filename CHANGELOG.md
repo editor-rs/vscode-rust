@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.13
+
+### Bug fixes
+
+* Fix incorrect determining RLS path if a user specified some path. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/210)
+
 ## 0.3.12
 
 ### Features
