@@ -96,7 +96,7 @@ export class Configuration {
             undefined
         );
 
-        configuration.updatePathToRlsExecutableSpecifiedByUser();
+        await configuration.updatePathToRlsExecutableSpecifiedByUser();
 
         return configuration;
     }
@@ -126,7 +126,7 @@ export class Configuration {
             const foundPath: string | undefined = await FileSystem.findExecutablePath(path);
             methodLogger.debug(`foundPath=${foundPath}`);
             return foundPath;
-        };
+        }
         async function findDefaultRacerPath(logger: ChildLogger): Promise<string | undefined> {
             const methodLogger = logger.createChildLogger('findDefaultRacerPath: ');
             const foundPath: string | undefined = await FileSystem.findExecutablePath('racer');
@@ -484,14 +484,14 @@ export class Configuration {
         if (!rlsConfiguration) {
             return;
         }
-        const rlsPathSpecifiedByUser: string | undefined | null = rlsConfiguration.executable;
+        let rlsPathSpecifiedByUser: string | undefined | null = rlsConfiguration.executable;
         if (!rlsPathSpecifiedByUser) {
             return;
         }
-        const rlsPath = expandTilde(rlsPathSpecifiedByUser);
-        const doesRlsPathExist: boolean = await FileSystem.doesPathExist(rlsPath);
-        if (!doesRlsPathExist) {
-            logger.error(`The specified path does not exist. Path=${rlsPath}`);
+        rlsPathSpecifiedByUser = expandTilde(rlsPathSpecifiedByUser);
+        const rlsPath: string | undefined = await FileSystem.findExecutablePath(rlsPathSpecifiedByUser);
+        if (!rlsPath) {
+            logger.error(`Failed to find path=${rlsPath}`);
             return;
         }
         this.rlsPathSpecifiedByUser = rlsPath;
