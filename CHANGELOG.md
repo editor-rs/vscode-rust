@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.3.12
+
+### Features
+
+* Tight integration with RLS installed via Rustup. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/181)
+
+* Ask a user's permission to install rust-analysis. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/204)
+
+### Bug fixes
+
+* Executing a cargo command does not pollute Bash history. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/178)
+
+* Don't restart Racer if it is not installed. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/189)
+
+* Don't enable formatting capabilities if rustfmt is not installed. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/205)
+
+### Breaking changes
+
+* Removed keybindings. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/176)
+
 ## 0.3.11
 
 ### Features

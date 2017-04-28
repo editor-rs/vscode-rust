@@ -2,7 +2,7 @@
   "name": "vscode-rust",
   "displayName": "Rust",
   "description": "Rust language integration for VSCode",
-  "version": "0.3.11",
+  "version": "0.3.12",
   "publisher": "kalitaalexey",
   "license": "MIT",
   "icon": "images/icon.png",
