@@ -39,7 +39,12 @@
         ]
       }
     ],
-    "prefer-const": [true, {"destructuring": "all"}],
+    "prefer-const": [
+      true,
+      {
+        "destructuring": "all"
+      }
+    ],
     "no-any": false,
     "no-arg": true,
     "no-bitwise": false,
@@ -106,6 +111,7 @@
     "variable-name": [
       true,
       "check-format",
+      "allow-leading-underscore",
       "ban-keywords"
     ],
     "whitespace": [

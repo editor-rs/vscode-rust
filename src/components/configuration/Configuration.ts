@@ -30,11 +30,18 @@ export enum ActionOnStartingCommandIfThereIsRunningCommand {
     ShowDialogToLetUserDecide
 }
 
+export enum Mode {
+    Legacy,
+    RLS
+}
+
 /**
  * The main class of the component `Configuration`.
  * This class contains code related to Configuration
  */
 export class Configuration {
+    private _mode: Mode | undefined;
+    private _isForcedLegacyMode: boolean;
     private logger: ChildLogger;
 
     private rustInstallation: Rustup | NotRustup | undefined;
@@ -71,23 +78,18 @@ export class Configuration {
      */
     public static async create(logger: ChildLogger): Promise<Configuration> {
         const rustcSysRoot: string | undefined = await this.loadRustcSysRoot();
-
         const createRustInstallationPromise = async () => {
             if (!rustcSysRoot) {
                 return undefined;
             }
-
             if (Rustup.doesManageRustcSysRoot(rustcSysRoot)) {
                 return await Rustup.create(logger.createChildLogger('Rustup: '), rustcSysRoot);
             } else {
                 return new NotRustup(rustcSysRoot);
             }
         };
-
         const rustInstallation: Rustup | NotRustup | undefined = await createRustInstallationPromise();
-
         const pathToRustSourceCodeSpecifiedByUser = await this.checkPathToRustSourceCodeSpecifiedByUser();
-
         const configuration = new Configuration(
             logger,
             rustInstallation,
@@ -95,9 +97,9 @@ export class Configuration {
             undefined,
             undefined
         );
-
-        await configuration.updatePathToRlsExecutableSpecifiedByUser();
-
+        if (!configuration.isForcedLegacyMode()) {
+            await configuration.updatePathToRlsExecutableSpecifiedByUser();
+        }
         return configuration;
     }
 
@@ -138,6 +140,22 @@ export class Configuration {
             await findRacerPathSpecifiedByUser(logger) ||
             await findDefaultRacerPath(logger)
         );
+    }
+
+    public mode(): Mode | undefined {
+        return this._mode;
+    }
+
+    public setMode(mode: Mode): void {
+        if (this._mode !== undefined) {
+            this.logger.createChildLogger(`setMode(${mode}): `).error('this._mode !== undefined. The method should not have been called');
+            return;
+        }
+        this._mode = mode;
+    }
+
+    public isForcedLegacyMode(): boolean {
+        return this._isForcedLegacyMode;
     }
 
     /**
@@ -251,14 +269,11 @@ export class Configuration {
 
     public shouldExecuteCargoCommandInTerminal(): boolean {
         // When RLS is used any cargo command is executed in an integrated terminal.
-        if (this.getRlsConfiguration() !== undefined) {
+        if (this.mode() === Mode.RLS) {
             return true;
         }
-
         const configuration = Configuration.getConfiguration();
-
         const shouldExecuteCargoCommandInTerminal = configuration['executeCargoCommandInTerminal'];
-
         return shouldExecuteCargoCommandInTerminal;
     }
 
@@ -453,14 +468,22 @@ export class Configuration {
         rlsPathSpecifiedByUser: string | undefined,
         pathToRacer: string | undefined
     ) {
+        function isForcedLegacyMode(): boolean {
+            const configuration = Configuration.getConfiguration();
+            const value: boolean | null | undefined = configuration['forceLegacyMode'];
+            if (value) {
+                // It is actually `true`, but who knows how the code would behave later
+                return value;
+            } else {
+                return false;
+            }
+        }
+        this._mode = undefined;
+        this._isForcedLegacyMode = isForcedLegacyMode();
         this.logger = logger;
-
         this.rustInstallation = rustInstallation;
-
         this.pathToRustSourceCodeSpecifiedByUser = pathToRustSourceCodeSpecifiedByUser;
-
         this.rlsPathSpecifiedByUser = rlsPathSpecifiedByUser;
-
         this.racerPath = pathToRacer;
     }
 
@@ -479,6 +502,10 @@ export class Configuration {
      */
     private async updatePathToRlsExecutableSpecifiedByUser(): Promise<void> {
         const logger = this.logger.createChildLogger('updatePathToRlsSpecifiedByUser: ');
+        if (this.mode() === Mode.Legacy) {
+            logger.error('this.mode() === Mode.Legacy. The method should not have been called');
+            return;
+        }
         this.rlsPathSpecifiedByUser = undefined;
         const rlsConfiguration = this.getRlsConfiguration();
         if (!rlsConfiguration) {
