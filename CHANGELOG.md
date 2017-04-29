@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.14
+
+### Bug fixes
+
+* Fix executing Cargo commands. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/212)
+
+### Features
+
+* Handle RUSTUP_HOME. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/215)
+
+* New configuration parameter `"rust.forceLegacyMode"`. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/216)
+
 ## 0.3.13
 
 ### Bug fixes
