@@ -5,7 +5,7 @@ import { ExtensionContext, window, workspace } from 'vscode';
 
 import { CargoManager, CommandInvocationReason } from './components/cargo/cargo_manager';
 
-import { Configuration } from './components/configuration/Configuration';
+import { Configuration, Mode } from './components/configuration/Configuration';
 
 import CurrentWorkingDirectoryManager from './components/configuration/current_working_directory_manager';
 
@@ -129,7 +129,7 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
     const loggingManager = new LoggingManager();
     const logger = loggingManager.getLogger();
     const configuration = await Configuration.create(logger.createChildLogger('Configuration: '));
-    if (!configuration.getPathToRlsExecutable()) {
+    if (!configuration.getPathToRlsExecutable() && !configuration.isForcedLegacyMode()) {
         await handleMissingRls(logger, configuration);
     }
     const currentWorkingDirectoryManager = new CurrentWorkingDirectoryManager();
@@ -181,11 +181,10 @@ async function chooseModeAndRun(
     configuration: Configuration,
     currentWorkingDirectoryManager: CurrentWorkingDirectoryManager
 ): Promise<void> {
-    const pathToRlsExecutable = configuration.getPathToRlsExecutable();
-
-    if (pathToRlsExecutable) {
-        runInRlsMode(context, logger, configuration, pathToRlsExecutable);
-    } else {
+    const rls: string | undefined = configuration.getPathToRlsExecutable();
+    const isLegacyMode = configuration.isForcedLegacyMode() || !rls;
+    if (isLegacyMode) {
+        configuration.setMode(Mode.Legacy);
         const legacyModeManager = await LegacyModeManager.create(
             context,
             configuration,
@@ -194,6 +193,9 @@ async function chooseModeAndRun(
         );
 
         await legacyModeManager.start();
+    } else {
+        configuration.setMode(Mode.RLS);
+        runInRlsMode(context, logger, configuration, <string>rls);
     }
 }
 
