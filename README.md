@@ -1,7 +1,7 @@
 [![Build Status](https://api.travis-ci.org/editor-rs/vscode-rust.svg)](https://travis-ci.org/editor-rs/vscode-rust)
 [![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/vscode-rust/Lobby)
 
-# Rust for Visual Studio Code (Latest: 0.3.13)
+# Rust for Visual Studio Code (Latest: 0.3.14)
 
 ## What is the repository?
 
