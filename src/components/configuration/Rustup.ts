@@ -46,8 +46,15 @@ export class Rustup {
      * @returns true if Rustup manages it otherwire false
      */
     public static doesManageRustcSysRoot(pathToRustcSysRoot: string): boolean {
-        // It can be inaccurate since nobody can stop a user from installing Rust not via Rustup, but to `.rustup` directory
-        return pathToRustcSysRoot.includes('.rustup');
+        // Usually rustup installs itself to the directory `.rustup` so if the sysroot is in the directory `.rustup`, then it is controlled by rustup.
+        // Also a user can specify a directory to install rustup to by specifying the environment variable `RUSTUP_HOME`
+        const rustupHome: string | undefined = process.env.RUSTUP_HOME;
+        if (rustupHome) {
+            return pathToRustcSysRoot.startsWith(rustupHome);
+        } else {
+            // It can be inaccurate since nobody can stop a user from installing Rust not via Rustup, but to `.rustup` directory
+            return pathToRustcSysRoot.includes('.rustup');
+        }
     }
 
     /**
@@ -56,6 +63,7 @@ export class Rustup {
      * @param pathToRustcSysRoot A path to Rust's installation root
      */
     public static async create(logger: ChildLogger, pathToRustcSysRoot: string): Promise<Rustup> {
+        logger.createChildLogger('create: ').debug(`sysroot=${pathToRustcSysRoot}`);
         const rustup = new Rustup(logger, pathToRustcSysRoot, undefined, undefined);
         await rustup.updatePathToRustSourceCodePath();
         await rustup.updateComponents();
