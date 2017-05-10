@@ -197,6 +197,13 @@ export default class CompletionManager {
         this.lastCommand = '';
         this.providers = [];
 
+        if (process.platform === 'win32' && pathToRacer.indexOf(' ') >= 0) {
+            // pathToRacer is stripped by FileSystem.findExecutablePath, so it should be a
+            // valid path. On windows, '"' and '\' can't exist in file name, so it's safe to
+            // wrap path directly in '"'.
+            pathToRacer = "\"" + pathToRacer + "\"";
+        }
+
         logger.debug(`racerPath=${pathToRacer}`);
 
         this.racerStatusBarItem.showTurnedOn();
