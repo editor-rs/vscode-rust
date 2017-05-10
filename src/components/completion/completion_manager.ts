@@ -197,6 +197,12 @@ export default class CompletionManager {
         this.lastCommand = '';
         this.providers = [];
 
+        if (process.platform === 'win32' && pathToRacer.indexOf(' ') >= 0) {
+            // On windows, '"' can't exist in path, so it's safe to wrap path directly
+            // in '"'.
+            pathToRacer = "\"" + pathToRacer + "\"";
+        }
+
         logger.debug(`racerPath=${pathToRacer}`);
 
         this.racerStatusBarItem.showTurnedOn();
