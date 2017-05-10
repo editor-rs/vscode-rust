@@ -198,8 +198,9 @@ export default class CompletionManager {
         this.providers = [];
 
         if (process.platform === 'win32' && pathToRacer.indexOf(' ') >= 0) {
-            // On windows, '"' can't exist in path, so it's safe to wrap path directly
-            // in '"'.
+            // pathToRacer is stripped by FileSystem.findExecutablePath, so it should be a
+            // valid path. On windows, '"' and '\' can't exist in file name, so it's safe to
+            // wrap path directly in '"'.
             pathToRacer = "\"" + pathToRacer + "\"";
         }
 
