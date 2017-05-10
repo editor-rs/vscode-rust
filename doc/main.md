@@ -16,6 +16,9 @@ The second one is recommended and at some point the first one will be removed.
 
 But Legacy Mode should work just fine and if it doesn't, open an issue.
 
+Unfortunately, sometimes RLS does not work as one can expect.
+In this situation one can set `"rust.forceLegacyMode"` to `true` and the extension will function in Legacy Mode.
+
 Each mode is described in detail on its own page.
 
 Furthermore, the extension provides:
