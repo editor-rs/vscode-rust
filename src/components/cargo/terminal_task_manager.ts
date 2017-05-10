@@ -2,7 +2,7 @@ import { join } from 'path';
 
 import { ExtensionContext, Terminal, window, workspace } from 'vscode';
 
-import { getCommandToSetEnvVar } from '../../CommandLine';
+import { escapeSpaces, getCommandToSetEnvVar, parseShell } from '../../CommandLine';
 
 import { CommandStartHandleResult, Helper } from './helper';
 
@@ -45,9 +45,9 @@ export class TerminalTaskManager {
 
         this.runningTerminal = terminal;
 
+        const shell = parseShell(workspace.getConfiguration('terminal')['integrated']['shell']['windows']);
         const setEnvironmentVariables = () => {
             const cargoEnv = this.configuration.getCargoEnv();
-            const shell: string = workspace.getConfiguration('terminal')['integrated']['shell']['windows'];
             // Set environment variables
             for (const name in cargoEnv) {
                 if (name in cargoEnv) {
@@ -69,10 +69,14 @@ export class TerminalTaskManager {
             cwd = cargoCwd;
         }
 
+        cwd = escapeSpaces(cwd, shell);
         // Change the current directory to a specified directory
-        this.runningTerminal.sendText(`cd "${cwd}"`);
+        this.runningTerminal.sendText(`cd ${cwd}`);
 
-        const cargoPath = this.configuration.getCargoPath();
+        let cargoPath = this.configuration.getCargoPath();
+        cargoPath = escapeSpaces(cargoPath, shell);
+        args = args.map((arg) => escapeSpaces(arg, shell));
+        command = escapeSpaces(command, shell);
 
         // Start a requested command
         this.runningTerminal.sendText(`${cargoPath} ${command} ${args.join(' ')}`);

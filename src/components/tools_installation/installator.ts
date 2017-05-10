@@ -4,7 +4,7 @@ import * as path from 'path';
 
 import { ExtensionContext, commands, window, workspace } from 'vscode';
 
-import { getCommandToExecuteStatementsOneByOneIfPreviousIsSucceed } from '../../CommandLine';
+import { getCommandToExecuteStatementsOneByOneIfPreviousIsSucceed, parseShell } from '../../CommandLine';
 
 import { Configuration } from '../configuration/Configuration';
 
@@ -73,7 +73,7 @@ export default class Installator {
         // cargo install tool && cargo install another_tool
         const cargoBinPath = this.configuration.getCargoPath();
 
-        const shell: string = workspace.getConfiguration('terminal')['integrated']['shell']['windows'];
+        const shell = parseShell(workspace.getConfiguration('terminal')['integrated']['shell']['windows']);
 
         const statements = this.missingTools.map(tool => `${cargoBinPath} install ${tool}`);
 
