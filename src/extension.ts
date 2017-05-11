@@ -19,15 +19,22 @@ import RootLogger from './components/logging/root_logger';
 
 import LegacyModeManager from './legacy_mode_manager';
 
+enum RlsInstallDecision {
+    DoNotAskAgain,
+    Install,
+    NotInstall
+}
+
 /**
  * Asks the user's permission to install RLS
  * @param logger The logger
  * @return The promise which after resolving contains true if the user agreed otherwise false
  */
-async function askPermissionToInstallRls(logger: RootLogger): Promise<boolean> {
+async function askPermissionToInstallRls(logger: RootLogger): Promise<RlsInstallDecision> {
     const functionLogger = logger.createChildLogger('askPermissionToInstallRls: ');
     const readAboutRlsChoice = 'Read about RLS';
     const installRlsChoice = 'Install RLS';
+    const doNotAskMeAgainChoice = 'Don\'t ask me again';
     // Asking the user if the user wants to install RLS until the user declines or agrees.
     // A user can decide to install RLS, then we install it.
     // A user can decide to read about RLS, then we open a link to the repository of RLS and ask again after
@@ -35,7 +42,8 @@ async function askPermissionToInstallRls(logger: RootLogger): Promise<boolean> {
         const choice: string | undefined = await window.showInformationMessage(
             'You use Rustup, but RLS was not found. RLS provides a good user experience',
             readAboutRlsChoice,
-            installRlsChoice
+            installRlsChoice,
+            doNotAskMeAgainChoice
         );
         functionLogger.debug(`choice=${choice}`);
         switch (choice) {
@@ -43,9 +51,11 @@ async function askPermissionToInstallRls(logger: RootLogger): Promise<boolean> {
                 open('https://github.com/rust-lang-nursery/rls');
                 break;
             case installRlsChoice:
-                return true;
+                return RlsInstallDecision.Install;
+            case doNotAskMeAgainChoice:
+                return RlsInstallDecision.DoNotAskAgain;
             default:
-                return false;
+                return RlsInstallDecision.NotInstall;
         }
     }
 }
@@ -72,13 +82,23 @@ async function handleMissingRls(logger: RootLogger, configuration: Configuration
     const rustup = configuration.getRustInstallation();
     if (!(rustup instanceof Rustup)) {
         functionLogger.debug('Rust is either not installed or installed not via Rustup');
-        window.showInformationMessage('You do not use Rustup. Rustup is a preffered way to install Rust and its components');
+        const doNotShowMeAgainChoice = 'Don\'t show me this again';
+        const choice: string | undefined = await window.showInformationMessage('You do not use Rustup. Rustup is a preffered way to install Rust and its components', doNotShowMeAgainChoice);
+        if (choice === doNotShowMeAgainChoice) {
+            configuration.setForceLegacyMode(true);
+        }
         return;
     }
-    const permissionToInstallRlsGranted: boolean = await askPermissionToInstallRls(logger);
-    functionLogger.debug(`permissionToInstallRlsGranted=${permissionToInstallRlsGranted}`);
-    if (!permissionToInstallRlsGranted) {
-        return;
+    const rlsInstallDecision: RlsInstallDecision = await askPermissionToInstallRls(logger);
+    functionLogger.debug(`rlsInstallDecision=${rlsInstallDecision}`);
+    switch (rlsInstallDecision) {
+        case RlsInstallDecision.DoNotAskAgain:
+            configuration.setForceLegacyMode(true);
+            return;
+        case RlsInstallDecision.Install:
+            break;
+        case RlsInstallDecision.NotInstall:
+            return;
     }
     const permissionToUpdateRustupGranted: boolean = await askPermissionToUpdateRustup();
     functionLogger.debug(`permissionToUpdateRustupGranted=${permissionToUpdateRustupGranted}`);
