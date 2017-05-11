@@ -35,6 +35,10 @@ export enum Mode {
     RLS
 }
 
+namespace Properties {
+    export const forceLegacyMode = 'forceLegacyMode';
+}
+
 /**
  * The main class of the component `Configuration`.
  * This class contains code related to Configuration
@@ -51,7 +55,7 @@ export class Configuration {
      * It contains a value of either:
      *   - the configuration parameter `rust.rustLangSrcPath`
      *   - the environment variable `RUST_SRC_PATH`
-     * The path has higher priority than a path to Rust's source code contained within an installation
+     * The path has higher priority than a path to Rust's source code contained within an    installation
      */
     private pathToRustSourceCodeSpecifiedByUser: string | undefined;
 
@@ -364,6 +368,12 @@ export class Configuration {
         }
     }
 
+    public setForceLegacyMode(value: boolean): void {
+        const configuration = Configuration.getConfiguration();
+        configuration.update(Properties.forceLegacyMode, value, true);
+        this._isForcedLegacyMode = value;
+    }
+
     private static async loadRustcSysRoot(): Promise<string | undefined> {
         const executable = 'rustc';
 
@@ -470,7 +480,7 @@ export class Configuration {
     ) {
         function isForcedLegacyMode(): boolean {
             const configuration = Configuration.getConfiguration();
-            const value: boolean | null | undefined = configuration['forceLegacyMode'];
+            const value: boolean | null | undefined = configuration[Properties.forceLegacyMode];
             if (value) {
                 // It is actually `true`, but who knows how the code would behave later
                 return value;
