@@ -83,7 +83,7 @@ async function handleMissingRls(logger: RootLogger, configuration: Configuration
     if (!(rustup instanceof Rustup)) {
         functionLogger.debug('Rust is either not installed or installed not via Rustup');
         const doNotShowMeAgainChoice = 'Don\'t show me this again';
-        const choice: string | undefined = await window.showInformationMessage('You do not use Rustup. Rustup is a preffered way to install Rust and its components', doNotShowMeAgainChoice);
+        const choice: string | undefined = await window.showInformationMessage('You do not use Rustup. Rustup is a preferred way to install Rust and its components', doNotShowMeAgainChoice);
         if (choice === doNotShowMeAgainChoice) {
             configuration.setForceLegacyMode(true);
         }
