@@ -61,17 +61,6 @@ async function askPermissionToInstallRls(logger: RootLogger): Promise<RlsInstall
 }
 
 /**
- * Asks a user if the user agrees to update Rustup
- * @returns true if a user agreed to update otherwise false
- */
-async function askPermissionToUpdateRustup(): Promise<boolean> {
-    const message = 'Before installing RLS it would be good to update Rustup. If you decline to update, RLS will not be installed';
-    const updateChoice = 'Update';
-    const choice = await window.showInformationMessage(message, updateChoice);
-    return choice === updateChoice;
-}
-
-/**
  * Handles the case when the user does not have RLS.
  * It tries to install RLS if it is possible
  * @param logger The logger to log messages
@@ -99,17 +88,6 @@ async function handleMissingRls(logger: RootLogger, configuration: Configuration
             break;
         case RlsInstallDecision.NotInstall:
             return;
-    }
-    const permissionToUpdateRustupGranted: boolean = await askPermissionToUpdateRustup();
-    functionLogger.debug(`permissionToUpdateRustupGranted=${permissionToUpdateRustupGranted}`);
-    if (!permissionToUpdateRustupGranted) {
-        return;
-    }
-    const rustupUpdated: boolean = await rustup.update();
-    functionLogger.debug(`rustupUpdated=${rustupUpdated}`);
-    if (!rustupUpdated) {
-        window.showErrorMessage('Rustup failed to update. Check the output channel "Rust Logging"');
-        return;
     }
     async function installComponent(componentName: string, installComponent: () => Promise<boolean>): Promise<boolean> {
         window.showInformationMessage(`${componentName} is being installed. It can take a while`);

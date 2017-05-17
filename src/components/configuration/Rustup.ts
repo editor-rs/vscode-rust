@@ -93,22 +93,6 @@ export class Rustup {
     }
 
     /**
-     * Requests Rustup update
-     * @return true if no error occurred otherwise false
-     */
-    public async update(): Promise<boolean> {
-        const args = ['self', 'update'];
-
-        const stdoutData: string | undefined = await this.invokeRustup(args);
-
-        if (stdoutData === undefined) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
      * Requests Rustup install RLS
      * @return true if no error occurred and RLS has been installed otherwise false
      */
