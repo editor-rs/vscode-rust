@@ -130,11 +130,11 @@ export class Rustup {
         const logger = this.logger.createChildLogger('updateComponents: ');
         const stdoutData: string | undefined = await Rustup.invoke(['component', 'list', '--toolchain', 'nightly'], logger);
         if (!stdoutData) {
-            logger.error(`stdoutData= ${stdoutData} `);
+            logger.error(`stdoutData=${stdoutData}`);
             return undefined;
         }
         this.components = stdoutData.split('\n');
-        logger.debug(`this.components=${JSON.stringify(this.components)} `);
+        logger.debug(`this.components=${JSON.stringify(this.components)}`);
     }
 
     /**
