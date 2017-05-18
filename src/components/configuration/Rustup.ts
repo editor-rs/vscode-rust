@@ -62,9 +62,12 @@ export class Rustup {
      * The method is asynchronous because it tries to find Rust's source code
      * @param pathToRustcSysRoot A path to Rust's installation root
      */
-    public static async create(logger: ChildLogger, pathToRustcSysRoot: string): Promise<Rustup> {
-        logger.createChildLogger('create: ').debug(`sysroot=${pathToRustcSysRoot}`);
-        const rustup = new Rustup(logger, pathToRustcSysRoot, undefined, undefined);
+    public static async create(logger: ChildLogger): Promise<Rustup | undefined> {
+        const sysrootPath: string | undefined = await this.invokeGettingSysrootPath('nightly', logger);
+        if (!sysrootPath) {
+            return undefined;
+        }
+        const rustup = new Rustup(logger, sysrootPath, undefined, undefined);
         await rustup.updatePathToRustSourceCodePath();
         await rustup.updateComponents();
         await rustup.updatePathToRlsExecutable();
@@ -125,13 +128,13 @@ export class Rustup {
      */
     public async updateComponents(): Promise<void> {
         const logger = this.logger.createChildLogger('updateComponents: ');
-        const stdoutData: string | undefined = await this.invokeRustup(['component', 'list']);
+        const stdoutData: string | undefined = await Rustup.invoke(['component', 'list', '--toolchain', 'nightly'], logger);
         if (!stdoutData) {
-            logger.error(`stdoutData=${stdoutData}`);
+            logger.error(`stdoutData= ${stdoutData} `);
             return undefined;
         }
         this.components = stdoutData.split('\n');
-        logger.debug(`this.components=${JSON.stringify(this.components)}`);
+        logger.debug(`this.components=${JSON.stringify(this.components)} `);
     }
 
     /**
@@ -193,6 +196,14 @@ export class Rustup {
     }
 
     /**
+     * Returns if RLS is installed
+     * @return true if RLS is installed otherwise false
+     */
+    public isRlsInstalled(): boolean {
+        return this.isComponentInstalled(Rustup.getRlsComponentName());
+    }
+
+    /**
      * Returns true if the component `rust-analysis` can be installed otherwise false.
      * If the component is already installed, the method returns false
      */
@@ -234,6 +245,52 @@ export class Rustup {
     }
 
     /**
+     * Invokes rustup to get the path to the sysroot of the specified toolchain.
+     * Checks if the invocation exited successfully and returns the output of the invocation
+     * @param toolchain The toolchain to get the path to the sysroot for
+     * @param logger The logger to log messages
+     * @return The output of the invocation if the invocation exited successfully otherwise undefined
+     */
+    private static async invokeGettingSysrootPath(toolchain: string, logger: ChildLogger): Promise<string | undefined> {
+        const output: string | undefined = await this.invokeRun(toolchain, ['rustc', '--print', 'sysroot'], logger);
+        if (!output) {
+            return undefined;
+        }
+        return output.trim();
+    }
+
+    /**
+     * Invokes `rustup run...` with the specified toolchain and arguments, checks if it exited successfully and returns its output
+     * @param toolchain The toolchain to invoke rustup with
+     * @param args The arguments to invoke rustup with
+     * @param logger The logger to log messages
+     */
+    private static async invokeRun(toolchain: string, args: string[], logger: ChildLogger): Promise<string | undefined> {
+        return await this.invoke(['run', toolchain, ...args], logger);
+    }
+
+    /**
+     * Invokes Rustup with specified arguments, checks if it exited successfully and returns its output
+     * @param args Arguments to invoke Rustup with
+     * @param logger The logger to log messages
+     * @returns an output if invocation exited successfully otherwise undefined
+     */
+    private static async invoke(args: string[], logger: ChildLogger): Promise<string | undefined> {
+        const rustupExe = Rustup.getRustupExecutable();
+        const functionLogger = logger.createChildLogger(`invoke: rustupExe=${rustupExe}, args=${JSON.stringify(args)}: `);
+        const result = await OutputtingProcess.spawn(rustupExe, args, undefined);
+        if (!result.success) {
+            functionLogger.error('failed');
+            return undefined;
+        }
+        if (result.exitCode !== 0) {
+            functionLogger.error(`exited unexpectedly; exitCode=${result.exitCode}, stderrData=${result.stderrData}`);
+            return undefined;
+        }
+        return result.stdoutData;
+    }
+
+    /**
      * Constructs a new instance of the class.
      * The constructor is private because creating a new instance should be done via the method `create`
      * @param logger A value for the field `logger`
@@ -256,36 +313,6 @@ export class Rustup {
         this.pathToRlsExecutable = pathToRlsExecutable;
 
         this.components = [];
-    }
-
-    /**
-     * Invokes Rustup with specified arguments, checks it exited successfully and returns its output
-     * @param args Arguments to invoke Rustup with
-     * @returns an output if invokation Rustup exited successfully otherwise undefined
-     */
-    private async invokeRustup(args: string[]): Promise<string | undefined> {
-        const logger = this.logger.createChildLogger('invokeRustup: ');
-
-        const rustupExe = Rustup.getRustupExecutable();
-
-        // We assume that the executable of Rustup can be called since usually both `rustc` and `rustup` are placed in the same directory
-        const result = await OutputtingProcess.spawn(rustupExe, args, undefined);
-
-        if (!result.success) {
-            // It actually shouldn't happen.
-            // If it happens, then there is some problem and we need to know about it
-            logger.error(`failed to execute ${rustupExe}. This should not have happened`);
-
-            return undefined;
-        }
-
-        if (result.exitCode !== 0) {
-            logger.error(`${rustupExe} ${args.join(' ')} exited with code=${result.exitCode}, but zero is expected. This should not have happened. stderrData=${result.stderrData}`);
-
-            return undefined;
-        }
-
-        return result.stdoutData;
     }
 
     /**
@@ -317,8 +344,8 @@ export class Rustup {
             // We return true because the component is installed, but anyway it is an exceptional situation
             return true;
         }
-        const args = ['component', 'add', componentName];
-        const stdoutData: string | undefined = await this.invokeRustup(args);
+        const args = ['component', 'add', componentName, '--toolchain', 'nightly'];
+        const stdoutData: string | undefined = await Rustup.invoke(args, logger);
         // Some error occurred. It is already logged in the method invokeRustup.
         // So we just need to notify a caller that the installation failed
         if (stdoutData === undefined) {
