@@ -31,8 +31,20 @@ export class Manager {
         env: any | undefined,
         revealOutputChannelOn: RevealOutputChannelOn
     ): Promise<Manager> {
-        const formattingManager: FormattingManager | undefined = await FormattingManager.create(context, configuration);
+        let formattingManager: FormattingManager | undefined;
+        if (configuration.getUseRustfmtForFormatting()) {
+            formattingManager = await FormattingManager.create(context, configuration);
+        }
         return new Manager(context, logger, executable, args, env, revealOutputChannelOn, formattingManager);
+    }
+
+    /**
+     * Starts the language client at first time
+     */
+    public initialStart(): void {
+        this.start();
+
+        this.statusBarItem.show();
     }
 
     private constructor(
@@ -73,15 +85,6 @@ export class Manager {
         if (formattingManager) {
             vscode.languages.registerDocumentFormattingEditProvider('rust', formattingManager);
         }
-    }
-
-    /**
-     * Starts the language client at first time
-     */
-    public initialStart(): void {
-        this.start();
-
-        this.statusBarItem.show();
     }
 
     private start(): void {

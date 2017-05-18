@@ -17,11 +17,11 @@ import { Rustup } from './Rustup';
 import { NotRustup } from './NotRustup';
 
 export interface RlsConfiguration {
+    executable?: string;
     args?: string[];
-
     env?: any;
-
-    revealOutputChannelOn: RevealOutputChannelOn;
+    revealOutputChannelOn?: string; // RevealOutputChannelOn;
+    useRustfmtForFormatting?: boolean;
 }
 
 export enum ActionOnStartingCommandIfThereIsRunningCommand {
@@ -196,11 +196,11 @@ export class Configuration {
      */
     public getRlsArgs(): string[] {
         const getRlsArgsSpecifiedByUser = () => {
-            const rlsConfiguration: any = this.getRlsConfiguration();
+            const rlsConfiguration = this.getRlsConfiguration();
             if (!rlsConfiguration) {
                 return undefined;
             }
-            const rlsArgsSpecifiedByUser: any = rlsConfiguration.args;
+            const rlsArgsSpecifiedByUser = rlsConfiguration.args;
             if (!rlsArgsSpecifiedByUser) {
                 return undefined;
             }
@@ -219,7 +219,7 @@ export class Configuration {
      */
     public getRlsEnv(): object {
         const getRlsEnvSpecifiedByUser = () => {
-            const rlsConfiguration: any = this.getRlsConfiguration();
+            const rlsConfiguration = this.getRlsConfiguration();
             if (!rlsConfiguration) {
                 return undefined;
             }
@@ -243,7 +243,7 @@ export class Configuration {
      * * A default value which is on error
      */
     public getRlsRevealOutputChannelOn(): RevealOutputChannelOn {
-        const rlsConfiguration: any | undefined = this.getRlsConfiguration();
+        const rlsConfiguration = this.getRlsConfiguration();
 
         const defaultValue = RevealOutputChannelOn.Error;
 
@@ -269,6 +269,18 @@ export class Configuration {
             default:
                 return defaultValue;
         }
+    }
+
+    public getUseRustfmtForFormatting(): boolean {
+        const rlsConfiguration = this.getRlsConfiguration();
+
+        const defaultValue = false;
+
+        if (!rlsConfiguration) {
+            return defaultValue;
+        }
+
+        return rlsConfiguration.useRustfmtForFormatting || defaultValue;
     }
 
     public shouldExecuteCargoCommandInTerminal(): boolean {
@@ -497,10 +509,10 @@ export class Configuration {
         this.racerPath = pathToRacer;
     }
 
-    private getRlsConfiguration(): any | undefined {
+    private getRlsConfiguration(): RlsConfiguration | undefined {
         const configuration = Configuration.getConfiguration();
 
-        const rlsConfiguration: any = configuration['rls'];
+        const rlsConfiguration: RlsConfiguration = configuration['rls'];
 
         return rlsConfiguration;
     }
