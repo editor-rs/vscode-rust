@@ -15,6 +15,8 @@ import { Manager as LanguageClientManager } from './components/language_client/m
 
 import LoggingManager from './components/logging/logging_manager';
 
+import ChildLogger from './components/logging/child_logger';
+
 import RootLogger from './components/logging/root_logger';
 
 import LegacyModeManager from './legacy_mode_manager';
@@ -61,6 +63,42 @@ async function askPermissionToInstallRls(logger: RootLogger): Promise<RlsInstall
 }
 
 /**
+ * Asks the user's permission to install the nightly toolchain
+ * @param logger The logger to log messages
+ * @return true if the user granted the permission otherwise false
+ */
+async function askPermissionToInstallNightlyToolchain(logger: ChildLogger): Promise<boolean> {
+    const functionLogger = logger.createChildLogger('askPermissionToInstallNightlyToolchain: ');
+    const installChoice = 'Install';
+    const choice = await window.showInformationMessage('Do you want to install the nightly toolchain?', installChoice);
+    functionLogger.debug(`choice=${choice}`);
+    return choice === installChoice;
+}
+
+/**
+ * Handles the case when rustup reported that the nightly toolchain wasn't installed
+ * @param logger The logger to log messages
+ * @param rustup The rustup
+ */
+async function handleMissingNightlyToolchain(logger: ChildLogger, rustup: Rustup): Promise<boolean> {
+    const functionLogger = logger.createChildLogger('handleMissingNightlyToolchain: ');
+    await window.showInformationMessage('The nightly toolchain is not installed, but is required to install RLS');
+    const permissionGranted = await askPermissionToInstallNightlyToolchain(logger);
+    functionLogger.debug(`permissionGranted=${permissionGranted}`);
+    if (!permissionGranted) {
+        return false;
+    }
+    window.showInformationMessage('The nightly toolchain is being installed. It can take a while. Please be patient');
+    const toolchainInstalled = await rustup.installToolchain('nightly');
+    functionLogger.debug(`toolchainInstalled=${toolchainInstalled}`);
+    if (!toolchainInstalled) {
+        return false;
+    }
+    await rustup.updateComponents();
+    return true;
+}
+
+/**
  * Handles the case when the user does not have RLS.
  * It tries to install RLS if it is possible
  * @param logger The logger to log messages
@@ -88,6 +126,13 @@ async function handleMissingRls(logger: RootLogger, configuration: Configuration
             break;
         case RlsInstallDecision.NotInstall:
             return;
+    }
+    if (!rustup.isNightlyToolchainInstalled()) {
+        await handleMissingNightlyToolchain(functionLogger, rustup);
+        if (!rustup.isNightlyToolchainInstalled()) {
+            functionLogger.error('nightly toolchain is not installed');
+            return;
+        }
     }
     async function installComponent(componentName: string, installComponent: () => Promise<boolean>): Promise<boolean> {
         window.showInformationMessage(`${componentName} is being installed. It can take a while`);
