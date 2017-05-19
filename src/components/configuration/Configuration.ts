@@ -81,18 +81,16 @@ export class Configuration {
      * @param logger a logger to log messages
      */
     public static async create(logger: ChildLogger): Promise<Configuration> {
-        const rustcSysRoot: string | undefined = await this.loadRustcSysRoot();
-        const createRustInstallationPromise = async () => {
-            if (!rustcSysRoot) {
-                return undefined;
+        const rustup: Rustup | undefined = await Rustup.create(logger.createChildLogger('Rustup: '));
+        let rustInstallation: Rustup | NotRustup | undefined = undefined;
+        if (rustup) {
+            rustInstallation = rustup;
+        } else {
+            const rustcSysRoot: string | undefined = await this.loadRustcSysRoot();
+            if (rustcSysRoot) {
+                rustInstallation = new NotRustup(rustcSysRoot);
             }
-            if (Rustup.doesManageRustcSysRoot(rustcSysRoot)) {
-                return await Rustup.create(logger.createChildLogger('Rustup: '), rustcSysRoot);
-            } else {
-                return new NotRustup(rustcSysRoot);
-            }
-        };
-        const rustInstallation: Rustup | NotRustup | undefined = await createRustInstallationPromise();
+        }
         const pathToRustSourceCodeSpecifiedByUser = await this.checkPathToRustSourceCodeSpecifiedByUser();
         const configuration = new Configuration(
             logger,
@@ -176,16 +174,13 @@ export class Configuration {
         if (this.rlsPathSpecifiedByUser) {
             return this.rlsPathSpecifiedByUser;
         }
-
-        if (this.rustInstallation instanceof Rustup) {
-            const pathToRlsExecutable = this.rustInstallation.getPathToRlsExecutable();
-
-            if (pathToRlsExecutable) {
-                return pathToRlsExecutable;
-            }
+        if (!(this.rustInstallation instanceof Rustup)) {
+            return undefined;
         }
-
-        return undefined;
+        if (!this.rustInstallation.isRlsInstalled()) {
+            return undefined;
+        }
+        return 'rustup';
     }
 
     /**
@@ -198,16 +193,21 @@ export class Configuration {
         const getRlsArgsSpecifiedByUser = () => {
             const rlsConfiguration: any = this.getRlsConfiguration();
             if (!rlsConfiguration) {
-                return undefined;
+                return [];
             }
             const rlsArgsSpecifiedByUser: any = rlsConfiguration.args;
             if (!rlsArgsSpecifiedByUser) {
-                return undefined;
+                return [];
             }
             return rlsArgsSpecifiedByUser;
         };
-        const rlsArgs = getRlsArgsSpecifiedByUser() || [];
-        return rlsArgs;
+        if (!(this.rustInstallation instanceof Rustup)) {
+            return getRlsArgsSpecifiedByUser();
+        }
+        if (!this.rustInstallation.isRlsInstalled()) {
+            return getRlsArgsSpecifiedByUser();
+        }
+        return ['run', 'nightly', 'rls'].concat(getRlsArgsSpecifiedByUser());
     }
 
     /**
