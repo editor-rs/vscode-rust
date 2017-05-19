@@ -8,6 +8,10 @@ import { FileSystem } from '../file_system/FileSystem';
 
 import ChildLogger from '../logging/child_logger';
 
+namespace Constants {
+    export const DEFAULT_TOOLCHAIN_SUFFIX = '(default)';
+}
+
 /**
  * Configuration of Rust installed via Rustup
  */
@@ -21,7 +25,7 @@ export class Rustup {
      * A path to Rust's installation root.
      * It is what `rustc --print=sysroot` returns.
      */
-    private pathToRustcSysRoot: string;
+    private pathToRustcSysRoot: string | undefined;
 
     /**
      * A path to Rust's source code.
@@ -41,21 +45,9 @@ export class Rustup {
     private components: string[];
 
     /**
-     * Checks if Rustup manages a specified Rust's installation root
-     * @param rustcSysRoot a path to Rust's installation root to check
-     * @returns true if Rustup manages it otherwire false
+     * Toolchains received by invoking rustup
      */
-    public static doesManageRustcSysRoot(pathToRustcSysRoot: string): boolean {
-        // Usually rustup installs itself to the directory `.rustup` so if the sysroot is in the directory `.rustup`, then it is controlled by rustup.
-        // Also a user can specify a directory to install rustup to by specifying the environment variable `RUSTUP_HOME`
-        const rustupHome: string | undefined = process.env.RUSTUP_HOME;
-        if (rustupHome) {
-            return pathToRustcSysRoot.startsWith(rustupHome);
-        } else {
-            // It can be inaccurate since nobody can stop a user from installing Rust not via Rustup, but to `.rustup` directory
-            return pathToRustcSysRoot.includes('.rustup');
-        }
-    }
+    private toolchains: string[];
 
     /**
      * Creates a new instance of the class.
@@ -63,22 +55,41 @@ export class Rustup {
      * @param pathToRustcSysRoot A path to Rust's installation root
      */
     public static async create(logger: ChildLogger): Promise<Rustup | undefined> {
-        const sysrootPath: string | undefined = await this.invokeGettingSysrootPath('nightly', logger);
-        if (!sysrootPath) {
+        const rustupExe = await FileSystem.findExecutablePath(Rustup.getRustupExecutable());
+        if (!rustupExe) {
             return undefined;
         }
-        const rustup = new Rustup(logger, sysrootPath, undefined, undefined);
-        await rustup.updatePathToRustSourceCodePath();
+        const rustup = new Rustup(logger);
+        await rustup.updateToolchains();
         await rustup.updateComponents();
+        await rustup.updateSysrootPath('nightly');
+        await rustup.updatePathToRustSourceCodePath();
         await rustup.updatePathToRlsExecutable();
         return rustup;
     }
 
     /**
-     * Returns the path to Rust's installation root
+     * Returns whether the nightly toolchain is installed or not
      */
-    public getPathToRustcSysRoot(): string {
-        return this.pathToRustcSysRoot;
+    public isNightlyToolchainInstalled(): boolean {
+        const nightlyToolchain = this.toolchains.find(t => t.startsWith('nightly'));
+        if (nightlyToolchain) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Returns either the default toolchain or undefined if there are no installed toolchains
+     */
+    public getDefaultToolchain(): string | undefined {
+        const logger = this.logger.createChildLogger('getDefaultToolchain: ');
+        const toolchain = this.toolchains.find(t => t.endsWith(Constants.DEFAULT_TOOLCHAIN_SUFFIX));
+        if (!toolchain && this.toolchains.length !== 0) {
+            logger.error(`no default toolchain; this.toolchains=${this.toolchains}`);
+        }
+        return toolchain;
     }
 
     /**
@@ -93,6 +104,28 @@ export class Rustup {
      */
     public getPathToRlsExecutable(): string | undefined {
         return this.pathToRlsExecutable;
+    }
+
+    /**
+     * Requests rustup to install the specified toolchain
+     * @param toolchain The toolchain to install
+     * @return true if no error occurred and the toolchain has been installed otherwise false
+     */
+    public async installToolchain(toolchain: string): Promise<boolean> {
+        const logger = this.logger.createChildLogger(`installToolchain: toolchain=${toolchain}`);
+        const output = await Rustup.invoke(['toolchain', 'install', toolchain], logger);
+        if (output) {
+            logger.debug(`output=${output}`);
+        } else {
+            logger.error(`output=${output}`);
+            return false;
+        }
+        await this.updateToolchains();
+        if (this.toolchains.length === 0) {
+            logger.error('this.toolchains.length === 0');
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -127,14 +160,45 @@ export class Rustup {
      * Requests rustup to give components list and saves them in the field `components`
      */
     public async updateComponents(): Promise<void> {
+        this.components = [];
         const logger = this.logger.createChildLogger('updateComponents: ');
+        if (!this.isNightlyToolchainInstalled()) {
+            logger.error('nightly toolchain is not installed');
+            return;
+        }
         const stdoutData: string | undefined = await Rustup.invoke(['component', 'list', '--toolchain', 'nightly'], logger);
         if (!stdoutData) {
             logger.error(`stdoutData=${stdoutData}`);
-            return undefined;
+            return;
         }
         this.components = stdoutData.split('\n');
         logger.debug(`this.components=${JSON.stringify(this.components)}`);
+    }
+
+    /**
+     * Requests rustup to give toolchains list and saves it in the field `toolchains`
+     */
+    public async updateToolchains(): Promise<void> {
+        const logger = this.logger.createChildLogger('updateToolchains: ');
+        this.toolchains = await Rustup.invokeGettingToolchains(logger);
+        logger.debug(`this.toolchains=${JSON.stringify(this.toolchains)}`);
+    }
+
+    /**
+     * Requests rustup to give the path to the sysroot of the specified toolchain
+     * @param toolchain The toolchain to get the path to the sysroot for
+     */
+    public async updateSysrootPath(toolchain: string): Promise<void> {
+        this.pathToRustcSysRoot = undefined;
+        const logger = this.logger.createChildLogger(`updateSysrootPath: toolchain=${toolchain}: `);
+        if (!this.toolchains.find(t => t.startsWith(toolchain))) {
+            logger.error('toolchain is not installed');
+            return;
+        }
+        this.pathToRustcSysRoot = await Rustup.invokeGettingSysrootPath(toolchain, logger);
+        if (!this.pathToRustcSysRoot) {
+            logger.error(`this.pathToRustcSysRoot=${this.pathToRustcSysRoot}`);
+        }
     }
 
     /**
@@ -143,10 +207,14 @@ export class Rustup {
      * The method is asynchronous because it checks if the expected path exists
      */
     public async updatePathToRustSourceCodePath(): Promise<void> {
+        const logger = this.logger.createChildLogger('updatePathToRustSourceCodePath: ');
+        this.pathToRustSourceCode = undefined;
+        if (!this.pathToRustcSysRoot) {
+            logger.error(`this.pathToRustcSysRoot=${this.pathToRustcSysRoot}`);
+            return;
+        }
         const pathToRustSourceCode = join(this.pathToRustcSysRoot, 'lib', 'rustlib', 'src', 'rust', 'src');
-
         const isRustSourceCodeInstalled: boolean = await FileSystem.doesPathExist(pathToRustSourceCode);
-
         if (isRustSourceCodeInstalled) {
             this.pathToRustSourceCode = pathToRustSourceCode;
         } else {
@@ -259,6 +327,16 @@ export class Rustup {
         return output.trim();
     }
 
+    private static async invokeGettingToolchains(logger: ChildLogger): Promise<string[]> {
+        const functionLogger = logger.createChildLogger('invokeGettingToolchains: ');
+        const output = await this.invoke(['toolchain', 'list'], functionLogger);
+        if (!output) {
+            functionLogger.error(`output=${output}`);
+            return [];
+        }
+        return output.trim().split('\n');
+    }
+
     /**
      * Invokes `rustup run...` with the specified toolchain and arguments, checks if it exited successfully and returns its output
      * @param toolchain The toolchain to invoke rustup with
@@ -298,21 +376,13 @@ export class Rustup {
      * @param pathToRustSourceCode A value for the field `pathToRustSourceCode`
      * @param pathToRlsExecutable A value fo the field `pathToRlsExecutable`
      */
-    private constructor(
-        logger: ChildLogger,
-        pathToRustcSysRoot: string,
-        pathToRustSourceCode: string | undefined,
-        pathToRlsExecutable: string | undefined
-    ) {
+    private constructor(logger: ChildLogger) {
         this.logger = logger;
-
-        this.pathToRustcSysRoot = pathToRustcSysRoot;
-
-        this.pathToRustSourceCode = pathToRustSourceCode;
-
-        this.pathToRlsExecutable = pathToRlsExecutable;
-
+        this.pathToRustcSysRoot = undefined;
+        this.pathToRustSourceCode = undefined;
+        this.pathToRlsExecutable = undefined;
         this.components = [];
+        this.toolchains = [];
     }
 
     /**
