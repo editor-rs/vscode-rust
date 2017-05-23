@@ -1,12 +1,12 @@
 import { join } from 'path';
 
-// import { EOL } from 'os';
-
 import { OutputtingProcess } from '../../OutputtingProcess';
 
 import { FileSystem } from '../file_system/FileSystem';
 
 import ChildLogger from '../logging/child_logger';
+
+import * as OutputChannelProcess from '../../OutputChannelProcess';
 
 namespace Constants {
     export const DEFAULT_TOOLCHAIN_SUFFIX = '(default)';
@@ -112,14 +112,15 @@ export class Rustup {
      * @return true if no error occurred and the toolchain has been installed otherwise false
      */
     public async installToolchain(toolchain: string): Promise<boolean> {
-        const logger = this.logger.createChildLogger(`installToolchain: toolchain=${toolchain}`);
-        const output = await Rustup.invoke(['toolchain', 'install', toolchain], logger);
-        if (output) {
-            logger.debug(`output=${output}`);
-        } else {
+        const logger = this.logger.createChildLogger(`installToolchain(toolchain=${toolchain}): `);
+        const args = ['toolchain', 'install', toolchain];
+        const outputChannelName = `Rustup: Installing ${toolchain} toolchain`;
+        const output = await Rustup.invokeWithOutputChannel(args, logger, outputChannelName);
+        if (output === undefined) {
             logger.error(`output=${output}`);
             return false;
         }
+        logger.debug(`output=${output}`);
         await this.updateToolchains();
         if (this.toolchains.length === 0) {
             logger.error('this.toolchains.length === 0');
@@ -320,7 +321,8 @@ export class Rustup {
      * @return The output of the invocation if the invocation exited successfully otherwise undefined
      */
     private static async invokeGettingSysrootPath(toolchain: string, logger: ChildLogger): Promise<string | undefined> {
-        const output: string | undefined = await this.invokeRun(toolchain, ['rustc', '--print', 'sysroot'], logger);
+        const args = ['run', toolchain, 'rustc', '--print', 'sysroot'];
+        const output: string | undefined = await this.invoke(args, logger);
         if (!output) {
             return undefined;
         }
@@ -335,16 +337,6 @@ export class Rustup {
             return [];
         }
         return output.trim().split('\n');
-    }
-
-    /**
-     * Invokes `rustup run...` with the specified toolchain and arguments, checks if it exited successfully and returns its output
-     * @param toolchain The toolchain to invoke rustup with
-     * @param args The arguments to invoke rustup with
-     * @param logger The logger to log messages
-     */
-    private static async invokeRun(toolchain: string, args: string[], logger: ChildLogger): Promise<string | undefined> {
-        return await this.invoke(['run', toolchain, ...args], logger);
     }
 
     /**
@@ -366,6 +358,34 @@ export class Rustup {
             return undefined;
         }
         return result.stdoutData;
+    }
+
+    /**
+     * Invokes rustup with the specified arguments, creates an output channel with the specified
+     * name, writes output of the invocation and returns the output
+     * @param args The arguments which to invoke rustup with
+     * @param logger The logger to log messages
+     * @param outputChannelName The name which to create an output channel with
+     */
+    private static async invokeWithOutputChannel(args: string[], logger: ChildLogger,
+        outputChannelName: string): Promise<string | undefined> {
+        const functionLogger = logger.createChildLogger(`invokeWithOutputChannel(args=${JSON.stringify(args)}, outputChannelName=${outputChannelName}): `);
+        const result = await OutputChannelProcess.create(this.getRustupExecutable(), args, undefined, outputChannelName);
+        if (!result.success) {
+            functionLogger.error('failed to start');
+            return undefined;
+        }
+        if (result.code !== 0) {
+            functionLogger.error(`exited with not zero; code=${result.code}`);
+            functionLogger.error('Beginning of stdout');
+            functionLogger.error(result.stdout);
+            functionLogger.error('Ending of stdout');
+            functionLogger.error('Beginning of stderr');
+            functionLogger.error(result.stderr);
+            functionLogger.error('Ending of stderr');
+            return undefined;
+        }
+        return result.stdout;
     }
 
     /**
@@ -415,10 +435,10 @@ export class Rustup {
             return true;
         }
         const args = ['component', 'add', componentName, '--toolchain', 'nightly'];
-        const stdoutData: string | undefined = await Rustup.invoke(args, logger);
-        // Some error occurred. It is already logged in the method invokeRustup.
-        // So we just need to notify a caller that the installation failed
+        const stdoutData = await Rustup.invokeWithOutputChannel(args, logger, `Rustup: Installing ${componentName}`);
         if (stdoutData === undefined) {
+            // Some error occurred. It is already logged
+            // So we just need to notify a caller that the installation failed
             return false;
         }
         await this.updateComponents();
