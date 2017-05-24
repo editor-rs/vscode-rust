@@ -1,3 +1,5 @@
+import * as vscode from 'vscode';
+
 import { Disposable, ExtensionContext, window, workspace } from 'vscode';
 
 import { LanguageClient, RevealOutputChannelOn, State } from 'vscode-languageclient';
@@ -8,6 +10,10 @@ import { Creator as LanguageClientCreator } from './creator';
 
 import { StatusBarItem } from './status_bar_item';
 
+import FormattingManager from '../formatting/formatting_manager';
+
+import { Configuration } from '../configuration/Configuration';
+
 export class Manager {
     private languageClientCreator: LanguageClientCreator;
 
@@ -17,13 +23,38 @@ export class Manager {
 
     private logger: ChildLogger;
 
-    public constructor(
-        context: ExtensionContext,
+    public static async create(context: ExtensionContext,
+        configuration: Configuration,
         logger: ChildLogger,
         executable: string,
         args: string[] | undefined,
         env: any | undefined,
         revealOutputChannelOn: RevealOutputChannelOn
+    ): Promise<Manager> {
+        let formattingManager: FormattingManager | undefined;
+        if (configuration.getUseRustfmtForFormatting()) {
+            formattingManager = await FormattingManager.create(context, configuration);
+        }
+        return new Manager(context, logger, executable, args, env, revealOutputChannelOn, formattingManager);
+    }
+
+    /**
+     * Starts the language client at first time
+     */
+    public initialStart(): void {
+        this.start();
+
+        this.statusBarItem.show();
+    }
+
+    private constructor(
+        context: ExtensionContext,
+        logger: ChildLogger,
+        executable: string,
+        args: string[] | undefined,
+        env: any | undefined,
+        revealOutputChannelOn: RevealOutputChannelOn,
+        formattingManager: FormattingManager | undefined
     ) {
         this.languageClientCreator = new LanguageClientCreator(
             executable,
@@ -50,15 +81,10 @@ export class Manager {
         context.subscriptions.push(new Disposable(() => {
             this.stop();
         }));
-    }
 
-    /**
-     * Starts the language client at first time
-     */
-    public initialStart(): void {
-        this.start();
-
-        this.statusBarItem.show();
+        if (formattingManager) {
+            vscode.languages.registerDocumentFormattingEditProvider('rust', formattingManager);
+        }
     }
 
     private start(): void {

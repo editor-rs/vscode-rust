@@ -193,12 +193,12 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
  * @param configuration A configuration
  * @param pathToRlsExecutable A path to the executable of RLS
  */
-function runInRlsMode(
+async function runInRlsMode(
     context: ExtensionContext,
     logger: RootLogger,
     configuration: Configuration,
     rlsPath: string
-): void {
+): Promise<void> {
     const functionLogger = logger.createChildLogger('runInRlsMode: ');
     functionLogger.debug(`rlsPath=${rlsPath}`);
     const env = configuration.getRlsEnv();
@@ -207,8 +207,9 @@ function runInRlsMode(
     functionLogger.debug(`args=${JSON.stringify(args)}`);
     const revealOutputChannelOn = configuration.getRlsRevealOutputChannelOn();
     functionLogger.debug(`revealOutputChannelOn=${revealOutputChannelOn}`);
-    const languageClientManager = new LanguageClientManager(
+    const languageClientManager = await LanguageClientManager.create(
         context,
+        configuration,
         logger.createChildLogger('Language Client Manager: '),
         rlsPath,
         args,
@@ -238,7 +239,7 @@ async function chooseModeAndRun(
         await legacyModeManager.start();
     } else {
         configuration.setMode(Mode.RLS);
-        runInRlsMode(context, logger, configuration, <string>rls);
+        await runInRlsMode(context, logger, configuration, <string>rls);
     }
 }
 

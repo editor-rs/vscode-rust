@@ -499,6 +499,11 @@
                 "never"
               ],
               "type": "string"
+            },
+            "useRustfmtForFormatting": {
+              "default": false,
+              "description": "Use rustfmt for formatting instead of RLS",
+              "type": "boolean"
             }
           }
         }
