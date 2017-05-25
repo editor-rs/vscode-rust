@@ -21,57 +21,43 @@ import RootLogger from './components/logging/root_logger';
 
 import LegacyModeManager from './legacy_mode_manager';
 
-enum RlsInstallDecision {
-    DoNotAskAgain,
-    Install,
-    NotInstall
-}
-
 /**
- * Asks the user's permission to install RLS
- * @param logger The logger
- * @return The promise which after resolving contains true if the user agreed otherwise false
+ * Asks the user to choose a mode which the extension will run in.
+ * It is possible that the user will decline choosing and in that case the extension will run in
+ * Legacy Mode
+ * @return The promise which is resolved with either the chosen mode by the user or undefined
  */
-async function askPermissionToInstallRls(logger: RootLogger): Promise<RlsInstallDecision> {
-    const functionLogger = logger.createChildLogger('askPermissionToInstallRls: ');
-    const readAboutRlsChoice = 'Read about RLS';
-    const installRlsChoice = 'Install RLS';
-    const doNotAskMeAgainChoice = 'Don\'t ask me again';
-    // Asking the user if the user wants to install RLS until the user declines or agrees.
-    // A user can decide to install RLS, then we install it.
-    // A user can decide to read about RLS, then we open a link to the repository of RLS and ask again after
+async function askUserToChooseMode(): Promise<Mode | undefined> {
+    const message = 'Choose a mode in which the extension will function';
+    const rlsChoice = 'RLS';
+    const legacyChoice = 'Legacy';
+    const readAboutChoice = 'Read about modes';
     while (true) {
-        const choice: string | undefined = await window.showInformationMessage(
-            'You use Rustup, but RLS was not found. RLS provides a good user experience',
-            readAboutRlsChoice,
-            installRlsChoice,
-            doNotAskMeAgainChoice
-        );
-        functionLogger.debug(`choice=${choice}`);
+        const choice = await window.showInformationMessage(message, rlsChoice, legacyChoice,
+            readAboutChoice);
         switch (choice) {
-            case readAboutRlsChoice:
-                open('https://github.com/rust-lang-nursery/rls');
+            case rlsChoice:
+                return Mode.RLS;
+            case legacyChoice:
+                return Mode.Legacy;
+            case readAboutChoice:
+                open('https://github.com/editor-rs/vscode-rust/blob/master/doc/main.md');
                 break;
-            case installRlsChoice:
-                return RlsInstallDecision.Install;
-            case doNotAskMeAgainChoice:
-                return RlsInstallDecision.DoNotAskAgain;
             default:
-                return RlsInstallDecision.NotInstall;
+                return undefined;
         }
     }
 }
 
 /**
- * Asks the user's permission to install the nightly toolchain
- * @param logger The logger to log messages
- * @return true if the user granted the permission otherwise false
+ * Asks the user's permission to install something
+ * @param what What to install
+ * @return The flag indicating whether the user gave the permission
  */
-async function askPermissionToInstallNightlyToolchain(logger: ChildLogger): Promise<boolean> {
-    const functionLogger = logger.createChildLogger('askPermissionToInstallNightlyToolchain: ');
+async function askPermissionToInstall(what: string): Promise<boolean> {
     const installChoice = 'Install';
-    const choice = await window.showInformationMessage('Do you want to install the nightly toolchain?', installChoice);
-    functionLogger.debug(`choice=${choice}`);
+    const message = `It seems ${what} is not installed. Do you want to install it?`;
+    const choice = await window.showInformationMessage(message, installChoice);
     return choice === installChoice;
 }
 
@@ -83,14 +69,14 @@ async function askPermissionToInstallNightlyToolchain(logger: ChildLogger): Prom
 async function handleMissingNightlyToolchain(logger: ChildLogger, rustup: Rustup): Promise<boolean> {
     const functionLogger = logger.createChildLogger('handleMissingNightlyToolchain: ');
     await window.showInformationMessage('The nightly toolchain is not installed, but is required to install RLS');
-    const permissionGranted = await askPermissionToInstallNightlyToolchain(logger);
-    functionLogger.debug(`permissionGranted=${permissionGranted}`);
+    const permissionGranted = await askPermissionToInstall('the nightly toolchain');
+    functionLogger.debug(`permissionGranted= ${permissionGranted}`);
     if (!permissionGranted) {
         return false;
     }
     window.showInformationMessage('The nightly toolchain is being installed. It can take a while. Please be patient');
     const toolchainInstalled = await rustup.installToolchain('nightly');
-    functionLogger.debug(`toolchainInstalled=${toolchainInstalled}`);
+    functionLogger.debug(`toolchainInstalled= ${toolchainInstalled}`);
     if (!toolchainInstalled) {
         return false;
     }
@@ -98,82 +84,121 @@ async function handleMissingNightlyToolchain(logger: ChildLogger, rustup: Rustup
     return true;
 }
 
+async function handleMissingRustup(logger: RootLogger, configuration: Configuration): Promise<void> {
+    const functionLogger = logger.createChildLogger('handleMissingRustup: ');
+    functionLogger.debug('enter');
+    const message = 'You do not use Rustup. Rustup is a preferred way to install Rust and its components';
+    const doNotShowMeAgainChoice = 'Don\'t show me this again';
+    const choice = await window.showInformationMessage(message, doNotShowMeAgainChoice);
+    if (choice === doNotShowMeAgainChoice) {
+        configuration.setMode(Mode.Legacy);
+    }
+}
+
 /**
  * Handles the case when the user does not have RLS.
  * It tries to install RLS if it is possible
  * @param logger The logger to log messages
- * @param configuration The configuration
+ * @param rustup The rustup
  */
-async function handleMissingRls(logger: RootLogger, configuration: Configuration): Promise<void> {
-    const functionLogger = logger.createChildLogger('handleMissingRls: ');
-    const rustup = configuration.getRustInstallation();
-    if (!(rustup instanceof Rustup)) {
-        functionLogger.debug('Rust is either not installed or installed not via Rustup');
-        const doNotShowMeAgainChoice = 'Don\'t show me this again';
-        const choice: string | undefined = await window.showInformationMessage('You do not use Rustup. Rustup is a preferred way to install Rust and its components', doNotShowMeAgainChoice);
-        if (choice === doNotShowMeAgainChoice) {
-            configuration.setForceLegacyMode(true);
-        }
-        return;
-    }
-    const rlsInstallDecision: RlsInstallDecision = await askPermissionToInstallRls(logger);
-    functionLogger.debug(`rlsInstallDecision=${rlsInstallDecision}`);
-    switch (rlsInstallDecision) {
-        case RlsInstallDecision.DoNotAskAgain:
-            configuration.setForceLegacyMode(true);
-            return;
-        case RlsInstallDecision.Install:
-            break;
-        case RlsInstallDecision.NotInstall:
-            return;
-    }
-    if (!rustup.isNightlyToolchainInstalled()) {
-        await handleMissingNightlyToolchain(functionLogger, rustup);
-        if (!rustup.isNightlyToolchainInstalled()) {
-            functionLogger.error('nightly toolchain is not installed');
-            return;
-        }
-    }
+async function handleMissingRls(logger: RootLogger, rustup: Rustup): Promise<boolean> {
     async function installComponent(componentName: string, installComponent: () => Promise<boolean>): Promise<boolean> {
-        window.showInformationMessage(`${componentName} is being installed. It can take a while`);
-        const componentInstalled: boolean = await installComponent();
-        functionLogger.debug(`${componentName} has been installed=${componentInstalled}`);
+        window.showInformationMessage(`${componentName} is being installed.It can take a while`);
+        const componentInstalled = await installComponent();
+        functionLogger.debug(`${componentName} has been installed= ${componentInstalled} `);
         if (componentInstalled) {
             window.showInformationMessage(`${componentName} has been installed successfully`);
         } else {
-            window.showErrorMessage(`${componentName} has not been installed. Check the output channel "Rust Logging"`);
+            window.showErrorMessage(`${componentName} has not been installed.Check the output channel "Rust Logging"`);
         }
         return componentInstalled;
     }
-    const rlsCanBeInstalled: boolean = rustup.canInstallRls();
-    functionLogger.debug(`rlsCanBeInstalled=${rlsCanBeInstalled}`);
-    if (!rlsCanBeInstalled) {
-        return;
+    const functionLogger = logger.createChildLogger('handleMissingRls: ');
+    if (await askPermissionToInstall('RLS')) {
+        functionLogger.debug('Permission to install RLS has been granted');
+    } else {
+        functionLogger.debug('Permission to install RLS has not granted');
+        return false;
     }
-    const rlsInstalled: boolean = await installComponent(
+    if (!rustup.isNightlyToolchainInstalled()) {
+        functionLogger.debug('The nightly toolchain is not installed');
+        await handleMissingNightlyToolchain(functionLogger, rustup);
+        if (!rustup.isNightlyToolchainInstalled()) {
+            functionLogger.debug('The nightly toolchain is not installed');
+            return false;
+        }
+    }
+    if (rustup.canInstallRls()) {
+        functionLogger.debug('RLS can be installed');
+    } else {
+        functionLogger.error('RLS cannot be installed');
+        return false;
+    }
+    const rlsInstalled = await installComponent(
         'RLS',
         async () => { return await rustup.installRls(); }
     );
-    if (!rlsInstalled) {
-        return;
+    if (rlsInstalled) {
+        functionLogger.debug('RLS has been installed');
+    } else {
+        functionLogger.error('RLS has not been installed');
+        return false;
     }
-    const rustAnalysisCanBeInstalled: boolean = rustup.canInstallRustAnalysis();
-    functionLogger.debug(`rustAnalysisCanBeInstalled=${rustAnalysisCanBeInstalled}`);
-    if (!rustAnalysisCanBeInstalled) {
-        return;
+    if (rustup.isRustAnalysisInstalled()) {
+        functionLogger.debug('rust-analysis is installed');
+    } else if (rustup.canInstallRustAnalysis()) {
+        functionLogger.debug('rust-analysis can be installed');
+    } else {
+        functionLogger.error('rust-analysis cannot be installed');
+        return false;
     }
-    await installComponent(
+    return await installComponent(
         'rust-analysis',
         async () => { return await rustup.installRustAnalysis(); }
     );
+}
+
+export async function handleChoosingRlsMode(logger: RootLogger, configuration: Configuration,
+    rustup: Rustup): Promise<void> {
+    let canSetMode = false;
+    if (configuration.getPathToRlsExecutable() === undefined) {
+        if (await handleMissingRls(logger, rustup)) {
+            canSetMode = true;
+        }
+    } else {
+        canSetMode = true;
+    }
+    if (canSetMode) {
+        configuration.setMode(Mode.RLS);
+    }
 }
 
 export async function activate(ctx: ExtensionContext): Promise<void> {
     const loggingManager = new LoggingManager();
     const logger = loggingManager.getLogger();
     const configuration = await Configuration.create(logger.createChildLogger('Configuration: '));
-    if (!configuration.getPathToRlsExecutable() && !configuration.isForcedLegacyMode()) {
-        await handleMissingRls(logger, configuration);
+    if (configuration.mode() === undefined) {
+        // The current configuration does not contain any specified mode and hence we should try to
+        // choose one.
+        const rustInstallation = configuration.getRustInstallation();
+        if (rustInstallation instanceof Rustup) {
+            const mode = await askUserToChooseMode();
+            switch (mode) {
+                case Mode.Legacy:
+                    configuration.setMode(Mode.Legacy);
+                    break;
+                case Mode.RLS:
+                    handleChoosingRlsMode(logger, configuration, rustInstallation);
+                    if (configuration.getPathToRlsExecutable() === undefined) {
+                        await handleMissingRls(logger, rustInstallation);
+                    }
+                    break;
+                case undefined:
+                    break;
+            }
+        } else {
+            await handleMissingRustup(logger, configuration);
+        }
     }
     const currentWorkingDirectoryManager = new CurrentWorkingDirectoryManager();
     const cargoManager = new CargoManager(
@@ -186,27 +211,36 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
     addExecutingActionOnSave(ctx, configuration, cargoManager);
 }
 
+async function runInLegacyMode(context: ExtensionContext, configuration: Configuration,
+    currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
+    logger: RootLogger): Promise<void> {
+    const legacyModeManager = await LegacyModeManager.create(
+        context,
+        configuration,
+        currentWorkingDirectoryManager,
+        logger.createChildLogger('Legacy Mode Manager: ')
+    );
+    await legacyModeManager.start();
+}
+
 /**
  * Starts the extension in RLS mode
  * @param context An extension context to use
  * @param logger A logger to log messages
  * @param configuration A configuration
- * @param pathToRlsExecutable A path to the executable of RLS
  */
-function runInRlsMode(
-    context: ExtensionContext,
-    logger: RootLogger,
-    configuration: Configuration,
-    rlsPath: string
-): void {
+function runInRlsMode(context: ExtensionContext, logger: RootLogger,
+    configuration: Configuration): void {
     const functionLogger = logger.createChildLogger('runInRlsMode: ');
-    functionLogger.debug(`rlsPath=${rlsPath}`);
+    // This method is called only when RLS's path is defined, so we don't have to check it again
+    const rlsPath = <string>configuration.getPathToRlsExecutable();
+    functionLogger.debug(`rlsPath= ${rlsPath} `);
     const env = configuration.getRlsEnv();
-    functionLogger.debug(`env=${JSON.stringify(env)}`);
+    functionLogger.debug(`env= ${JSON.stringify(env)} `);
     const args = configuration.getRlsArgs();
-    functionLogger.debug(`args=${JSON.stringify(args)}`);
+    functionLogger.debug(`args= ${JSON.stringify(args)} `);
     const revealOutputChannelOn = configuration.getRlsRevealOutputChannelOn();
-    functionLogger.debug(`revealOutputChannelOn=${revealOutputChannelOn}`);
+    functionLogger.debug(`revealOutputChannelOn= ${revealOutputChannelOn} `);
     const languageClientManager = new LanguageClientManager(
         context,
         logger.createChildLogger('Language Client Manager: '),
@@ -224,21 +258,14 @@ async function chooseModeAndRun(
     configuration: Configuration,
     currentWorkingDirectoryManager: CurrentWorkingDirectoryManager
 ): Promise<void> {
-    const rls: string | undefined = configuration.getPathToRlsExecutable();
-    const isLegacyMode = configuration.isForcedLegacyMode() || !rls;
-    if (isLegacyMode) {
-        configuration.setMode(Mode.Legacy);
-        const legacyModeManager = await LegacyModeManager.create(
-            context,
-            configuration,
-            currentWorkingDirectoryManager,
-            logger.createChildLogger('Legacy Mode Manager: ')
-        );
-
-        await legacyModeManager.start();
-    } else {
-        configuration.setMode(Mode.RLS);
-        runInRlsMode(context, logger, configuration, <string>rls);
+    switch (configuration.mode()) {
+        case Mode.Legacy:
+        case undefined:
+            await runInLegacyMode(context, configuration, currentWorkingDirectoryManager, logger);
+            break;
+        case Mode.RLS:
+            runInRlsMode(context, logger, configuration);
+            break;
     }
 }
 

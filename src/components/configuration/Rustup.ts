@@ -273,6 +273,14 @@ export class Rustup {
     }
 
     /**
+     * Returns whether "rust-analysis" is installed
+     * @return The flag indicating whether "rust-analysis" is installed
+     */
+    public isRustAnalysisInstalled(): boolean {
+        return this.isComponentInstalled(Rustup.getRustAnalysisComponentName());
+    }
+
+    /**
      * Returns true if the component `rust-analysis` can be installed otherwise false.
      * If the component is already installed, the method returns false
      */
