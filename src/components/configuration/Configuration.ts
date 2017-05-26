@@ -35,8 +35,25 @@ export enum Mode {
     RLS
 }
 
+/**
+ * Returns the representation of the specified mode suitable for being a value for the
+ * configuration parameter
+ * @param mode The mode which representation will be returned for
+ * @return The representation of the specified mode
+ */
+export function asConfigurationParameterValue(mode: Mode | undefined): string | null {
+    switch (mode) {
+        case Mode.Legacy:
+            return 'legacy';
+        case Mode.RLS:
+            return 'rls';
+        case undefined:
+            return null;
+    }
+}
+
 namespace Properties {
-    export const forceLegacyMode = 'forceLegacyMode';
+    export const mode = 'mode';
 }
 
 /**
@@ -45,9 +62,7 @@ namespace Properties {
  */
 export class Configuration {
     private _mode: Mode | undefined;
-    private _isForcedLegacyMode: boolean;
     private logger: ChildLogger;
-
     private rustInstallation: Rustup | NotRustup | undefined;
 
     /**
@@ -99,7 +114,7 @@ export class Configuration {
             undefined,
             undefined
         );
-        if (!configuration.isForcedLegacyMode()) {
+        if (configuration._mode === Mode.RLS) {
             await configuration.updatePathToRlsExecutableSpecifiedByUser();
         }
         return configuration;
@@ -144,20 +159,26 @@ export class Configuration {
         );
     }
 
+    /**
+     * Returns the mode which the extension runs in
+     * @return The mode
+     */
     public mode(): Mode | undefined {
         return this._mode;
     }
 
+    /**
+     * Saves the specified mode in both the object and the configuration
+     * @param mode The mode
+     */
     public setMode(mode: Mode): void {
         if (this._mode !== undefined) {
-            this.logger.createChildLogger(`setMode(${mode}): `).error('this._mode !== undefined. The method should not have been called');
+            this.logger.error(`setMode(${mode}): this._mode(${this._mode}) !== undefined. The method should not have been called`);
             return;
         }
         this._mode = mode;
-    }
-
-    public isForcedLegacyMode(): boolean {
-        return this._isForcedLegacyMode;
+        const configuration = Configuration.getConfiguration();
+        configuration.update(Properties.mode, asConfigurationParameterValue(mode), true);
     }
 
     /**
@@ -368,12 +389,6 @@ export class Configuration {
         }
     }
 
-    public setForceLegacyMode(value: boolean): void {
-        const configuration = Configuration.getConfiguration();
-        configuration.update(Properties.forceLegacyMode, value, true);
-        this._isForcedLegacyMode = value;
-    }
-
     private static async loadRustcSysRoot(): Promise<string | undefined> {
         const executable = 'rustc';
 
@@ -478,18 +493,23 @@ export class Configuration {
         rlsPathSpecifiedByUser: string | undefined,
         pathToRacer: string | undefined
     ) {
-        function isForcedLegacyMode(): boolean {
+        function mode(): Mode | undefined {
             const configuration = Configuration.getConfiguration();
-            const value: boolean | null | undefined = configuration[Properties.forceLegacyMode];
-            if (value) {
-                // It is actually `true`, but who knows how the code would behave later
-                return value;
+            const value: string | null | undefined = configuration[Properties.mode];
+            if (typeof value === 'string') {
+                switch (value) {
+                    case asConfigurationParameterValue(Mode.Legacy):
+                        return Mode.Legacy;
+                    case asConfigurationParameterValue(Mode.RLS):
+                        return Mode.RLS;
+                    default:
+                        return undefined;
+                }
             } else {
-                return false;
+                return undefined;
             }
         }
-        this._mode = undefined;
-        this._isForcedLegacyMode = isForcedLegacyMode();
+        this._mode = mode();
         this.logger = logger;
         this.rustInstallation = rustInstallation;
         this.pathToRustSourceCodeSpecifiedByUser = pathToRustSourceCodeSpecifiedByUser;

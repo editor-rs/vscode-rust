@@ -165,13 +165,18 @@
       "title": "Rust extension configuration",
       "type": "object",
       "properties": {
-        "rust.forceLegacyMode": {
+        "rust.mode": {
           "type": [
-            "boolean",
+            "string",
             "null"
           ],
           "default": null,
-          "description": "Flag indicating if the extension shouldn't try to run RLS. By default, it is false"
+          "description": "The mode in which the extension will function",
+          "enum": [
+            "legacy",
+            "rls",
+            null
+          ]
         },
         "rust.racerPath": {
           "type": [
