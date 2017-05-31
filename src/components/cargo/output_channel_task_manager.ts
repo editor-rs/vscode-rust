@@ -1,34 +1,20 @@
 import { join } from 'path';
-
 import { DiagnosticCollection, languages, window } from 'vscode';
-
 import { Configuration } from '../configuration/Configuration';
-
-import ChildLogger from '../logging/child_logger';
-
+import { ChildLogger } from '../logging/child_logger';
 import { DiagnosticParser } from './diagnostic_parser';
-
 import { normalizeDiagnosticPath, addUniqueDiagnostic } from './diagnostic_utils';
-
 import { OutputChannelWrapper } from './output_channel_wrapper';
-
 import { OutputChannelTaskStatusBarItem } from './output_channel_task_status_bar_item';
-
 import { ExitCode, Task } from './task';
 
 export class OutputChannelTaskManager {
     private channel: OutputChannelWrapper;
-
     private configuration: Configuration;
-
     private logger: ChildLogger;
-
     private runningTask: Task | undefined;
-
     private diagnostics: DiagnosticCollection;
-
     private diagnosticParser: DiagnosticParser;
-
     private statusBarItem: OutputChannelTaskStatusBarItem;
 
     public constructor(
@@ -37,15 +23,10 @@ export class OutputChannelTaskManager {
         stopCommandName: string
     ) {
         this.channel = new OutputChannelWrapper(window.createOutputChannel('Cargo'));
-
         this.configuration = configuration;
-
         this.logger = logger;
-
         this.diagnostics = languages.createDiagnosticCollection('rust');
-
         this.diagnosticParser = new DiagnosticParser();
-
         this.statusBarItem = new OutputChannelTaskStatusBarItem(stopCommandName);
     }
 
@@ -57,7 +38,6 @@ export class OutputChannelTaskManager {
         shouldShowOutputChannnel: boolean
     ): Promise<void> {
         const cargoCwd = this.configuration.getCargoCwd();
-
         /**
          * Prepends the manifest path to arguments
          * if the command should be executed in a directory
@@ -72,7 +52,6 @@ export class OutputChannelTaskManager {
 
             args = ['--manifest-path', manifestPath].concat(args);
         }
-
         function prependArgsWithMessageFormatIfRequired(): void {
             if (!parseOutput) {
                 return;
@@ -89,38 +68,29 @@ export class OutputChannelTaskManager {
                     break;
             }
         }
-
         prependArgsWithMessageFormatIfRequired();
-
         prependArgsWithManifestPathIfRequired();
-
         // Prepend arguments with a command.
         args = [command].concat(args);
-
         // Change cwd if the user specified custom cwd.
         if (cargoCwd !== undefined) {
             cwd = cargoCwd;
         }
-
         this.runningTask = new Task(
             this.configuration,
             this.logger.createChildLogger('Task: '),
             args,
             cwd
         );
-
         this.runningTask.setStarted(() => {
             this.channel.clear();
             this.channel.append(`Working directory: ${cwd}\n`);
             this.channel.append(`Started cargo ${args.join(' ')}\n\n`);
-
             this.diagnostics.clear();
         });
-
         this.runningTask.setLineReceivedInStdout(line => {
             if (parseOutput && line.startsWith('{')) {
                 const fileDiagnostics = this.diagnosticParser.parseLine(line);
-
                 for (const fileDiagnostic of fileDiagnostics) {
                     fileDiagnostic.filePath = normalizeDiagnosticPath(fileDiagnostic.filePath, cwd);
                     addUniqueDiagnostic(fileDiagnostic, this.diagnostics);
@@ -129,39 +99,28 @@ export class OutputChannelTaskManager {
                 this.channel.append(`${line}\n`);
             }
         });
-
         this.runningTask.setLineReceivedInStderr(line => {
             this.channel.append(`${line}\n`);
         });
-
         if (shouldShowOutputChannnel) {
             this.channel.show();
         }
-
         this.statusBarItem.show();
-
         let exitCode: ExitCode;
-
         try {
             exitCode = await this.runningTask.execute();
         } catch (error) {
             this.statusBarItem.hide();
-
             this.runningTask = undefined;
-
             // No error means the task has been interrupted
             if (error && error.message === 'ENOENT') {
                 const message = 'The "cargo" command is not available. Make sure it is installed.';
                 window.showInformationMessage(message);
             }
-
             return;
         }
-
         this.statusBarItem.hide();
-
         this.runningTask = undefined;
-
         this.channel.append(`\nCompleted with code ${exitCode}\n`);
     }
 

@@ -1,8 +1,7 @@
 import { OutputChannel, window } from 'vscode';
+import { RootLogger } from './root_logger';
 
-import RootLogger from './root_logger';
-
-export default class LoggingManager {
+export class LoggingManager {
     private channel: OutputChannel;
 
     private logger: RootLogger;

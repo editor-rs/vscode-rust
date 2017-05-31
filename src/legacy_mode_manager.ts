@@ -1,24 +1,20 @@
 import { ExtensionContext } from 'vscode';
 import { Configuration } from './components/configuration/Configuration';
-
-import CurrentWorkingDirectoryManager
+import { RustSource } from './components/configuration/RustSource';
+import { Rustup } from './components/configuration/Rustup';
+import { CurrentWorkingDirectoryManager }
     from './components/configuration/current_working_directory_manager';
-
-import CompletionManager from './components/completion/completion_manager';
-
-import FormattingManager from './components/formatting/formatting_manager';
-
-import ChildLogger from './components/logging/child_logger';
-
-import DocumentSymbolProvisionManager
+import { CompletionManager } from './components/completion/completion_manager';
+import { FormattingManager } from './components/formatting/formatting_manager';
+import { ChildLogger } from './components/logging/child_logger';
+import { DocumentSymbolProvisionManager }
     from './components/symbol_provision/document_symbol_provision_manager';
-
-import WorkspaceSymbolProvisionManager
+import { WorkspaceSymbolProvisionManager }
     from './components/symbol_provision/workspace_symbol_provision_manager';
+import { Installator as MissingToolsInstallator }
+    from './components/tools_installation/installator';
 
-import MissingToolsInstallator from './components/tools_installation/installator';
-
-export default class LegacyModeManager {
+export class LegacyModeManager {
     private context: ExtensionContext;
     private configuration: Configuration;
     private completionManager: CompletionManager;
@@ -30,11 +26,21 @@ export default class LegacyModeManager {
     public static async create(
         context: ExtensionContext,
         configuration: Configuration,
+        rustSource: RustSource,
+        rustup: Rustup | undefined,
         currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
         logger: ChildLogger
     ): Promise<LegacyModeManager> {
         const formattingManager: FormattingManager | undefined = await FormattingManager.create(context, configuration);
-        return new LegacyModeManager(context, configuration, currentWorkingDirectoryManager, logger, formattingManager);
+        return new LegacyModeManager(
+            context,
+            configuration,
+            rustSource,
+            rustup,
+            currentWorkingDirectoryManager,
+            logger,
+            formattingManager
+        );
     }
 
     public async start(): Promise<void> {
@@ -47,6 +53,8 @@ export default class LegacyModeManager {
     private constructor(
         context: ExtensionContext,
         configuration: Configuration,
+        rustSource: RustSource,
+        rustup: Rustup | undefined,
         currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
         logger: ChildLogger,
         formattingManager: FormattingManager | undefined
@@ -56,6 +64,8 @@ export default class LegacyModeManager {
         this.completionManager = new CompletionManager(
             context,
             configuration,
+            rustSource,
+            rustup,
             logger.createChildLogger('CompletionManager: ')
         );
         this.formattingManager = formattingManager;

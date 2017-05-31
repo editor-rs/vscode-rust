@@ -13,11 +13,8 @@ import {
     languages,
     window
 } from 'vscode';
-
 import { Configuration } from '../configuration/Configuration';
-
-import getDocumentFilter from '../configuration/mod';
-
+import { getDocumentFilter } from '../configuration/mod';
 import { FileSystem } from '../file_system/FileSystem';
 
 const ansiRegex = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
@@ -28,7 +25,7 @@ interface RustFmtDiff {
     removedLines: number;
 }
 
-export default class FormattingManager implements DocumentFormattingEditProvider, DocumentRangeFormattingEditProvider {
+export class FormattingManager implements DocumentFormattingEditProvider, DocumentRangeFormattingEditProvider {
     private configuration: Configuration;
 
     private newFormatRegex: RegExp = /^Diff in (.*) at line (\d+):$/;

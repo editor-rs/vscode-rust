@@ -1,25 +1,18 @@
 // https://github.com/pwnall/node-open
 import open = require('open');
-
 import { ExtensionContext, window, workspace } from 'vscode';
-
 import { CargoManager, CommandInvocationReason } from './components/cargo/cargo_manager';
-
 import { Configuration, Mode } from './components/configuration/Configuration';
-
-import CurrentWorkingDirectoryManager from './components/configuration/current_working_directory_manager';
-
+import { CurrentWorkingDirectoryManager }
+    from './components/configuration/current_working_directory_manager';
+import { RustSource } from './components/configuration/RustSource';
 import { Rustup } from './components/configuration/Rustup';
-
+import { RlsConfiguration } from './components/configuration/RlsConfiguration';
 import { Manager as LanguageClientManager } from './components/language_client/manager';
-
-import LoggingManager from './components/logging/logging_manager';
-
-import ChildLogger from './components/logging/child_logger';
-
-import RootLogger from './components/logging/root_logger';
-
-import LegacyModeManager from './legacy_mode_manager';
+import { LoggingManager } from './components/logging/logging_manager';
+import { ChildLogger } from './components/logging/child_logger';
+import { RootLogger } from './components/logging/root_logger';
+import { LegacyModeManager } from './legacy_mode_manager';
 
 /**
  * Asks the user to choose a mode which the extension will run in.
@@ -84,14 +77,24 @@ async function handleMissingNightlyToolchain(logger: ChildLogger, rustup: Rustup
     return true;
 }
 
-async function handleMissingRustup(logger: RootLogger, configuration: Configuration): Promise<void> {
-    const functionLogger = logger.createChildLogger('handleMissingRustup: ');
+async function handleMissingRlsAndRustupWhenModeIsRls(
+    logger: RootLogger,
+    configuration: Configuration
+): Promise<void> {
+    const functionLogger = logger.createChildLogger('handleMissingRlsAndRustupWhenModeIsRls: ');
     functionLogger.debug('enter');
-    const message = 'You do not use Rustup. Rustup is a preferred way to install Rust and its components';
-    const doNotShowMeAgainChoice = 'Don\'t show me this again';
-    const choice = await window.showInformationMessage(message, doNotShowMeAgainChoice);
-    if (choice === doNotShowMeAgainChoice) {
-        configuration.setMode(Mode.Legacy);
+    const message = 'You have chosen RLS mode, but neither RLS nor rustup is installed';
+    const switchToLegacyModeChoice = 'Switch to Legacy mode';
+    const askMeLaterChoice = 'Ask me later';
+    const choice = await window.showErrorMessage(message, switchToLegacyModeChoice, askMeLaterChoice);
+    switch (choice) {
+        case switchToLegacyModeChoice:
+            configuration.setMode(Mode.Legacy);
+            break;
+        case askMeLaterChoice:
+        default:
+            configuration.setMode(undefined);
+            break;
     }
 }
 
@@ -158,46 +161,36 @@ async function handleMissingRls(logger: RootLogger, rustup: Rustup): Promise<boo
     );
 }
 
-export async function handleChoosingRlsMode(logger: RootLogger, configuration: Configuration,
-    rustup: Rustup): Promise<void> {
-    let canSetMode = false;
-    if (configuration.getPathToRlsExecutable() === undefined) {
-        if (await handleMissingRls(logger, rustup)) {
-            canSetMode = true;
-        }
-    } else {
-        canSetMode = true;
-    }
-    if (canSetMode) {
-        configuration.setMode(Mode.RLS);
-    }
-}
-
 export async function activate(ctx: ExtensionContext): Promise<void> {
     const loggingManager = new LoggingManager();
     const logger = loggingManager.getLogger();
-    const configuration = await Configuration.create(logger.createChildLogger('Configuration: '));
+    const rustup = await Rustup.create(logger.createChildLogger('Rustup: '));
+    const rustSource = await RustSource.create(rustup);
+    const configuration = new Configuration(logger.createChildLogger('Configuration: '));
+    const rlsConfiguration = await RlsConfiguration.create(rustup, rustSource);
     if (configuration.mode() === undefined) {
         // The current configuration does not contain any specified mode and hence we should try to
         // choose one.
-        const rustInstallation = configuration.getRustInstallation();
-        if (rustInstallation instanceof Rustup) {
-            const mode = await askUserToChooseMode();
-            switch (mode) {
-                case Mode.Legacy:
-                    configuration.setMode(Mode.Legacy);
-                    break;
-                case Mode.RLS:
-                    handleChoosingRlsMode(logger, configuration, rustInstallation);
-                    if (configuration.getPathToRlsExecutable() === undefined) {
-                        await handleMissingRls(logger, rustInstallation);
-                    }
-                    break;
-                case undefined:
-                    break;
+        const mode = await askUserToChooseMode();
+        switch (mode) {
+            case Mode.Legacy:
+                configuration.setMode(Mode.Legacy);
+                break;
+            case Mode.RLS:
+                configuration.setMode(Mode.RLS);
+                break;
+            case undefined:
+                break;
+        }
+    }
+    if (configuration.mode() === Mode.RLS && !rlsConfiguration.getExecutablePath()) {
+        if (rustup) {
+            const rlsInstalled = await handleMissingRls(logger, rustup);
+            if (!rlsInstalled) {
+                configuration.setMode(undefined);
             }
         } else {
-            await handleMissingRustup(logger, configuration);
+            await handleMissingRlsAndRustupWhenModeIsRls(logger, configuration);
         }
     }
     const currentWorkingDirectoryManager = new CurrentWorkingDirectoryManager();
@@ -207,16 +200,31 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
         currentWorkingDirectoryManager,
         logger.createChildLogger('Cargo Manager: ')
     );
-    await chooseModeAndRun(ctx, logger, configuration, currentWorkingDirectoryManager);
+    await chooseModeAndRun(
+        ctx,
+        logger,
+        configuration,
+        rustSource,
+        rustup,
+        currentWorkingDirectoryManager,
+        rlsConfiguration
+    );
     addExecutingActionOnSave(ctx, configuration, cargoManager);
 }
 
-async function runInLegacyMode(context: ExtensionContext, configuration: Configuration,
+async function runInLegacyMode(
+    context: ExtensionContext,
+    configuration: Configuration,
+    rustSource: RustSource,
+    rustup: Rustup | undefined,
     currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
-    logger: RootLogger): Promise<void> {
+    logger: RootLogger
+): Promise<void> {
     const legacyModeManager = await LegacyModeManager.create(
         context,
         configuration,
+        rustSource,
+        rustup,
         currentWorkingDirectoryManager,
         logger.createChildLogger('Legacy Mode Manager: ')
     );
@@ -229,18 +237,21 @@ async function runInLegacyMode(context: ExtensionContext, configuration: Configu
  * @param logger A logger to log messages
  * @param configuration A configuration
  */
-function runInRlsMode(context: ExtensionContext, logger: RootLogger,
-    configuration: Configuration): void {
+function runInRlsMode(
+    context: ExtensionContext,
+    logger: RootLogger,
+    rlsConfiguration: RlsConfiguration
+): void {
     const functionLogger = logger.createChildLogger('runInRlsMode: ');
     // This method is called only when RLS's path is defined, so we don't have to check it again
-    const rlsPath = <string>configuration.getPathToRlsExecutable();
+    const rlsPath = <string>rlsConfiguration.getExecutablePath();
     functionLogger.debug(`rlsPath= ${rlsPath} `);
-    const env = configuration.getRlsEnv();
+    const env = rlsConfiguration.getEnv();
     functionLogger.debug(`env= ${JSON.stringify(env)} `);
-    const args = configuration.getRlsArgs();
+    const args = rlsConfiguration.getArgs();
     functionLogger.debug(`args= ${JSON.stringify(args)} `);
-    const revealOutputChannelOn = configuration.getRlsRevealOutputChannelOn();
-    functionLogger.debug(`revealOutputChannelOn= ${revealOutputChannelOn} `);
+    const revealOutputChannelOn = rlsConfiguration.getRevealOutputChannelOn();
+    functionLogger.debug(`revealOutputChannelOn=${revealOutputChannelOn}`);
     const languageClientManager = new LanguageClientManager(
         context,
         logger.createChildLogger('Language Client Manager: '),
@@ -256,15 +267,25 @@ async function chooseModeAndRun(
     context: ExtensionContext,
     logger: RootLogger,
     configuration: Configuration,
-    currentWorkingDirectoryManager: CurrentWorkingDirectoryManager
+    rustSource: RustSource,
+    rustup: Rustup | undefined,
+    currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
+    rlsConfiguration: RlsConfiguration
 ): Promise<void> {
     switch (configuration.mode()) {
         case Mode.Legacy:
         case undefined:
-            await runInLegacyMode(context, configuration, currentWorkingDirectoryManager, logger);
+            await runInLegacyMode(
+                context,
+                configuration,
+                rustSource,
+                rustup,
+                currentWorkingDirectoryManager,
+                logger
+            );
             break;
         case Mode.RLS:
-            runInRlsMode(context, logger, configuration);
+            runInRlsMode(context, logger, rlsConfiguration);
             break;
     }
 }
@@ -278,44 +299,33 @@ function addExecutingActionOnSave(
         if (!window.activeTextEditor) {
             return;
         }
-
         const activeDocument = window.activeTextEditor.document;
-
         if (document !== activeDocument) {
             return;
         }
-
         if (document.languageId !== 'rust' || !document.fileName.endsWith('.rs')) {
             return;
         }
-
         const actionOnSave = configuration.getActionOnSave();
-
         if (!actionOnSave) {
             return;
         }
-
         switch (actionOnSave) {
             case 'build':
                 cargoManager.executeBuildTask(CommandInvocationReason.ActionOnSave);
                 break;
-
             case 'check':
                 cargoManager.executeCheckTask(CommandInvocationReason.ActionOnSave);
                 break;
-
             case 'clippy':
                 cargoManager.executeClippyTask(CommandInvocationReason.ActionOnSave);
                 break;
-
             case 'doc':
                 cargoManager.executeDocTask(CommandInvocationReason.ActionOnSave);
                 break;
-
             case 'run':
                 cargoManager.executeRunTask(CommandInvocationReason.ActionOnSave);
                 break;
-
             case 'test':
                 cargoManager.executeTestTask(CommandInvocationReason.ActionOnSave);
                 break;
