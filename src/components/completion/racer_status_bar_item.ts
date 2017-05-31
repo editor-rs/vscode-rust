@@ -1,6 +1,6 @@
 import { StatusBarAlignment, StatusBarItem, window } from 'vscode';
 
-export default class RacerStatusBarItem {
+export class RacerStatusBarItem {
     private showErrorCommandName: string;
 
     private statusBarItem: StatusBarItem;

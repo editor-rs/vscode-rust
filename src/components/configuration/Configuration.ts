@@ -1,28 +1,7 @@
-import { SpawnOptions } from 'child_process';
-
 import { WorkspaceConfiguration, workspace } from 'vscode';
-
-import { RevealOutputChannelOn } from 'vscode-languageclient';
-
 import expandTilde = require('expand-tilde');
-
-import { OutputtingProcess } from '../../OutputtingProcess';
-
 import { FileSystem } from '../file_system/FileSystem';
-
-import ChildLogger from '../logging/child_logger';
-
-import { Rustup } from './Rustup';
-
-import { NotRustup } from './NotRustup';
-
-export interface RlsConfiguration {
-    args?: string[];
-
-    env?: any;
-
-    revealOutputChannelOn: RevealOutputChannelOn;
-}
+import { ChildLogger } from '../logging/child_logger';
 
 export enum ActionOnStartingCommandIfThereIsRunningCommand {
     StopRunningCommand,
@@ -63,23 +42,6 @@ namespace Properties {
 export class Configuration {
     private _mode: Mode | undefined;
     private logger: ChildLogger;
-    private rustInstallation: Rustup | NotRustup | undefined;
-
-    /**
-     * A path to Rust's source code specified by a user.
-     * It contains a value of either:
-     *   - the configuration parameter `rust.rustLangSrcPath`
-     *   - the environment variable `RUST_SRC_PATH`
-     * The path has higher priority than a path to Rust's source code contained within an installation
-     */
-    private pathToRustSourceCodeSpecifiedByUser: string | undefined;
-
-    /**
-     * A path to the executable of RLS specified by a user.
-     * A user can specify it via the configuration parameter `rust.rls.executable`
-     * The path has higher priority than a path found automatically
-     */
-    private rlsPathSpecifiedByUser: string | undefined;
 
     /**
      * A path to the executable of racer.
@@ -90,40 +52,54 @@ export class Configuration {
      */
     private racerPath: string | undefined;
 
-    /**
-     * Creates a new instance of the class.
-     * This method is asynchronous because it works with the file system
-     * @param logger a logger to log messages
-     */
-    public static async create(logger: ChildLogger): Promise<Configuration> {
-        const rustup: Rustup | undefined = await Rustup.create(logger.createChildLogger('Rustup: '));
-        let rustInstallation: Rustup | NotRustup | undefined = undefined;
-        if (rustup) {
-            rustInstallation = rustup;
-        } else {
-            const rustcSysRoot: string | undefined = await this.loadRustcSysRoot();
-            if (rustcSysRoot) {
-                rustInstallation = new NotRustup(rustcSysRoot);
-            }
-        }
-        const pathToRustSourceCodeSpecifiedByUser = await this.checkPathToRustSourceCodeSpecifiedByUser();
-        const configuration = new Configuration(
-            logger,
-            rustInstallation,
-            pathToRustSourceCodeSpecifiedByUser,
-            undefined,
-            undefined
-        );
-        if (configuration._mode === Mode.RLS) {
-            await configuration.updatePathToRlsExecutableSpecifiedByUser();
-        }
-        return configuration;
-    }
-
     public static getConfiguration(): WorkspaceConfiguration {
         const configuration = workspace.getConfiguration('rust');
 
         return configuration;
+    }
+
+    public static getPathConfigParameter(parameterName: string): string | undefined {
+        const parameter = this.getStringParameter(parameterName);
+        if (parameter) {
+            return expandTilde(parameter);
+        } else {
+            return undefined;
+        }
+    }
+
+    public static getPathEnvParameter(parameterName: string): string | undefined {
+        const parameter = process.env[parameterName];
+        if (parameter) {
+            return expandTilde(parameter);
+        } else {
+            return undefined;
+        }
+    }
+
+    /**
+     * Creates a new instance of the class.
+     * @param logger A value for the field `logger`
+     */
+    public constructor(logger: ChildLogger) {
+        function mode(): Mode | undefined {
+            const configuration = Configuration.getConfiguration();
+            const value: string | null | undefined = configuration[Properties.mode];
+            if (typeof value === 'string') {
+                switch (value) {
+                    case asConfigurationParameterValue(Mode.Legacy):
+                        return Mode.Legacy;
+                    case asConfigurationParameterValue(Mode.RLS):
+                        return Mode.RLS;
+                    default:
+                        return undefined;
+                }
+            } else {
+                return undefined;
+            }
+        }
+        this._mode = mode();
+        this.logger = logger;
+        this.racerPath = undefined;
     }
 
     /**
@@ -171,11 +147,7 @@ export class Configuration {
      * Saves the specified mode in both the object and the configuration
      * @param mode The mode
      */
-    public setMode(mode: Mode): void {
-        if (this._mode !== undefined) {
-            this.logger.error(`setMode(${mode}): this._mode(${this._mode}) !== undefined. The method should not have been called`);
-            return;
-        }
+    public setMode(mode: Mode | undefined): void {
         this._mode = mode;
         const configuration = Configuration.getConfiguration();
         configuration.update(Properties.mode, asConfigurationParameterValue(mode), true);
@@ -186,110 +158,6 @@ export class Configuration {
      */
     public getPathToRacer(): string | undefined {
         return this.racerPath;
-    }
-
-    /**
-     * Returns either a path to the executable of RLS or undefined
-     */
-    public getPathToRlsExecutable(): string | undefined {
-        if (this.rlsPathSpecifiedByUser) {
-            return this.rlsPathSpecifiedByUser;
-        }
-        if (!(this.rustInstallation instanceof Rustup)) {
-            return undefined;
-        }
-        if (!this.rustInstallation.isRlsInstalled()) {
-            return undefined;
-        }
-        return 'rustup';
-    }
-
-    /**
-     * Returns a list of arguments to spawn RLS with
-     * Possible values are:
-     * * A list of arguments specified by a user with the configuration parameter `rust.rls.args`
-     * * An empty list
-     */
-    public getRlsArgs(): string[] {
-        const getRlsArgsSpecifiedByUser = () => {
-            const rlsConfiguration: any = this.getRlsConfiguration();
-            if (!rlsConfiguration) {
-                return [];
-            }
-            const rlsArgsSpecifiedByUser: any = rlsConfiguration.args;
-            if (!rlsArgsSpecifiedByUser) {
-                return [];
-            }
-            return rlsArgsSpecifiedByUser;
-        };
-        if (!(this.rustInstallation instanceof Rustup)) {
-            return getRlsArgsSpecifiedByUser();
-        }
-        if (!this.rustInstallation.isRlsInstalled()) {
-            return getRlsArgsSpecifiedByUser();
-        }
-        return ['run', 'nightly', 'rls'].concat(getRlsArgsSpecifiedByUser());
-    }
-
-    /**
-     * Returns an object representing an environment to run RLS in.
-     * Possible values are:
-     * * A value of the configuration parameter `rust.rls.env`
-     * * An empty object
-     * This method also tries to set RUST_SRC_PATH for any possible value
-     */
-    public getRlsEnv(): object {
-        const getRlsEnvSpecifiedByUser = () => {
-            const rlsConfiguration: any = this.getRlsConfiguration();
-            if (!rlsConfiguration) {
-                return undefined;
-            }
-            const rlsEnvSpecifiedByUser: any = rlsConfiguration.env;
-            if (!rlsEnvSpecifiedByUser) {
-                return undefined;
-            }
-            return rlsEnvSpecifiedByUser;
-        };
-        const rlsEnv = getRlsEnvSpecifiedByUser() || {};
-        if (!rlsEnv.RUST_SRC_PATH) {
-            rlsEnv.RUST_SRC_PATH = this.getRustSourcePath();
-        }
-        return rlsEnv;
-    }
-
-    /**
-     * Returns a mode specifying for which kinds of messages the RLS output channel should be revealed
-     * The possible values are (the higher the greater priority):
-     * * A value specified by a user with the configuration parameter `rust.rls.revealOutputChannelOn`
-     * * A default value which is on error
-     */
-    public getRlsRevealOutputChannelOn(): RevealOutputChannelOn {
-        const rlsConfiguration: any | undefined = this.getRlsConfiguration();
-
-        const defaultValue = RevealOutputChannelOn.Error;
-
-        if (!rlsConfiguration) {
-            return defaultValue;
-        }
-
-        const valueSpecifiedByUser = rlsConfiguration.revealOutputChannelOn;
-
-        switch (valueSpecifiedByUser) {
-            case 'info':
-                return RevealOutputChannelOn.Info;
-
-            case 'warn':
-                return RevealOutputChannelOn.Warn;
-
-            case 'error':
-                return RevealOutputChannelOn.Error;
-
-            case 'never':
-                return RevealOutputChannelOn.Never;
-
-            default:
-                return defaultValue;
-        }
     }
 
     public shouldExecuteCargoCommandInTerminal(): boolean {
@@ -306,10 +174,6 @@ export class Configuration {
         const actionOnSave = Configuration.getStringParameter('actionOnSave');
 
         return actionOnSave;
-    }
-
-    public getRustInstallation(): Rustup | NotRustup | undefined {
-        return this.rustInstallation;
     }
 
     public shouldShowRunningCargoTaskOutputChannel(): boolean {
@@ -360,18 +224,6 @@ export class Configuration {
         return rustsymPath || 'rustsym';
     }
 
-    public getRustSourcePath(): string | undefined {
-        if (this.pathToRustSourceCodeSpecifiedByUser) {
-            return this.pathToRustSourceCodeSpecifiedByUser;
-        }
-
-        if (this.rustInstallation instanceof Rustup) {
-            return this.rustInstallation.getPathToRustSourceCode();
-        }
-
-        return undefined;
-    }
-
     public getActionOnStartingCommandIfThereIsRunningCommand(): ActionOnStartingCommandIfThereIsRunningCommand {
         const configuration = Configuration.getConfiguration();
 
@@ -389,168 +241,11 @@ export class Configuration {
         }
     }
 
-    private static async loadRustcSysRoot(): Promise<string | undefined> {
-        const executable = 'rustc';
-
-        const args = ['--print', 'sysroot'];
-
-        const options: SpawnOptions = { cwd: process.cwd() };
-
-        const output = await OutputtingProcess.spawn(executable, args, options);
-
-        if (output.success && output.exitCode === 0) {
-            return output.stdoutData.trim();
-        } else {
-            return undefined;
-        }
-    }
-
-    /**
-     * Checks if a user specified a path to Rust's source code in the configuration and if it is, checks if the specified path does really exist
-     * @return Promise which after resolving contains either a path if the path suits otherwise undefined
-     */
-    private static async checkPathToRustSourceCodeSpecifiedByUserInConfiguration(): Promise<string | undefined> {
-        let configPath: string | undefined = this.getPathConfigParameter('rustLangSrcPath');
-
-        if (configPath) {
-            const configPathExists: boolean = await FileSystem.doesPathExist(configPath);
-
-            if (!configPathExists) {
-                configPath = undefined;
-            }
-        }
-
-        return configPath;
-    }
-
-    /**
-     * Tries to find a path to Rust's source code specified by a user.
-     * The method is asynchronous because it checks if a directory-candidate exists
-     * It tries to find it in different places.
-     * These places sorted by priority (the first item has the highest priority):
-     * * User/Workspace configuration
-     * * Environment
-     */
-    private static async checkPathToRustSourceCodeSpecifiedByUser(): Promise<string | undefined> {
-        const configPath: string | undefined = await this.checkPathToRustSourceCodeSpecifiedByUserInConfiguration();
-
-        if (configPath) {
-            return configPath;
-        }
-
-        const envPath: string | undefined = this.getPathEnvParameter('RUST_SRC_PATH');
-
-        const envPathExists: boolean = envPath !== undefined && await FileSystem.doesPathExist(envPath);
-
-        if (envPathExists) {
-            return envPath;
-        } else {
-            return undefined;
-        }
-    }
-
     private static getStringParameter(parameterName: string): string | null {
         const configuration = workspace.getConfiguration('rust');
 
         const parameter: string | null = configuration[parameterName];
 
         return parameter;
-    }
-
-    private static getPathConfigParameter(parameterName: string): string | undefined {
-        const parameter = this.getStringParameter(parameterName);
-
-        if (parameter) {
-            return expandTilde(parameter);
-        } else {
-            return undefined;
-        }
-    }
-
-    private static getPathEnvParameter(parameterName: string): string | undefined {
-        const parameter = process.env[parameterName];
-
-        if (parameter) {
-            return expandTilde(parameter);
-        } else {
-            return undefined;
-        }
-    }
-
-    /**
-     * Creates a new instance of the class.
-     * The constructor is private because creating a new instance should be done via the method `create`
-     * @param logger A value for the field `logger`
-     * @param rustInstallation A value for the field `rustInstallation`
-     * @param pathToRustSourceCodeSpecifiedByUser A value for the field `pathToRustSourceCodeSpecifiedByUser`
-     * @param pathToRlsSpecifiedByUser A value for the field `pathToRlsSpecifiedByUser`
-     * @param pathToRacer A value for the field `pathToRacer`
-     */
-    private constructor(
-        logger: ChildLogger,
-        rustInstallation: Rustup | NotRustup | undefined,
-        pathToRustSourceCodeSpecifiedByUser: string | undefined,
-        rlsPathSpecifiedByUser: string | undefined,
-        pathToRacer: string | undefined
-    ) {
-        function mode(): Mode | undefined {
-            const configuration = Configuration.getConfiguration();
-            const value: string | null | undefined = configuration[Properties.mode];
-            if (typeof value === 'string') {
-                switch (value) {
-                    case asConfigurationParameterValue(Mode.Legacy):
-                        return Mode.Legacy;
-                    case asConfigurationParameterValue(Mode.RLS):
-                        return Mode.RLS;
-                    default:
-                        return undefined;
-                }
-            } else {
-                return undefined;
-            }
-        }
-        this._mode = mode();
-        this.logger = logger;
-        this.rustInstallation = rustInstallation;
-        this.pathToRustSourceCodeSpecifiedByUser = pathToRustSourceCodeSpecifiedByUser;
-        this.rlsPathSpecifiedByUser = rlsPathSpecifiedByUser;
-        this.racerPath = pathToRacer;
-    }
-
-    private getRlsConfiguration(): any | undefined {
-        const configuration = Configuration.getConfiguration();
-
-        const rlsConfiguration: any = configuration['rls'];
-
-        return rlsConfiguration;
-    }
-
-    /**
-     * Checks if a user specified a path to the executable of RLS via the configuration parameter.
-     * It assigns either a path specified by a user or undefined, depending on if a user specified a path and the specified path exists.
-     * This method is asynchronous because it checks if a path specified by a user exists
-     */
-    private async updatePathToRlsExecutableSpecifiedByUser(): Promise<void> {
-        const logger = this.logger.createChildLogger('updatePathToRlsSpecifiedByUser: ');
-        if (this.mode() === Mode.Legacy) {
-            logger.error('this.mode() === Mode.Legacy. The method should not have been called');
-            return;
-        }
-        this.rlsPathSpecifiedByUser = undefined;
-        const rlsConfiguration = this.getRlsConfiguration();
-        if (!rlsConfiguration) {
-            return;
-        }
-        let rlsPathSpecifiedByUser: string | undefined | null = rlsConfiguration.executable;
-        if (!rlsPathSpecifiedByUser) {
-            return;
-        }
-        rlsPathSpecifiedByUser = expandTilde(rlsPathSpecifiedByUser);
-        const rlsPath: string | undefined = await FileSystem.findExecutablePath(rlsPathSpecifiedByUser);
-        if (!rlsPath) {
-            logger.error(`Failed to find path=${rlsPath}`);
-            return;
-        }
-        this.rlsPathSpecifiedByUser = rlsPath;
     }
 }

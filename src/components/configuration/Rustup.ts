@@ -1,11 +1,7 @@
 import { join } from 'path';
-
 import { OutputtingProcess } from '../../OutputtingProcess';
-
 import { FileSystem } from '../file_system/FileSystem';
-
-import ChildLogger from '../logging/child_logger';
-
+import { ChildLogger } from '../logging/child_logger';
 import * as OutputChannelProcess from '../../OutputChannelProcess';
 
 namespace Constants {

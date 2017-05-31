@@ -9,13 +9,16 @@ import { CompletionItem, CompletionItemKind, Definition, Disposable, ExtensionCo
 import { fileSync } from 'tmp';
 import { surround_by_double_quotes } from '../../Utils';
 import { Configuration } from '../configuration/Configuration';
+import { RustSource } from '../configuration/RustSource';
 import { Rustup } from '../configuration/Rustup';
-import getDocumentFilter from '../configuration/mod';
-import ChildLogger from '../logging/child_logger';
-import RacerStatusBarItem from './racer_status_bar_item';
+import { getDocumentFilter } from '../configuration/mod';
+import { ChildLogger } from '../logging/child_logger';
+import { RacerStatusBarItem } from './racer_status_bar_item';
 
-export default class CompletionManager {
+export class CompletionManager {
     private configuration: Configuration;
+    private _rustSource: RustSource;
+    private _rustup: Rustup | undefined;
     private logger: ChildLogger;
     private racerDaemon: ChildProcess | undefined;
     private commandCallbacks: ((lines: string[]) => void)[];
@@ -51,9 +54,13 @@ export default class CompletionManager {
     public constructor(
         context: ExtensionContext,
         configuration: Configuration,
+        rustSource: RustSource,
+        rustup: Rustup | undefined,
         logger: ChildLogger
     ) {
         this.configuration = configuration;
+        this._rustSource = rustSource;
+        this._rustup = rustup;
         this.logger = logger;
         this.listeners = [];
         const showErrorCommandName = 'rust.racer.show_error';
@@ -117,10 +124,10 @@ export default class CompletionManager {
      * @returns flag indicating whether the source code if available or not
      */
     private ensureSourceCodeIsAvailable(): boolean {
-        if (this.configuration.getRustSourcePath()) {
+        if (this._rustSource.getPath()) {
             return true;
         }
-        if (this.configuration.getRustInstallation() instanceof Rustup) {
+        if (this._rustup) {
             // tslint:disable-next-line
             const message = 'You are using rustup, but don\'t have installed source code. Do you want to install it?';
             window.showErrorMessage(message, 'Yes').then(chosenItem => {
@@ -156,7 +163,7 @@ export default class CompletionManager {
             shell: true,
             env: Object.assign({}, process.env)
         };
-        const rustSourcePath = this.configuration.getRustSourcePath();
+        const rustSourcePath = this._rustSource.getPath();
         if (rustSourcePath) {
             racerSpawnOptions.env.RUST_SRC_PATH = rustSourcePath;
         }

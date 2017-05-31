@@ -5,18 +5,13 @@ import {
     languages,
     window
 } from 'vscode';
-
 import { Configuration } from '../configuration/Configuration';
+import { CurrentWorkingDirectoryManager } from '../configuration/current_working_directory_manager';
+import { SymbolSearchManager } from './symbol_search_manager';
 
-import CurrentWorkingDirectoryManager from '../configuration/current_working_directory_manager';
-
-import SymbolSearchManager from './symbol_search_manager';
-
-export default class WorkspaceSymbolProvisionManager implements WorkspaceSymbolProvider {
+export class WorkspaceSymbolProvisionManager implements WorkspaceSymbolProvider {
     private configuration: Configuration;
-
     private currentWorkingDirectoryManager: CurrentWorkingDirectoryManager;
-
     private symbolSearchManager: SymbolSearchManager;
 
     public constructor(
@@ -25,11 +20,8 @@ export default class WorkspaceSymbolProvisionManager implements WorkspaceSymbolP
         currentWorkingDirectoryManager: CurrentWorkingDirectoryManager
     ) {
         this.configuration = configuration;
-
         this.currentWorkingDirectoryManager = currentWorkingDirectoryManager;
-
         this.symbolSearchManager = new SymbolSearchManager(configuration);
-
         context.subscriptions.push(languages.registerWorkspaceSymbolProvider(this));
     }
 
@@ -44,7 +36,6 @@ export default class WorkspaceSymbolProvisionManager implements WorkspaceSymbolP
                 });
             }).catch((error: Error) => {
                 window.showErrorMessage(error.message);
-
                 reject(error.message);
             });
         });

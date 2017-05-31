@@ -1,20 +1,12 @@
 import * as vscode from 'vscode';
 import * as tmp from 'tmp';
-
 import { ExtensionContext } from 'vscode';
-
 import { Configuration } from '../configuration/Configuration';
-
-import CurrentWorkingDirectoryManager from '../configuration/current_working_directory_manager';
-
-import ChildLogger from '../logging/child_logger';
-
-import CustomConfigurationChooser from './custom_configuration_chooser';
-
+import { CurrentWorkingDirectoryManager } from '../configuration/current_working_directory_manager';
+import { ChildLogger } from '../logging/child_logger';
+import { CustomConfigurationChooser } from './custom_configuration_chooser';
 import { CommandStartHandleResult, Helper } from './helper';
-
 import { OutputChannelTaskManager } from './output_channel_task_manager';
-
 import { TerminalTaskManager } from './terminal_task_manager';
 
 /**

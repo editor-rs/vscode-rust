@@ -5,19 +5,15 @@ import {
     TextDocument,
     languages
 } from 'vscode';
-
 import { Configuration } from '../configuration/Configuration';
+import { getDocumentFilter } from '../configuration/mod';
+import { SymbolSearchManager } from './symbol_search_manager';
 
-import getDocumentFilter from '../configuration/mod';
-
-import SymbolSearchManager from './symbol_search_manager';
-
-export default class DocumentSymbolProvisionManager implements DocumentSymbolProvider {
+export class DocumentSymbolProvisionManager implements DocumentSymbolProvider {
     private symbolSearchManager: SymbolSearchManager;
 
     public constructor(context: ExtensionContext, configuration: Configuration) {
         this.symbolSearchManager = new SymbolSearchManager(configuration);
-
         context.subscriptions.push(
             languages.registerDocumentSymbolProvider(getDocumentFilter(), this)
         );

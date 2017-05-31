@@ -1,32 +1,20 @@
 import { ChildProcess, spawn as spawn_process } from 'child_process';
-
 import kill = require('tree-kill');
-
 import * as readline from 'readline';
-
 import { Configuration } from '../configuration/Configuration';
-
-import ChildLogger from '../logging/child_logger';
+import { ChildLogger } from '../logging/child_logger';
 
 export type ExitCode = number;
 
 export class Task {
     private configuration: Configuration;
-
     private logger: ChildLogger;
-
     private args: string[];
-
     private cwd: string;
-
     private onStarted?: () => void;
-
     private onLineReceivedInStderr?: (line: string) => void;
-
     private onLineReceivedInStdout?: (line: string) => void;
-
     private process: ChildProcess | undefined;
-
     private interrupted: boolean;
 
     public constructor(
@@ -36,21 +24,13 @@ export class Task {
         cwd: string
     ) {
         this.configuration = configuration;
-
         this.logger = logger;
-
         this.args = args;
-
         this.cwd = cwd;
-
         this.onStarted = undefined;
-
         this.onLineReceivedInStderr = undefined;
-
         this.onLineReceivedInStdout = undefined;
-
         this.process = undefined;
-
         this.interrupted = false;
     }
 
@@ -69,64 +49,45 @@ export class Task {
     public execute(): Thenable<ExitCode> {
         return new Promise<ExitCode>((resolve, reject) => {
             const cargoPath = this.configuration.getCargoPath();
-
             let env = Object.assign({}, process.env);
-
             const cargoEnv = this.configuration.getCargoEnv();
-
             if (cargoEnv) {
                 env = Object.assign(env, cargoEnv);
             }
-
             this.logger.debug(`execute: cargoPath = "${cargoPath}"`);
             this.logger.debug(`execute: this.args = ${JSON.stringify(this.args)}`);
             this.logger.debug(`execute: cargoEnv = ${JSON.stringify(cargoEnv)}`);
-
             if (this.onStarted) {
                 this.onStarted();
             }
-
             const spawnedProcess: ChildProcess = spawn_process(cargoPath, this.args, { cwd: this.cwd, env });
-
             this.process = spawnedProcess;
-
             if (this.onLineReceivedInStdout !== undefined) {
                 const onLineReceivedInStdout = this.onLineReceivedInStdout;
-
                 const stdout = readline.createInterface({ input: spawnedProcess.stdout });
-
                 stdout.on('line', line => {
                     onLineReceivedInStdout(line);
                 });
             }
-
             if (this.onLineReceivedInStderr !== undefined) {
                 const onLineReceivedInStderr = this.onLineReceivedInStderr;
-
                 const stderr = readline.createInterface({ input: spawnedProcess.stderr });
-
                 stderr.on('line', line => {
                     onLineReceivedInStderr(line);
                 });
             }
-
             spawnedProcess.on('error', error => {
                 reject(error);
             });
-
             spawnedProcess.on('exit', code => {
                 process.removeAllListeners();
-
                 if (this.process === spawnedProcess) {
                     this.process = undefined;
                 }
-
                 if (this.interrupted) {
                     reject();
-
                     return;
                 }
-
                 resolve(code);
             });
         });
@@ -136,7 +97,6 @@ export class Task {
         return new Promise(resolve => {
             if (!this.interrupted && this.process) {
                 kill(this.process.pid, 'SIGTERM', resolve);
-
                 this.interrupted = true;
             }
         });

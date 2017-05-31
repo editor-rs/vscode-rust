@@ -8,7 +8,7 @@ interface RustSymbol {
     line: number;
 }
 
-export default class SymbolInformationParser {
+export class SymbolInformationParser {
     private kinds: { [key: string]: SymbolKind };
 
     public constructor() {
