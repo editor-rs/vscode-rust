@@ -8,6 +8,7 @@ import { CurrentWorkingDirectoryManager }
 import { RustSource } from './components/configuration/RustSource';
 import { Rustup } from './components/configuration/Rustup';
 import { RlsConfiguration } from './components/configuration/RlsConfiguration';
+import { FormattingManager } from './components/formatting/formatting_manager';
 import { Manager as LanguageClientManager } from './components/language_client/manager';
 import { LoggingManager } from './components/logging/logging_manager';
 import { ChildLogger } from './components/logging/child_logger';
@@ -161,6 +162,23 @@ async function handleMissingRls(logger: RootLogger, rustup: Rustup): Promise<boo
     );
 }
 
+namespace RlsMode {
+    export async function handleMissingValueForUseRustfmt(configuration: RlsConfiguration): Promise<void> {
+        const yesChoice = 'Yes';
+        const noChoice = 'No';
+        const message = 'Do you want to use rustfmt for formatting?';
+        const choice = await window.showInformationMessage(message, yesChoice, noChoice);
+        switch (choice) {
+            case yesChoice:
+                configuration.setUseRustfmt(true);
+                break;
+            case noChoice:
+                configuration.setUseRustfmt(false);
+                break;
+        }
+    }
+}
+
 export async function activate(ctx: ExtensionContext): Promise<void> {
     const loggingManager = new LoggingManager();
     const logger = loggingManager.getLogger();
@@ -191,6 +209,16 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
             }
         } else {
             await handleMissingRlsAndRustupWhenModeIsRls(logger, configuration);
+        }
+    }
+    // The chosen mode could be changed at the previous block
+    if (configuration.mode() === Mode.RLS) {
+        if (rlsConfiguration.getUseRustfmt() === undefined) {
+            await RlsMode.handleMissingValueForUseRustfmt(rlsConfiguration);
+        }
+        // The user may have chosen whether rustfmt should be used
+        if (rlsConfiguration.getUseRustfmt()) {
+            await FormattingManager.create(ctx, configuration);
         }
     }
     const currentWorkingDirectoryManager = new CurrentWorkingDirectoryManager();

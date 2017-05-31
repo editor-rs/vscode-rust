@@ -504,6 +504,14 @@
                 "never"
               ],
               "type": "string"
+            },
+            "useRustfmt": {
+              "default": null,
+              "description": "Specified whether rustfmt should be used for formatting",
+              "type": [
+                "boolean",
+                "null"
+              ]
             }
           }
         }
