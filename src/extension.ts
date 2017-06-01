@@ -106,6 +106,7 @@ class RlsMode {
      */
     public async start(): Promise<boolean> {
         const logger = this._logger.createChildLogger('start: ');
+        logger.debug('enter');
         {
             const mode = this._configuration.mode();
             if (mode !== Mode.RLS) {
@@ -116,6 +117,7 @@ class RlsMode {
         if (!this._rlsConfiguration.getExecutablePath()) {
             logger.debug('no RLS executable');
             if (this._rustup) {
+                logger.debug('has rustup');
                 const rlsInstalled = await this.handleMissingRls();
                 if (!rlsInstalled) {
                     logger.debug('RLS has not been installed');
@@ -129,36 +131,46 @@ class RlsMode {
             }
         }
         if (this._rlsConfiguration.getUseRustfmt() === undefined) {
+            logger.debug('User has not decided whether rustfmt should be used yet');
             await this.handleMissingValueForUseRustfmt();
         }
-        // The user may have chosen whether rustfmt should be used
-        if (this._rlsConfiguration.getUseRustfmt()) {
-            const formattingManager = await FormattingManager.create(
-                this._extensionContext,
-                this._configuration
-            );
-            if (formattingManager === undefined) {
-                await this.handleMissingRustfmt();
-                // The user may have decided not to use rustfmt
-                if (this._rlsConfiguration.getUseRustfmt()) {
-                    const anotherFormattingManager = await FormattingManager.create(
-                        this._extensionContext,
-                        this._configuration
-                    );
-                    if (anotherFormattingManager === undefined) {
-                        window.showErrorMessage('Formatting: some error happened');
+        switch (this._rlsConfiguration.getUseRustfmt()) {
+            case true:
+                logger.debug('User decided to use rustfmt');
+                const formattingManager = await FormattingManager.create(
+                    this._extensionContext,
+                    this._configuration
+                );
+                if (formattingManager === undefined) {
+                    await this.handleMissingRustfmt();
+                    // The user may have decided not to use rustfmt
+                    if (this._rlsConfiguration.getUseRustfmt()) {
+                        const anotherFormattingManager = await FormattingManager.create(
+                            this._extensionContext,
+                            this._configuration
+                        );
+                        if (anotherFormattingManager === undefined) {
+                            window.showErrorMessage('Formatting: some error happened');
+                        }
                     }
                 }
-            }
+                break;
+            case false:
+                logger.debug('User decided not to use rustfmt');
+                break;
+            case undefined:
+                logger.debug('User dismissed the dialog');
+                break;
+
         }
         const rlsPath = <string>this._rlsConfiguration.getExecutablePath();
-        logger.debug(`rlsPath= ${rlsPath} `);
+        logger.debug(`rlsPath=${rlsPath} `);
         const env = this._rlsConfiguration.getEnv();
-        logger.debug(`env= ${JSON.stringify(env)} `);
+        logger.debug(`env=${JSON.stringify(env)} `);
         const args = this._rlsConfiguration.getArgs();
-        logger.debug(`args= ${JSON.stringify(args)} `);
+        logger.debug(`args=${JSON.stringify(args)} `);
         const revealOutputChannelOn = this._rlsConfiguration.getRevealOutputChannelOn();
-        logger.debug(`revealOutputChannelOn= ${revealOutputChannelOn} `);
+        logger.debug(`revealOutputChannelOn=${revealOutputChannelOn} `);
         const languageClientManager = new LanguageClientManager(
             this._extensionContext,
             logger.createChildLogger('Language Client Manager: '),
@@ -172,7 +184,7 @@ class RlsMode {
     }
 
     private async handleMissingRlsAndRustup(): Promise<void> {
-        const logger = this._logger.createChildLogger('handleMissingRlsAndRustupWhenModeIsRls: ');
+        const logger = this._logger.createChildLogger('handleMissingRlsAndRustup: ');
         logger.debug('enter');
         const message = 'You have chosen RLS mode, but neither RLS nor rustup is installed';
         const switchToLegacyModeChoice = 'Switch to Legacy mode';
@@ -180,37 +192,52 @@ class RlsMode {
         const choice = await window.showErrorMessage(message, switchToLegacyModeChoice, askMeLaterChoice);
         switch (choice) {
             case switchToLegacyModeChoice:
+                logger.debug('User decided to switch to Legacy Mode');
                 this._configuration.setMode(Mode.Legacy);
                 break;
             case askMeLaterChoice:
+                logger.debug('User asked to be asked later');
+                this._configuration.setMode(undefined);
+                break;
             default:
+                logger.debug('User dismissed the dialog');
                 this._configuration.setMode(undefined);
                 break;
         }
     }
 
     private async handleMissingValueForUseRustfmt(): Promise<void> {
+        const logger = this._logger.createChildLogger('handleMissingValueForUseRustfmt: ');
+        logger.debug('enter');
         const yesChoice = 'Yes';
         const noChoice = 'No';
         const message = 'Do you want to use rustfmt for formatting?';
         const choice = await window.showInformationMessage(message, yesChoice, noChoice);
         switch (choice) {
             case yesChoice:
+                logger.debug('User decided to use rustfmt');
                 this._rlsConfiguration.setUseRustfmt(true);
                 break;
             case noChoice:
+                logger.debug('User decided not to use rustfmt');
                 this._rlsConfiguration.setUseRustfmt(false);
+                break;
+            default:
+                logger.debug('User dismissed the dialog');
                 break;
         }
     }
 
     private async handleMissingRustfmt(): Promise<void> {
+        const logger = this._logger.createChildLogger('handleMissingRustfmt: ');
+        logger.debug('enter');
         const message = 'rustfmt is not installed';
         const installRustfmtChoice = 'Install rustfmt';
         const dontUseRustfmtChoice = 'Don\'t use rustfmt';
         const choice = await window.showInformationMessage(message, installRustfmtChoice, dontUseRustfmtChoice);
         switch (choice) {
             case installRustfmtChoice:
+                logger.debug('User decided to install rustfmt');
                 const result = await OutputChannelProcess.create(
                     this._configuration.getCargoPath(),
                     ['install', 'rustfmt'],
@@ -219,16 +246,20 @@ class RlsMode {
                 );
                 const success = result.success && result.code === 0;
                 if (success) {
+                    logger.debug('rustfmt has been installed');
                     window.showInformationMessage('rustfmt has been installed');
                 } else {
+                    logger.error('rustfmt has not been installed');
                     window.showErrorMessage('rustfmt has not been installed');
                     this._rlsConfiguration.setUseRustfmt(false);
                 }
                 break;
             case dontUseRustfmtChoice:
+                logger.debug('User decided not to use rustfmt');
                 this._rlsConfiguration.setUseRustfmt(false);
                 break;
             default:
+                logger.debug('User dismissed the dialog');
                 this._rlsConfiguration.setUseRustfmt(undefined);
                 break;
         }
@@ -252,7 +283,7 @@ class RlsMode {
         }
         const logger = this._logger.createChildLogger('handleMissingRls: ');
         if (!this._rustup) {
-            logger.error('this._rustup === undefined; this method should not have been called');
+            logger.error('no rustup; this method should not have been called');
             return false;
         }
         const rustup = this._rustup;
