@@ -14,6 +14,7 @@ import { LoggingManager } from './components/logging/logging_manager';
 import { ChildLogger } from './components/logging/child_logger';
 import { RootLogger } from './components/logging/root_logger';
 import { LegacyModeManager } from './legacy_mode_manager';
+import * as OutputChannelProcess from './OutputChannelProcess';
 
 /**
  * Asks the user to choose a mode which the extension will run in.
@@ -177,6 +178,39 @@ namespace RlsMode {
                 break;
         }
     }
+
+    export async function handleMissingRustfmt(
+        configuration: Configuration,
+        rlsConfiguration: RlsConfiguration
+    ): Promise<void> {
+        const message = 'rustfmt is not installed';
+        const installRustfmtChoice = 'Install rustfmt';
+        const dontUseRustfmtChoice = 'Don\'t use rustfmt';
+        const choice = await window.showInformationMessage(message, installRustfmtChoice, dontUseRustfmtChoice);
+        switch (choice) {
+            case installRustfmtChoice:
+                const result = await OutputChannelProcess.create(
+                    configuration.getCargoPath(),
+                    ['install', 'rustfmt'],
+                    undefined,
+                    'Installing rustfmt'
+                );
+                const success = result.success && result.code === 0;
+                if (success) {
+                    window.showInformationMessage('rustfmt has been installed');
+                } else {
+                    window.showErrorMessage('rustfmt has not been installed');
+                    rlsConfiguration.setUseRustfmt(false);
+                }
+                break;
+            case dontUseRustfmtChoice:
+                rlsConfiguration.setUseRustfmt(false);
+                break;
+            default:
+                rlsConfiguration.setUseRustfmt(undefined);
+                break;
+        }
+    }
 }
 
 export async function activate(ctx: ExtensionContext): Promise<void> {
@@ -218,7 +252,17 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
         }
         // The user may have chosen whether rustfmt should be used
         if (rlsConfiguration.getUseRustfmt()) {
-            await FormattingManager.create(ctx, configuration);
+            const formattingManager = await FormattingManager.create(ctx, configuration);
+            if (formattingManager === undefined) {
+                await RlsMode.handleMissingRustfmt(configuration, rlsConfiguration);
+                // The user may have decided not to use rustfmt
+                if (rlsConfiguration.getUseRustfmt()) {
+                    const anotherFormattingManager = await FormattingManager.create(ctx, configuration);
+                    if (anotherFormattingManager === undefined) {
+                        window.showErrorMessage('Formatting: some error happened');
+                    }
+                }
+            }
         }
     }
     const currentWorkingDirectoryManager = new CurrentWorkingDirectoryManager();
