@@ -88,12 +88,12 @@ export class CompletionManager {
         const logger = this.logger.createChildLogger('initialStart: ');
         const pathToRacer: string | undefined = this.configuration.getPathToRacer();
         if (!pathToRacer) {
-            logger.createChildLogger('racer is not installed');
+            logger.debug('racer is not installed');
             return;
         }
         const isSourceCodeAvailable: boolean = this.ensureSourceCodeIsAvailable();
         if (!isSourceCodeAvailable) {
-            logger.createChildLogger('Rust\'s source is not installed');
+            logger.debug('Rust\'s source is not installed');
             return;
         }
         this.start(pathToRacer);
