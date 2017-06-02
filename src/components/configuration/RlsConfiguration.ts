@@ -15,6 +15,7 @@ export class RlsConfiguration {
     private _userArgs: string[];
     private _userEnv: object;
     private _revealOutputChannelOn: RevealOutputChannelOn;
+    private _useRustfmt: boolean | undefined;
 
     /**
      * Creates a new instance of the class
@@ -71,6 +72,26 @@ export class RlsConfiguration {
         return this._revealOutputChannelOn;
     }
 
+    /**
+     * Returns whether rustfmt should be used for formatting
+     */
+    public getUseRustfmt(): boolean | undefined {
+        return this._useRustfmt;
+    }
+
+    /**
+     * Updates the property "useRustfmt" in the user configuration
+     * @param value The new value
+     */
+    public setUseRustfmt(value: boolean | undefined): void {
+        if (this._useRustfmt === value) {
+            return;
+        }
+        this._useRustfmt = value;
+        const suitableValue = typeof value === 'boolean' ? value : null;
+        updateUserConfigurationParameter(c => { c.useRustfmt = suitableValue; });
+    }
+
     private constructor(rustup: Rustup | undefined, rustSource: RustSource, executableUserPath: string | undefined) {
         this._rustup = rustup;
         this._rustSource = rustSource;
@@ -78,11 +99,21 @@ export class RlsConfiguration {
         this._userArgs = getUserArgs();
         this._userEnv = getUserEnv();
         this._revealOutputChannelOn = getUserRevealOutputChannelOn();
+        this._useRustfmt = getUserUseRustfmt();
     }
 }
 
 function getUserConfiguration(): any {
     return Configuration.getConfiguration()['rls'];
+}
+
+function updateUserConfigurationParameter(updateParameter: (c: any) => void): void {
+    let configuration = getUserConfiguration();
+    if (!configuration) {
+        configuration = {};
+    }
+    updateParameter(configuration);
+    Configuration.getConfiguration().update('rls', configuration, true);
 }
 
 function getExecutableUserPath(): string | undefined {
@@ -140,6 +171,18 @@ function getUserRevealOutputChannelOn(): RevealOutputChannelOn {
     }
 }
 
+function getUserUseRustfmt(): boolean | undefined {
+    const configuration = getUserConfiguration();
+    if (!configuration) {
+        return undefined;
+    }
+    const useRustfmt = configuration.useRustfmt;
+    if (typeof useRustfmt === 'boolean') {
+        return useRustfmt;
+    } else {
+        return undefined;
+    }
+}
 
 async function getCheckedExecutableUserPath(): Promise<string | undefined> {
     const path = getExecutableUserPath();

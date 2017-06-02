@@ -12,10 +12,13 @@ The type of the parameter is an object with the following fields:
 * `"args"` - an array of strings. Arguments to pass to the executable
 * `"env"` - an environment to append to the current environment to execute the executable
 * `"revealOutputChannelOn"` - a string. Specifies the condition when the output channel should be revealed
+* `"useRustfmt"` - either a boolean or `null`. Specifies whether [rustfmt] should be used for formatting
 
 By default, it is `null`.
 
-### The revealOutputChannelOn configuration parameter
+### More about configuration parameter
+
+#### revealOutputChannelOn
 
 This determines when the Output channel is revealed.
 
@@ -25,6 +28,14 @@ The possible values are:
 * `"warn"` - revealed on each warn line
 * `"error"` - revealed on each error line (default)
 * `"never"` - the output channel never reveals automatically
+
+#### useRustfmt
+
+The possible values are:
+
+* `null` - the extension will ask whether [rustfmt] should be used for formatting
+* `false` - the extension will not use [rustfmt] for formatting
+* `true` - the extension will use [rustfmt] for formatting
 
 ## Setting up
 
@@ -157,3 +168,5 @@ Clicking on the indicator restarts RLS.
 
 ## Enabling formatting and renaming
 Create a `rls.toml` file in your project's root and add `unstable_features = true` and RLS will be able to auto format on save and renaming.
+
+[rustfmt]: https://github.com/rust-lang-nursery/rustfmt
