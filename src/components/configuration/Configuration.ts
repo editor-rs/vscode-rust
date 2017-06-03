@@ -59,7 +59,7 @@ export class Configuration {
     }
 
     public static getPathConfigParameter(parameterName: string): string | undefined {
-        const parameter = this.getStringParameter(parameterName);
+        const parameter = this.getStringConfigParameter(parameterName);
         if (parameter) {
             return expandTilde(parameter);
         } else {
@@ -74,6 +74,12 @@ export class Configuration {
         } else {
             return undefined;
         }
+    }
+
+    public static getStringConfigParameter(parameterName: string): string | undefined {
+        const configuration = workspace.getConfiguration('rust');
+        const parameter = configuration.get<string>(parameterName);
+        return parameter;
     }
 
     /**
@@ -170,10 +176,8 @@ export class Configuration {
         return shouldExecuteCargoCommandInTerminal;
     }
 
-    public getActionOnSave(): string | null {
-        const actionOnSave = Configuration.getStringParameter('actionOnSave');
-
-        return actionOnSave;
+    public getActionOnSave(): string | undefined {
+        return Configuration.getStringConfigParameter('actionOnSave');
     }
 
     public shouldShowRunningCargoTaskOutputChannel(): boolean {
@@ -239,13 +243,5 @@ export class Configuration {
             default:
                 return ActionOnStartingCommandIfThereIsRunningCommand.IgnoreNewCommand;
         }
-    }
-
-    private static getStringParameter(parameterName: string): string | null {
-        const configuration = workspace.getConfiguration('rust');
-
-        const parameter: string | null = configuration[parameterName];
-
-        return parameter;
     }
 }

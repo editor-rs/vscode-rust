@@ -3,9 +3,11 @@ import { OutputtingProcess } from '../../OutputtingProcess';
 import { FileSystem } from '../file_system/FileSystem';
 import { ChildLogger } from '../logging/child_logger';
 import * as OutputChannelProcess from '../../OutputChannelProcess';
+import { Configuration } from './Configuration';
 
 namespace Constants {
     export const DEFAULT_TOOLCHAIN_SUFFIX = '(default)';
+    export const NIGHTLY_TOOLCHAIN = 'nightly';
 }
 
 /**
@@ -38,12 +40,17 @@ export class Rustup {
     /**
      * Components received by invoking rustup
      */
-    private components: string[];
+    private components: { [toolchain: string]: string[] };
 
     /**
      * Toolchains received by invoking rustup
      */
     private toolchains: string[];
+
+    /**
+     * The toolchain chosen by the user
+     */
+    private _userToolchain: string | undefined;
 
     /**
      * Creates a new instance of the class.
@@ -57,10 +64,17 @@ export class Rustup {
         }
         const rustup = new Rustup(logger);
         await rustup.updateToolchains();
-        await rustup.updateComponents();
-        await rustup.updateSysrootPath('nightly');
-        await rustup.updatePathToRustSourceCodePath();
-        await rustup.updatePathToRlsExecutable();
+        if (rustup._userToolchain) {
+            await rustup.updateSysrootPath(rustup._userToolchain);
+            await rustup.updateComponents(rustup._userToolchain);
+            await rustup.updatePathToRustSourceCodePath();
+        }
+        if (rustup.isNightlyToolchainInstalled() && rustup._userToolchain !== Constants.NIGHTLY_TOOLCHAIN) {
+            await rustup.updateComponents(Constants.NIGHTLY_TOOLCHAIN);
+            if (rustup.isRlsInstalled()) {
+                await rustup.updatePathToRlsExecutable();
+            }
+        }
         return rustup;
     }
 
@@ -68,7 +82,7 @@ export class Rustup {
      * Returns whether the nightly toolchain is installed or not
      */
     public isNightlyToolchainInstalled(): boolean {
-        const nightlyToolchain = this.toolchains.find(t => t.startsWith('nightly'));
+        const nightlyToolchain = this.toolchains.find(t => t.startsWith(Constants.NIGHTLY_TOOLCHAIN));
         if (nightlyToolchain) {
             return true;
         } else {
@@ -126,12 +140,28 @@ export class Rustup {
     }
 
     /**
+     * Requests Rustup to install rust-src for the chosen toolchain
+     * @return true if the installing succeeded, otherwise false
+     */
+    public async installRustSrc(): Promise<boolean> {
+        const logger = this.logger.createChildLogger('installRustSrc: ');
+        if (!this._userToolchain) {
+            logger.error('no toolchain has been chosen');
+            return false;
+        }
+        return await this.installComponent(this._userToolchain, 'rust-src');
+    }
+
+    /**
      * Requests Rustup install RLS
      * @return true if no error occurred and RLS has been installed otherwise false
      */
     public async installRls(): Promise<boolean> {
         const logger = this.logger.createChildLogger('installRls: ');
-        const isComponentInstalled: boolean = await this.installComponent(Rustup.getRlsComponentName());
+        const isComponentInstalled: boolean = await this.installComponent(
+            Constants.NIGHTLY_TOOLCHAIN,
+            Rustup.getRlsComponentName()
+        );
         if (!isComponentInstalled) {
             return false;
         }
@@ -150,26 +180,30 @@ export class Rustup {
      * @return true if no error occurred and rust-analysis has been installed otherwise false
      */
     public async installRustAnalysis(): Promise<boolean> {
-        return await this.installComponent(Rustup.getRustAnalysisComponentName());
+        return await this.installComponent(
+            Constants.NIGHTLY_TOOLCHAIN,
+            Rustup.getRustAnalysisComponentName()
+        );
     }
 
     /**
      * Requests rustup to give components list and saves them in the field `components`
      */
-    public async updateComponents(): Promise<void> {
-        this.components = [];
-        const logger = this.logger.createChildLogger('updateComponents: ');
+    public async updateComponents(toolchain: string): Promise<void> {
+        this.components[toolchain] = [];
+        const logger = this.logger.createChildLogger(`updateComponents(${toolchain}): `);
         if (!this.isNightlyToolchainInstalled()) {
             logger.error('nightly toolchain is not installed');
             return;
         }
-        const stdoutData: string | undefined = await Rustup.invoke(['component', 'list', '--toolchain', 'nightly'], logger);
+        const rustupArgs = ['component', 'list', '--toolchain', toolchain];
+        const stdoutData: string | undefined = await Rustup.invoke(rustupArgs, logger);
         if (!stdoutData) {
             logger.error(`stdoutData=${stdoutData}`);
             return;
         }
-        this.components = stdoutData.split('\n');
-        logger.debug(`this.components=${JSON.stringify(this.components)}`);
+        this.components[toolchain] = stdoutData.split('\n');
+        logger.debug(`components=${JSON.stringify(this.components[toolchain])}`);
     }
 
     /**
@@ -227,11 +261,6 @@ export class Rustup {
     public async updatePathToRlsExecutable(): Promise<void> {
         const logger = this.logger.createChildLogger('updatePathToRlsExecutable: ');
         this.pathToRlsExecutable = undefined;
-        const rlsInstalled: boolean = this.isComponentInstalled(Rustup.getRlsComponentName());
-        logger.debug(`rlsInstalled=${rlsInstalled}`);
-        if (!rlsInstalled) {
-            return;
-        }
         const rlsPath: string | undefined = await FileSystem.findExecutablePath('rls');
         logger.debug(`rlsPath=${rlsPath}`);
         if (!rlsPath) {
@@ -248,7 +277,8 @@ export class Rustup {
      */
     public canInstallRls(): boolean {
         const logger = this.logger.createChildLogger('canInstallRls: ');
-        const rlsComponent = this.components.find(component => component.startsWith(Rustup.getRlsComponentName()));
+        const components = this.components[Constants.NIGHTLY_TOOLCHAIN];
+        const rlsComponent = components.find(component => component.startsWith(Rustup.getRlsComponentName()));
         if (!rlsComponent) {
             return false;
         }
@@ -265,7 +295,10 @@ export class Rustup {
      * @return true if RLS is installed otherwise false
      */
     public isRlsInstalled(): boolean {
-        return this.isComponentInstalled(Rustup.getRlsComponentName());
+        return this.isComponentInstalled(
+            Constants.NIGHTLY_TOOLCHAIN,
+            Rustup.getRlsComponentName()
+        );
     }
 
     /**
@@ -273,7 +306,10 @@ export class Rustup {
      * @return The flag indicating whether "rust-analysis" is installed
      */
     public isRustAnalysisInstalled(): boolean {
-        return this.isComponentInstalled(Rustup.getRustAnalysisComponentName());
+        return this.isComponentInstalled(
+            Constants.NIGHTLY_TOOLCHAIN,
+            Rustup.getRustAnalysisComponentName()
+        );
     }
 
     /**
@@ -281,7 +317,8 @@ export class Rustup {
      * If the component is already installed, the method returns false
      */
     public canInstallRustAnalysis(): boolean {
-        const component: string | undefined = this.components.find(c => c.startsWith(Rustup.getRustAnalysisComponentName()));
+        const components = this.components[Constants.NIGHTLY_TOOLCHAIN];
+        const component: string | undefined = components.find(c => c.startsWith(Rustup.getRustAnalysisComponentName()));
         if (!component) {
             return false;
         }
@@ -405,16 +442,17 @@ export class Rustup {
         this.pathToRustcSysRoot = undefined;
         this.pathToRustSourceCode = undefined;
         this.pathToRlsExecutable = undefined;
-        this.components = [];
+        this.components = {};
         this.toolchains = [];
+        this._userToolchain = getUserToolchain();
     }
 
     /**
      * Takes from the field `components` only installed components
      * @returns a list of installed components
      */
-    private getInstalledComponents(): string[] {
-        const installedComponents = this.components.filter(component => {
+    private getInstalledComponents(toolchain: string): string[] {
+        const installedComponents = this.components[toolchain].filter(component => {
             return component.endsWith(Rustup.getSuffixForInstalledComponent());
         });
         return installedComponents;
@@ -424,32 +462,48 @@ export class Rustup {
      * Returns true if the component is installed otherwise false
      * @param componentName The component's name
      */
-    private isComponentInstalled(componentName: string): boolean {
-        const installedComponents: string[] = this.getInstalledComponents();
+    private isComponentInstalled(toolchain: string, componentName: string): boolean {
+        const installedComponents: string[] = this.getInstalledComponents(toolchain);
         const component: string | undefined = installedComponents.find(c => c.startsWith(componentName));
         const isComponentInstalled = component !== undefined;
         return isComponentInstalled;
     }
 
-    private async installComponent(componentName: string): Promise<boolean> {
-        const logger = this.logger.createChildLogger(`installComponent(${componentName}: `);
-        if (this.isComponentInstalled(componentName)) {
+    private async installComponent(toolchain: string, componentName: string): Promise<boolean> {
+        const logger = this.logger.createChildLogger(`installComponent(${toolchain}, ${componentName}: `);
+        if (this.isComponentInstalled(toolchain, componentName)) {
             logger.error(`${componentName} is already installed. The method should not have been called`);
             // We return true because the component is installed, but anyway it is an exceptional situation
             return true;
         }
-        const args = ['component', 'add', componentName, '--toolchain', 'nightly'];
+        const args = ['component', 'add', componentName, '--toolchain', toolchain];
         const stdoutData = await Rustup.invokeWithOutputChannel(args, logger, `Rustup: Installing ${componentName}`);
         if (stdoutData === undefined) {
             // Some error occurred. It is already logged
             // So we just need to notify a caller that the installation failed
             return false;
         }
-        await this.updateComponents();
-        if (!this.isComponentInstalled(componentName)) {
+        await this.updateComponents(toolchain);
+        if (!this.isComponentInstalled(toolchain, componentName)) {
             logger.error(`${componentName} had been installed successfully, but then Rustup reported that the component was not installed. This should have not happened`);
             return false;
         }
         return true;
     }
+}
+
+function getUserToolchain(): string | undefined {
+    const configuration = Configuration.getConfiguration();
+    if (!configuration) {
+        return undefined;
+    }
+    const rustupConfiguration = configuration.get<any>('rustup');
+    if (!rustupConfiguration) {
+        return undefined;
+    }
+    const toolchain = rustupConfiguration.toolchain;
+    if (!toolchain) {
+        return undefined;
+    }
+    return toolchain;
 }

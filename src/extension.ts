@@ -65,17 +65,17 @@ async function handleMissingNightlyToolchain(logger: ChildLogger, rustup: Rustup
     const functionLogger = logger.createChildLogger('handleMissingNightlyToolchain: ');
     await window.showInformationMessage('The nightly toolchain is not installed, but is required to install RLS');
     const permissionGranted = await askPermissionToInstall('the nightly toolchain');
-    functionLogger.debug(`permissionGranted= ${permissionGranted}`);
+    functionLogger.debug(`permissionGranted=${permissionGranted}`);
     if (!permissionGranted) {
         return false;
     }
     window.showInformationMessage('The nightly toolchain is being installed. It can take a while. Please be patient');
     const toolchainInstalled = await rustup.installToolchain('nightly');
-    functionLogger.debug(`toolchainInstalled= ${toolchainInstalled}`);
+    functionLogger.debug(`toolchainInstalled=${toolchainInstalled}`);
     if (!toolchainInstalled) {
         return false;
     }
-    await rustup.updateComponents();
+    await rustup.updateComponents('nightly');
     return true;
 }
 
