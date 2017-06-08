@@ -102,6 +102,14 @@ export class Rustup {
     }
 
     /**
+     * Checks if the toolchain is installed
+     * @param toolchain The toolchain to check
+     */
+    public isToolchainInstalled(toolchain: Toolchain): boolean {
+        return this.toolchains.find(t => t.equals(toolchain)) !== undefined;
+    }
+
+    /**
      * Returns the path to Rust's source code
      */
     public getPathToRustSourceCode(): string | undefined {

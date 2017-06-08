@@ -371,6 +371,14 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
     const rustup = await Rustup.create(logger.createChildLogger('Rustup: '));
     if (rustup) {
         await rustup.updateToolchains();
+        {
+            const userToolchain = rustup.getUserToolchain();
+            if (userToolchain !== undefined && !rustup.isToolchainInstalled(userToolchain)) {
+                logger.error('user toolchain is not installed');
+                window.showErrorMessage('The specified toolchain is not installed');
+                rustup.setUserToolchain(undefined);
+            }
+        }
         if (!rustup.getUserToolchain()) {
             await handleMissingRustupUserToolchain(logger, rustup);
         }
