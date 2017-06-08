@@ -1,7 +1,8 @@
 // https://github.com/pwnall/node-open
 import open = require('open');
 import { ExtensionContext, QuickPickItem, window, workspace } from 'vscode';
-import { CargoManager, CommandInvocationReason } from './components/cargo/cargo_manager';
+import { CargoManager } from './components/cargo/CargoManager';
+import { CommandInvocationReason } from './components/cargo/CommandInvocationReason';
 import { Configuration, Mode } from './components/configuration/Configuration';
 import { CurrentWorkingDirectoryManager }
     from './components/configuration/current_working_directory_manager';
