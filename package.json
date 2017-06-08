@@ -466,6 +466,20 @@
           },
           "type": "array"
         },
+        "rust.rustup": {
+          "default": null,
+          "description": "rustup configuration",
+          "properties": {
+            "toolchain": {
+              "default": null,
+              "description": "The toolchain to use for installing components (rust-src), except RLS",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
         "rust.rls": {
           "default": null,
           "description": "Rust Language Server configuration",

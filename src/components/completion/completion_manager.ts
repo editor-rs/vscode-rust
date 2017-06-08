@@ -91,7 +91,7 @@ export class CompletionManager {
             logger.debug('racer is not installed');
             return;
         }
-        const isSourceCodeAvailable: boolean = this.ensureSourceCodeIsAvailable();
+        const isSourceCodeAvailable: boolean = await this.ensureSourceCodeIsAvailable();
         if (!isSourceCodeAvailable) {
             logger.debug('Rust\'s source is not installed');
             return;
@@ -123,22 +123,33 @@ export class CompletionManager {
      * Ensures that Rust's source code is available to use
      * @returns flag indicating whether the source code if available or not
      */
-    private ensureSourceCodeIsAvailable(): boolean {
+    private async ensureSourceCodeIsAvailable(): Promise<boolean> {
+        const logger = this.logger.createChildLogger('ensureSourceCodeIsAvailable: ');
         if (this._rustSource.getPath()) {
+            logger.debug('sources is available');
             return true;
         }
-        if (this._rustup) {
-            // tslint:disable-next-line
-            const message = 'You are using rustup, but don\'t have installed source code. Do you want to install it?';
-            window.showErrorMessage(message, 'Yes').then(chosenItem => {
-                if (chosenItem === 'Yes') {
-                    const terminal = window.createTerminal('Rust source code installation');
-                    terminal.sendText('rustup component add rust-src');
-                    terminal.show();
-                }
-            });
+        if (!this._rustup) {
+            logger.error('rustup is undefined');
+            return false;
         }
-        return false;
+        // tslint:disable-next-line
+        const message = 'You are using rustup, but don\'t have installed source code. Do you want to install it?';
+        const choice = await window.showErrorMessage(message, 'Yes');
+        if (choice === 'Yes') {
+            logger.debug('the user agreed to install rust-src');
+            const rustSrcInstalled = await this._rustup.installRustSrc();
+            if (rustSrcInstalled) {
+                logger.debug('rust-src has been installed');
+                return true;
+            } else {
+                logger.error('rust-src has not been installed');
+                return false;
+            }
+        } else {
+            logger.debug('the user dismissed the dialog');
+            return false;
+        }
     }
 
     /**

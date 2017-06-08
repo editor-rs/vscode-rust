@@ -1,6 +1,6 @@
 // https://github.com/pwnall/node-open
 import open = require('open');
-import { ExtensionContext, window, workspace } from 'vscode';
+import { ExtensionContext, QuickPickItem, window, workspace } from 'vscode';
 import { CargoManager, CommandInvocationReason } from './components/cargo/cargo_manager';
 import { Configuration, Mode } from './components/configuration/Configuration';
 import { CurrentWorkingDirectoryManager }
@@ -15,6 +15,7 @@ import { ChildLogger } from './components/logging/child_logger';
 import { RootLogger } from './components/logging/root_logger';
 import { LegacyModeManager } from './legacy_mode_manager';
 import * as OutputChannelProcess from './OutputChannelProcess';
+import { Toolchain } from './Toolchain';
 
 /**
  * Asks the user to choose a mode which the extension will run in.
@@ -65,17 +66,17 @@ async function handleMissingNightlyToolchain(logger: ChildLogger, rustup: Rustup
     const functionLogger = logger.createChildLogger('handleMissingNightlyToolchain: ');
     await window.showInformationMessage('The nightly toolchain is not installed, but is required to install RLS');
     const permissionGranted = await askPermissionToInstall('the nightly toolchain');
-    functionLogger.debug(`permissionGranted= ${permissionGranted}`);
+    functionLogger.debug(`permissionGranted=${permissionGranted}`);
     if (!permissionGranted) {
         return false;
     }
     window.showInformationMessage('The nightly toolchain is being installed. It can take a while. Please be patient');
     const toolchainInstalled = await rustup.installToolchain('nightly');
-    functionLogger.debug(`toolchainInstalled= ${toolchainInstalled}`);
+    functionLogger.debug(`toolchainInstalled=${toolchainInstalled}`);
     if (!toolchainInstalled) {
         return false;
     }
-    await rustup.updateComponents();
+    await rustup.updateComponents(<Toolchain>Toolchain.parse('nightly'));
     return true;
 }
 
@@ -293,10 +294,10 @@ class RlsMode {
             logger.debug('Permission to install RLS has not granted');
             return false;
         }
-        if (!this._rustup.isNightlyToolchainInstalled()) {
+        if (!this._rustup.getNightlyToolchain(logger)) {
             logger.debug('The nightly toolchain is not installed');
             await handleMissingNightlyToolchain(logger, rustup);
-            if (!rustup.isNightlyToolchainInstalled()) {
+            if (!rustup.getNightlyToolchain(logger)) {
                 logger.debug('The nightly toolchain is not installed');
                 return false;
             }
@@ -332,10 +333,69 @@ class RlsMode {
     }
 }
 
+async function handleMissingRustupUserToolchain(
+    logger: RootLogger,
+    rustup: Rustup
+): Promise<void> {
+    class Item implements QuickPickItem {
+        public toolchain: Toolchain;
+        public label: string;
+        public description: string;
+
+        public constructor(toolchain: Toolchain, shouldLabelContainHost: boolean) {
+            this.toolchain = toolchain;
+            this.label = toolchain.toString(shouldLabelContainHost, true);
+            this.description = '';
+        }
+    }
+    const functionLogger = logger.createChildLogger('handleMissingRustupUserToolchain: ');
+    functionLogger.debug('enter');
+    await window.showInformationMessage('To properly function, the extension needs to know what toolchain you want to use');
+    const toolchains = rustup.getToolchains();
+    if (toolchains.length === 0) {
+        functionLogger.error('no toolchains');
+        return;
+    }
+    const toolchainsHaveOneHost = toolchains.every(t => t.host === toolchains[0].host);
+    const items = toolchains.map(t => new Item(t, !toolchainsHaveOneHost));
+    const item = await window.showQuickPick(items);
+    if (!item) {
+        return;
+    }
+    rustup.setUserToolchain(item.toolchain);
+}
+
 export async function activate(ctx: ExtensionContext): Promise<void> {
     const loggingManager = new LoggingManager();
     const logger = loggingManager.getLogger();
     const rustup = await Rustup.create(logger.createChildLogger('Rustup: '));
+    if (rustup) {
+        await rustup.updateToolchains();
+        {
+            const userToolchain = rustup.getUserToolchain();
+            if (userToolchain !== undefined && !rustup.isToolchainInstalled(userToolchain)) {
+                logger.error('user toolchain is not installed');
+                window.showErrorMessage('The specified toolchain is not installed');
+                rustup.setUserToolchain(undefined);
+            }
+        }
+        if (!rustup.getUserToolchain()) {
+            await handleMissingRustupUserToolchain(logger, rustup);
+        }
+        const userToolchain = rustup.getUserToolchain();
+        if (userToolchain) {
+            await rustup.updateSysrootPath(userToolchain);
+            await rustup.updateComponents(userToolchain);
+            await rustup.updatePathToRustSourceCodePath();
+        }
+        const nightlyToolchain = rustup.getNightlyToolchain(logger.createChildLogger('activate: '));
+        if (nightlyToolchain && (!userToolchain || !userToolchain.equals(nightlyToolchain))) {
+            await rustup.updateComponents(nightlyToolchain);
+            if (rustup.isRlsInstalled()) {
+                await rustup.updatePathToRlsExecutable();
+            }
+        }
+    }
     const rustSource = await RustSource.create(rustup);
     const configuration = new Configuration(logger.createChildLogger('Configuration: '));
     const rlsConfiguration = await RlsConfiguration.create(rustup, rustSource);

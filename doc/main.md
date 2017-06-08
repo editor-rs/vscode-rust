@@ -21,6 +21,8 @@ The chosen mode is stored in `"rust.mode"` and it can be changed by users.
 
 Each mode is described in detail on its own page.
 
+Some configuration parameters effect both modes. They are described [there](common_configuration_parameters.md).
+
 Furthermore, the extension provides:
 
 * [Linting (the showing of diagnostics in the active text editor)](linting.md)
