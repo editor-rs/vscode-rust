@@ -1,53 +1,41 @@
 import { join } from 'path';
-
 import { ExtensionContext, Terminal, window, workspace } from 'vscode';
-
 import { escapeSpaces, getCommandToSetEnvVar, parseShell } from '../../CommandLine';
-
+import { Configuration } from '../configuration/Configuration';
 import { CommandStartHandleResult, Helper } from './helper';
 
-import { Configuration } from '../configuration/Configuration';
-
 export class TerminalTaskManager {
-    private configuration: Configuration;
-
-    private runningTerminal: Terminal | undefined;
+    private _configuration: Configuration;
+    private _runningTerminal: Terminal | undefined;
 
     public constructor(context: ExtensionContext, configuration: Configuration) {
-        this.configuration = configuration;
-
+        this._configuration = configuration;
         context.subscriptions.push(
             window.onDidCloseTerminal(closedTerminal => {
-                if (closedTerminal === this.runningTerminal) {
-                    this.runningTerminal = undefined;
+                if (closedTerminal === this._runningTerminal) {
+                    this._runningTerminal = undefined;
                 }
             })
         );
     }
 
     public async execute(command: string, args: string[], cwd: string): Promise<void> {
-        if (this.runningTerminal) {
-            const helper = new Helper(this.configuration);
-
+        if (this._runningTerminal) {
+            const helper = new Helper(this._configuration);
             const result = await helper.handleCommandStartWhenThereIsRunningCommand();
-
             switch (result) {
                 case CommandStartHandleResult.IgnoreNewCommand:
                     return;
-
                 case CommandStartHandleResult.StopRunningCommand:
-                    this.runningTerminal.dispose();
-                    this.runningTerminal = undefined;
+                    this._runningTerminal.dispose();
+                    this._runningTerminal = undefined;
             }
         }
-
         const terminal = window.createTerminal('Cargo Task');
-
-        this.runningTerminal = terminal;
-
+        this._runningTerminal = terminal;
         const shell = parseShell(workspace.getConfiguration('terminal')['integrated']['shell']['windows']);
         const setEnvironmentVariables = () => {
-            const cargoEnv = this.configuration.getCargoEnv();
+            const cargoEnv = this._configuration.getCargoEnv();
             // Set environment variables
             for (const name in cargoEnv) {
                 if (name in cargoEnv) {
@@ -56,31 +44,22 @@ export class TerminalTaskManager {
                 }
             }
         };
-
         setEnvironmentVariables();
-
-        const cargoCwd = this.configuration.getCargoCwd();
-
+        const cargoCwd = this._configuration.getCargoCwd();
         if (cargoCwd !== undefined && cargoCwd !== cwd) {
             const manifestPath = join(cwd, 'Cargo.toml');
-
             args = ['--manifest-path', manifestPath].concat(args);
-
             cwd = cargoCwd;
         }
-
         cwd = escapeSpaces(cwd, shell);
         // Change the current directory to a specified directory
-        this.runningTerminal.sendText(`cd ${cwd}`);
-
-        let cargoPath = this.configuration.getCargoPath();
+        this._runningTerminal.sendText(`cd ${cwd}`);
+        let cargoPath = this._configuration.getCargoPath();
         cargoPath = escapeSpaces(cargoPath, shell);
         args = args.map((arg) => escapeSpaces(arg, shell));
         command = escapeSpaces(command, shell);
-
         // Start a requested command
-        this.runningTerminal.sendText(`${cargoPath} ${command} ${args.join(' ')}`);
-
-        this.runningTerminal.show(true);
+        this._runningTerminal.sendText(`${cargoPath} ${command} ${args.join(' ')}`);
+        this._runningTerminal.show(true);
     }
 }
