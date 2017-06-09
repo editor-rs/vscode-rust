@@ -10,7 +10,7 @@ import { CrateType } from './CrateType';
 import { CustomConfigurationChooser } from './custom_configuration_chooser';
 
 export class CargoManager {
-    private _cargoManager: CargoTaskManager;
+    private _cargoTaskManager: CargoTaskManager;
     private _customConfigurationChooser: CustomConfigurationChooser;
     private _logger: ChildLogger;
 
@@ -21,7 +21,7 @@ export class CargoManager {
         logger: ChildLogger
     ) {
         const stopCommandName = 'rust.cargo.terminate';
-        this._cargoManager = new CargoTaskManager(
+        this._cargoTaskManager = new CargoTaskManager(
             context,
             configuration,
             currentWorkingDirectoryManager,
@@ -34,27 +34,27 @@ export class CargoManager {
     }
 
     public executeBuildTask(reason: CommandInvocationReason): void {
-        this._cargoManager.invokeCargoBuildUsingBuildArgs(reason);
+        this._cargoTaskManager.invokeCargoBuildUsingBuildArgs(reason);
     }
 
     public executeCheckTask(reason: CommandInvocationReason): void {
-        this._cargoManager.invokeCargoCheckUsingCheckArgs(reason);
+        this._cargoTaskManager.invokeCargoCheckUsingCheckArgs(reason);
     }
 
     public executeClippyTask(reason: CommandInvocationReason): void {
-        this._cargoManager.invokeCargoClippyUsingClippyArgs(reason);
+        this._cargoTaskManager.invokeCargoClippyUsingClippyArgs(reason);
     }
 
     public executeDocTask(reason: CommandInvocationReason): void {
-        this._cargoManager.invokeCargoDocUsingDocArgs(reason);
+        this._cargoTaskManager.invokeCargoDocUsingDocArgs(reason);
     }
 
     public executeRunTask(reason: CommandInvocationReason): void {
-        this._cargoManager.invokeCargoRunUsingRunArgs(reason);
+        this._cargoTaskManager.invokeCargoRunUsingRunArgs(reason);
     }
 
     public executeTestTask(reason: CommandInvocationReason): void {
-        this._cargoManager.invokeCargoTestUsingTestArgs(reason);
+        this._cargoTaskManager.invokeCargoTestUsingTestArgs(reason);
     }
 
     public registerCommandHelpingCreatePlayground(commandName: string): Disposable {
@@ -66,7 +66,7 @@ export class CargoManager {
     public registerCommandHelpingChooseArgsAndInvokingCargoCheck(commandName: string): Disposable {
         return commands.registerCommand(commandName, () => {
             this._customConfigurationChooser.choose('customCheckConfigurations').then(args => {
-                this._cargoManager.invokeCargoCheckWithArgs(args, CommandInvocationReason.CommandExecution);
+                this._cargoTaskManager.invokeCargoCheckWithArgs(args, CommandInvocationReason.CommandExecution);
             }, () => undefined);
         });
     }
@@ -80,7 +80,7 @@ export class CargoManager {
     public registerCommandHelpingChooseArgsAndInvokingCargoClippy(commandName: string): Disposable {
         return commands.registerCommand(commandName, () => {
             this._customConfigurationChooser.choose('customClippyConfigurations').then(args => {
-                this._cargoManager.invokeCargoClippyWithArgs(args, CommandInvocationReason.CommandExecution);
+                this._cargoTaskManager.invokeCargoClippyWithArgs(args, CommandInvocationReason.CommandExecution);
             }, () => undefined);
         });
     }
@@ -94,7 +94,7 @@ export class CargoManager {
     public registerCommandHelpingChooseArgsAndInvokingCargoDoc(commandName: string): Disposable {
         return commands.registerCommand(commandName, () => {
             this._customConfigurationChooser.choose('customDocConfigurations').then(args => {
-                this._cargoManager.invokeCargoDocWithArgs(args, CommandInvocationReason.CommandExecution);
+                this._cargoTaskManager.invokeCargoDocWithArgs(args, CommandInvocationReason.CommandExecution);
             }, () => undefined);
         });
     }
@@ -118,7 +118,7 @@ export class CargoManager {
                 if (!name || name.length === 0) {
                     return;
                 }
-                this._cargoManager.invokeCargoNew(name, isBin, cwd);
+                this._cargoTaskManager.invokeCargoNew(name, isBin, cwd);
             });
         });
     }
@@ -126,7 +126,7 @@ export class CargoManager {
     public registerCommandHelpingChooseArgsAndInvokingCargoBuild(commandName: string): Disposable {
         return commands.registerCommand(commandName, () => {
             this._customConfigurationChooser.choose('customBuildConfigurations').then(args => {
-                this._cargoManager.invokeCargoBuildWithArgs(args, CommandInvocationReason.CommandExecution);
+                this._cargoTaskManager.invokeCargoBuildWithArgs(args, CommandInvocationReason.CommandExecution);
             }, () => undefined);
         });
     }
@@ -140,7 +140,7 @@ export class CargoManager {
     public registerCommandHelpingChooseArgsAndInvokingCargoRun(commandName: string): Disposable {
         return commands.registerCommand(commandName, () => {
             this._customConfigurationChooser.choose('customRunConfigurations').then(args => {
-                this._cargoManager.invokeCargoRunWithArgs(args, CommandInvocationReason.CommandExecution);
+                this._cargoTaskManager.invokeCargoRunWithArgs(args, CommandInvocationReason.CommandExecution);
             }, () => undefined);
         });
     }
@@ -154,7 +154,7 @@ export class CargoManager {
     public registerCommandHelpingChooseArgsAndInvokingCargoTest(commandName: string): Disposable {
         return commands.registerCommand(commandName, () => {
             this._customConfigurationChooser.choose('customTestConfigurations').then(args => {
-                this._cargoManager.invokeCargoTestWithArgs(args, CommandInvocationReason.CommandExecution);
+                this._cargoTaskManager.invokeCargoTestWithArgs(args, CommandInvocationReason.CommandExecution);
             }, () => undefined);
         });
     }
@@ -167,13 +167,13 @@ export class CargoManager {
 
     public registerCommandInvokingCargoWithArgs(commandName: string, command: string, ...args: string[]): Disposable {
         return commands.registerCommand(commandName, () => {
-            this._cargoManager.invokeCargo(command, args);
+            this._cargoTaskManager.invokeCargo(command, args);
         });
     }
 
     public registerCommandStoppingCargoTask(commandName: string): Disposable {
         return commands.registerCommand(commandName, () => {
-            this._cargoManager.stopTask();
+            this._cargoTaskManager.stopTask();
         });
     }
 
@@ -228,7 +228,7 @@ export class CargoManager {
                     }
                     const crateType = playgroundProjectType === 'application' ? CrateType.Application : CrateType.Library;
                     const name = `playground_${playgroundProjectType}`;
-                    this._cargoManager.invokeCargoInit(crateType, name, path)
+                    this._cargoTaskManager.invokeCargoInit(crateType, name, path)
                         .then(() => {
                             const uri = Uri.parse(path);
 
