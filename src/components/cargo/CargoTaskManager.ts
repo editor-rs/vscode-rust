@@ -122,34 +122,66 @@ export class CargoTaskManager {
             return;
         }
         const shouldExecuteCargoCommandInTerminal = this._configuration.shouldExecuteCargoCommandInTerminal();
+        const canStartTask = this.processPossiblyRunningTask(force, shouldExecuteCargoCommandInTerminal);
+        if (!canStartTask) {
+            return;
+        }
+        this.startTask(command, args, cwd, reason, shouldExecuteCargoCommandInTerminal);
+    }
+
+    /**
+     * Checks whether some task is running and it is, then checks whether it can be stopped
+     * @param isStoppingRunningTaskAllowed The flag indicating whether the currently running task
+     * can be stopped
+     * @param isPossiblyRunningTaskRunInTerminal The flag indicating whether the currently
+     * running task is run in the terminal
+     * @return The flag inidicating whether there is no running task (there was no running task or
+     * the running task has been stopped)
+     */
+    private async processPossiblyRunningTask(
+        isStoppingRunningTaskAllowed: boolean,
+        isPossiblyRunningTaskRunInTerminal: boolean
+    ): Promise<boolean> {
         let hasRunningTask = false;
-        if (shouldExecuteCargoCommandInTerminal) {
+        if (isPossiblyRunningTaskRunInTerminal) {
             hasRunningTask = this._terminalTaskManager.hasRunningTask();
         } else {
             hasRunningTask = this._outputChannelTaskManager.hasRunningTask();
         }
-        if (hasRunningTask) {
-            let shouldStopRunningTask = false;
-            if (force) {
-                const helper = new Helper(this._configuration);
-                const result = await helper.handleCommandStartWhenThereIsRunningCommand();
-                switch (result) {
-                    case CommandStartHandleResult.IgnoreNewCommand:
-                        break;
-                    case CommandStartHandleResult.StopRunningCommand:
-                        shouldStopRunningTask = true;
-                }
-            }
-            if (shouldStopRunningTask) {
-                if (shouldExecuteCargoCommandInTerminal) {
-                    this._terminalTaskManager.stopRunningTask();
-                } else {
-                    this._outputChannelTaskManager.stopRunningTask();
-                }
-            } else {
-                return;
-            }
+        if (!hasRunningTask) {
+            return true;
         }
+        if (isStoppingRunningTaskAllowed) {
+            return false;
+        }
+        let shouldStopRunningTask = false;
+        const helper = new Helper(this._configuration);
+        const result = await helper.handleCommandStartWhenThereIsRunningCommand();
+        switch (result) {
+            case CommandStartHandleResult.IgnoreNewCommand:
+                break;
+            case CommandStartHandleResult.StopRunningCommand:
+                shouldStopRunningTask = true;
+        }
+        if (shouldStopRunningTask) {
+            if (isPossiblyRunningTaskRunInTerminal) {
+                this._terminalTaskManager.stopRunningTask();
+            } else {
+                this._outputChannelTaskManager.stopRunningTask();
+            }
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private async startTask(
+        command: string,
+        args: string[],
+        cwd: string,
+        reason: CommandInvocationReason,
+        shouldExecuteCargoCommandInTerminal: boolean
+    ): Promise<void> {
         if (shouldExecuteCargoCommandInTerminal) {
             await this._terminalTaskManager.startTask(command, args, cwd);
         } else {
