@@ -121,22 +121,38 @@ export class CargoTaskManager {
             window.showErrorMessage(error.message);
             return;
         }
-        if (this._configuration.shouldExecuteCargoCommandInTerminal()) {
-            this._terminalTaskManager.execute(command, args, cwd);
+        const shouldExecuteCargoCommandInTerminal = this._configuration.shouldExecuteCargoCommandInTerminal();
+        let hasRunningTask = false;
+        if (shouldExecuteCargoCommandInTerminal) {
+            hasRunningTask = this._terminalTaskManager.hasRunningTask();
         } else {
-            if (this._outputChannelTaskManager.hasRunningTask()) {
-                if (!force) {
-                    return;
-                }
+            hasRunningTask = this._outputChannelTaskManager.hasRunningTask();
+        }
+        if (hasRunningTask) {
+            let shouldStopRunningTask = false;
+            if (force) {
                 const helper = new Helper(this._configuration);
                 const result = await helper.handleCommandStartWhenThereIsRunningCommand();
                 switch (result) {
                     case CommandStartHandleResult.IgnoreNewCommand:
-                        return;
+                        break;
                     case CommandStartHandleResult.StopRunningCommand:
-                        await this._outputChannelTaskManager.stopRunningTask();
+                        shouldStopRunningTask = true;
                 }
             }
+            if (shouldStopRunningTask) {
+                if (shouldExecuteCargoCommandInTerminal) {
+                    this._terminalTaskManager.stopRunningTask();
+                } else {
+                    this._outputChannelTaskManager.stopRunningTask();
+                }
+            } else {
+                return;
+            }
+        }
+        if (shouldExecuteCargoCommandInTerminal) {
+            await this._terminalTaskManager.startTask(command, args, cwd);
+        } else {
             // The output channel should be shown only if the user wants that.
             // The only exception is checking invoked on saving the active document - in that case the output channel shouldn't be shown.
             const shouldShowOutputChannel: boolean =

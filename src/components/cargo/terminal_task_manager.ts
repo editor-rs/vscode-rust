@@ -2,7 +2,6 @@ import { join } from 'path';
 import { ExtensionContext, Terminal, window, workspace } from 'vscode';
 import { escapeSpaces, getCommandToSetEnvVar, parseShell } from '../../CommandLine';
 import { Configuration } from '../configuration/Configuration';
-import { CommandStartHandleResult, Helper } from './helper';
 
 export class TerminalTaskManager {
     private _configuration: Configuration;
@@ -19,18 +18,21 @@ export class TerminalTaskManager {
         );
     }
 
-    public async execute(command: string, args: string[], cwd: string): Promise<void> {
+    /**
+     * Returns whether some task is running
+     */
+    public hasRunningTask(): boolean {
+        return this._runningTerminal !== undefined;
+    }
+
+    public stopRunningTask(): void {
         if (this._runningTerminal) {
-            const helper = new Helper(this._configuration);
-            const result = await helper.handleCommandStartWhenThereIsRunningCommand();
-            switch (result) {
-                case CommandStartHandleResult.IgnoreNewCommand:
-                    return;
-                case CommandStartHandleResult.StopRunningCommand:
-                    this._runningTerminal.dispose();
-                    this._runningTerminal = undefined;
-            }
+            this._runningTerminal.dispose();
+            this._runningTerminal = undefined;
         }
+    }
+
+    public async startTask(command: string, args: string[], cwd: string): Promise<void> {
         const terminal = window.createTerminal('Cargo Task');
         this._runningTerminal = terminal;
         const shell = parseShell(workspace.getConfiguration('terminal')['integrated']['shell']['windows']);
