@@ -1,4 +1,3 @@
-import { join } from 'path';
 import { DiagnosticCollection, languages, window } from 'vscode';
 import { Configuration } from '../configuration/Configuration';
 import { ChildLogger } from '../logging/child_logger';
@@ -37,21 +36,6 @@ export class OutputChannelTaskManager {
         parseOutput: boolean,
         shouldShowOutputChannnel: boolean
     ): Promise<void> {
-        const cargoCwd = this.configuration.getCargoCwd();
-        /**
-         * Prepends the manifest path to arguments
-         * if the command should be executed in a directory
-         * which differs from the directory containing Cargo.toml.
-         */
-        function prependArgsWithManifestPathIfRequired(): void {
-            if (!cargoCwd || cargoCwd === cwd) {
-                return;
-            }
-
-            const manifestPath = join(cwd, 'Cargo.toml');
-
-            args = ['--manifest-path', manifestPath].concat(args);
-        }
         function prependArgsWithMessageFormatIfRequired(): void {
             if (!parseOutput) {
                 return;
@@ -69,13 +53,8 @@ export class OutputChannelTaskManager {
             }
         }
         prependArgsWithMessageFormatIfRequired();
-        prependArgsWithManifestPathIfRequired();
         // Prepend arguments with a command.
         args = [command].concat(args);
-        // Change cwd if the user specified custom cwd.
-        if (cargoCwd !== undefined) {
-            cwd = cargoCwd;
-        }
         this.runningTask = new Task(
             this.configuration,
             this.logger.createChildLogger('Task: '),

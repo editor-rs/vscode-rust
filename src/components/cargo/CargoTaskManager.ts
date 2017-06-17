@@ -1,3 +1,4 @@
+import { join } from 'path';
 import { ExtensionContext, window } from 'vscode';
 import { Configuration } from '../configuration/Configuration';
 import { CurrentWorkingDirectoryManager }
@@ -114,9 +115,9 @@ export class CargoTaskManager {
     }
 
     private async runCargo(command: string, args: string[], force: boolean, reason: CommandInvocationReason): Promise<void> {
-        let cwd: string;
+        let workingDirectory: string;
         try {
-            cwd = await this._currentWorkingDirectoryManager.cwd();
+            workingDirectory = await this._currentWorkingDirectoryManager.cwd();
         } catch (error) {
             window.showErrorMessage(error.message);
             return;
@@ -126,7 +127,17 @@ export class CargoTaskManager {
         if (!canStartTask) {
             return;
         }
-        this.startTask(command, args, cwd, reason, shouldExecuteCargoCommandInTerminal);
+        ({ args, workingDirectory } = this.processPossibleUserRequestToChangeWorkingDirectory(
+            args,
+            workingDirectory
+        ));
+        this.startTask(
+            command,
+            args,
+            workingDirectory,
+            reason,
+            shouldExecuteCargoCommandInTerminal
+        );
     }
 
     /**
@@ -192,5 +203,27 @@ export class CargoTaskManager {
                 !(command === 'check' && reason === CommandInvocationReason.ActionOnSave);
             await this._outputChannelTaskManager.startTask(command, args, cwd, true, shouldShowOutputChannel);
         }
+    }
+
+    /**
+     * The user can specify some directory which Cargo commands should be run in. In this case,
+     * Cargo should be known whether the correct manifest is located. The function checks whether
+     * the user specify some directory and if it is, then adds the manifest path to the arguments
+     * and replaces the working directory
+     * @param args The arguments to change
+     * @param workingDirectory The current working directory
+     * @return The new arguments and new working directory
+     */
+    private processPossibleUserRequestToChangeWorkingDirectory(
+        args: string[],
+        workingDirectory: string
+    ): { args: string[], workingDirectory: string } {
+        const userWorkingDirectory = this._configuration.getCargoCwd();
+        if (userWorkingDirectory !== undefined && userWorkingDirectory !== workingDirectory) {
+            const manifestPath = join(workingDirectory, 'Cargo.toml');
+            args = ['--manifest-path', manifestPath].concat(args);
+            workingDirectory = userWorkingDirectory;
+        }
+        return { args, workingDirectory };
     }
 }
