@@ -9,6 +9,7 @@ export type ExitCode = number;
 export class Task {
     private configuration: Configuration;
     private logger: ChildLogger;
+    private executable: string;
     private args: string[];
     private cwd: string;
     private onStarted?: () => void;
@@ -20,11 +21,13 @@ export class Task {
     public constructor(
         configuration: Configuration,
         logger: ChildLogger,
+        executable: string,
         args: string[],
         cwd: string
     ) {
         this.configuration = configuration;
         this.logger = logger;
+        this.executable = executable;
         this.args = args;
         this.cwd = cwd;
         this.onStarted = undefined;
@@ -48,19 +51,18 @@ export class Task {
 
     public execute(): Thenable<ExitCode> {
         return new Promise<ExitCode>((resolve, reject) => {
-            const cargoPath = this.configuration.getCargoPath();
             let env = Object.assign({}, process.env);
             const cargoEnv = this.configuration.getCargoEnv();
             if (cargoEnv) {
                 env = Object.assign(env, cargoEnv);
             }
-            this.logger.debug(`execute: cargoPath = "${cargoPath}"`);
+            this.logger.debug(`execute: this.executable = "${this.executable}"`);
             this.logger.debug(`execute: this.args = ${JSON.stringify(this.args)}`);
             this.logger.debug(`execute: cargoEnv = ${JSON.stringify(cargoEnv)}`);
             if (this.onStarted) {
                 this.onStarted();
             }
-            const spawnedProcess: ChildProcess = spawn_process(cargoPath, this.args, { cwd: this.cwd, env });
+            const spawnedProcess: ChildProcess = spawn_process(this.executable, this.args, { cwd: this.cwd, env });
             this.process = spawnedProcess;
             if (this.onLineReceivedInStdout !== undefined) {
                 const onLineReceivedInStdout = this.onLineReceivedInStdout;

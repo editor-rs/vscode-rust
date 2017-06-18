@@ -67,6 +67,18 @@ export class Configuration {
         }
     }
 
+    public static getPathConfigParameterOrDefault(
+        parameterName: string,
+        defaultValue: string
+    ): string {
+        const parameter = this.getPathConfigParameter(parameterName);
+        if (typeof parameter === 'string') {
+            return parameter;
+        } else {
+            return defaultValue;
+        }
+    }
+
     public static getPathEnvParameter(parameterName: string): string | undefined {
         const parameter = process.env[parameterName];
         if (parameter) {
@@ -182,64 +194,44 @@ export class Configuration {
 
     public shouldShowRunningCargoTaskOutputChannel(): boolean {
         const configuration = Configuration.getConfiguration();
-
         const shouldShowRunningCargoTaskOutputChannel = configuration['showOutput'];
-
         return shouldShowRunningCargoTaskOutputChannel;
     }
 
     public getCargoEnv(): any {
-        const configuration = Configuration.getConfiguration();
-
-        const cargoEnv = configuration['cargoEnv'];
-
-        return cargoEnv || {};
+        return Configuration.getConfiguration().get('cargoEnv');
     }
 
     public getCargoCwd(): string | undefined {
-        const cargoCwd = Configuration.getPathConfigParameter('cargoCwd');
-
-        return cargoCwd;
+        return Configuration.getPathConfigParameter('cargoCwd');
     }
 
     public getCargoPath(): string {
-        const rustsymPath = Configuration.getPathConfigParameter('cargoPath');
-
-        return rustsymPath || 'cargo';
+        return Configuration.getPathConfigParameterOrDefault('cargoPath', 'cargo');
     }
 
     public getCargoHomePath(): string | undefined {
         const configPath = Configuration.getPathConfigParameter('cargoHomePath');
-
         const envPath = Configuration.getPathEnvParameter('CARGO_HOME');
-
         return configPath || envPath || undefined;
     }
 
     public getRustfmtPath(): string {
-        const rustfmtPath = Configuration.getPathConfigParameter('rustfmtPath');
-
-        return rustfmtPath || 'rustfmt';
+        return Configuration.getPathConfigParameterOrDefault('rustfmtPath', 'rustfmt');
     }
 
     public getRustsymPath(): string {
-        const rustsymPath = Configuration.getPathConfigParameter('rustsymPath');
-
-        return rustsymPath || 'rustsym';
+        return Configuration.getPathConfigParameterOrDefault('rustsymPath', 'rustfmt');
     }
 
     public getActionOnStartingCommandIfThereIsRunningCommand(): ActionOnStartingCommandIfThereIsRunningCommand {
         const configuration = Configuration.getConfiguration();
-
         const action = configuration['actionOnStartingCommandIfThereIsRunningCommand'];
-
         switch (action) {
             case 'Stop running command':
                 return ActionOnStartingCommandIfThereIsRunningCommand.StopRunningCommand;
-
             case 'Show dialog to let me decide':
                 return ActionOnStartingCommandIfThereIsRunningCommand.ShowDialogToLetUserDecide;
-
             default:
                 return ActionOnStartingCommandIfThereIsRunningCommand.IgnoreNewCommand;
         }
