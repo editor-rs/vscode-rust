@@ -14,6 +14,7 @@ import { Manager as LanguageClientManager } from './components/language_client/m
 import { LoggingManager } from './components/logging/logging_manager';
 import { ChildLogger } from './components/logging/child_logger';
 import { RootLogger } from './components/logging/root_logger';
+import { CargoInvocationManager } from './CargoInvocationManager';
 import { LegacyModeManager } from './legacy_mode_manager';
 import * as OutputChannelProcess from './OutputChannelProcess';
 import { Toolchain } from './Toolchain';
@@ -85,6 +86,7 @@ class RlsMode {
     private _configuration: Configuration;
     private _rlsConfiguration: RlsConfiguration;
     private _rustup: Rustup | undefined;
+    private _cargoInvocationManager: CargoInvocationManager;
     private _logger: ChildLogger;
     private _extensionContext: ExtensionContext;
 
@@ -92,12 +94,14 @@ class RlsMode {
         configuration: Configuration,
         rlsConfiguration: RlsConfiguration,
         rustup: Rustup | undefined,
+        cargoInvocationManager: CargoInvocationManager,
         logger: ChildLogger,
         extensionContext: ExtensionContext
     ) {
         this._configuration = configuration;
         this._rlsConfiguration = rlsConfiguration;
         this._rustup = rustup;
+        this._cargoInvocationManager = cargoInvocationManager;
         this._logger = logger;
         this._extensionContext = extensionContext;
     }
@@ -240,9 +244,10 @@ class RlsMode {
         switch (choice) {
             case installRustfmtChoice:
                 logger.debug('User decided to install rustfmt');
+                const { executable, args } = this._cargoInvocationManager.getExecutableAndArgs();
                 const result = await OutputChannelProcess.create(
-                    this._configuration.getCargoPath(),
-                    ['install', 'rustfmt'],
+                    executable,
+                    [...args, 'install', 'rustfmt'],
                     undefined,
                     'Installing rustfmt'
                 );
@@ -399,6 +404,7 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
     }
     const rustSource = await RustSource.create(rustup);
     const configuration = new Configuration(logger.createChildLogger('Configuration: '));
+    const cargoInvocationManager = new CargoInvocationManager(configuration, rustup);
     const rlsConfiguration = await RlsConfiguration.create(rustup, rustSource);
     if (configuration.mode() === undefined) {
         // The current configuration does not contain any specified mode and hence we should try to
@@ -419,6 +425,7 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
     const cargoManager = new CargoManager(
         ctx,
         configuration,
+        cargoInvocationManager,
         currentWorkingDirectoryManager,
         logger.createChildLogger('Cargo Manager: ')
     );
@@ -428,6 +435,7 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
             configuration,
             rlsConfiguration,
             rustup,
+            cargoInvocationManager,
             logger.createChildLogger('RlsMode: '),
             ctx
         );

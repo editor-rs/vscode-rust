@@ -31,8 +31,14 @@ export class TerminalTaskManager {
         }
     }
 
-    public async startTask(executable: string, command: string, args: string[], cwd: string): Promise<void> {
-        args = [command].concat(args);
+    public async startTask(
+        executable: string,
+        preCommandArgs: string[],
+        command: string,
+        args: string[],
+        cwd: string
+    ): Promise<void> {
+        args = preCommandArgs.concat(command, ...args);
         const terminal = window.createTerminal('Cargo Task');
         this._runningTerminal = terminal;
         const shell = parseShell(workspace.getConfiguration('terminal')['integrated']['shell']['windows']);

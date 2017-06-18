@@ -31,6 +31,7 @@ export class OutputChannelTaskManager {
 
     public async startTask(
         executable: string,
+        preCommandArgs: string[],
         command: string,
         args: string[],
         cwd: string,
@@ -54,7 +55,7 @@ export class OutputChannelTaskManager {
             }
         }
         prependArgsWithMessageFormatIfRequired();
-        args = [command].concat(args);
+        args = preCommandArgs.concat(command, ...args);
         this.runningTask = new Task(
             this.configuration,
             this.logger.createChildLogger('Task: '),
@@ -65,7 +66,7 @@ export class OutputChannelTaskManager {
         this.runningTask.setStarted(() => {
             this.channel.clear();
             this.channel.append(`Working directory: ${cwd}\n`);
-            this.channel.append(`Started cargo ${args.join(' ')}\n\n`);
+            this.channel.append(`Started ${executable} ${args.join(' ')}\n\n`);
             this.diagnostics.clear();
         });
         this.runningTask.setLineReceivedInStdout(line => {
