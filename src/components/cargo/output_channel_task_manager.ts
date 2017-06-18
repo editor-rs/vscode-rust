@@ -30,6 +30,7 @@ export class OutputChannelTaskManager {
     }
 
     public async startTask(
+        executable: string,
         command: string,
         args: string[],
         cwd: string,
@@ -53,11 +54,11 @@ export class OutputChannelTaskManager {
             }
         }
         prependArgsWithMessageFormatIfRequired();
-        // Prepend arguments with a command.
         args = [command].concat(args);
         this.runningTask = new Task(
             this.configuration,
             this.logger.createChildLogger('Task: '),
+            executable,
             args,
             cwd
         );

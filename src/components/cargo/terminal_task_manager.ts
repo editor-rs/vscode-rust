@@ -31,7 +31,8 @@ export class TerminalTaskManager {
         }
     }
 
-    public async startTask(command: string, args: string[], cwd: string): Promise<void> {
+    public async startTask(executable: string, command: string, args: string[], cwd: string): Promise<void> {
+        args = [command].concat(args);
         const terminal = window.createTerminal('Cargo Task');
         this._runningTerminal = terminal;
         const shell = parseShell(workspace.getConfiguration('terminal')['integrated']['shell']['windows']);
@@ -49,12 +50,10 @@ export class TerminalTaskManager {
         cwd = escapeSpaces(cwd, shell);
         // Change the current directory to a specified directory
         this._runningTerminal.sendText(`cd ${cwd}`);
-        let cargoPath = this._configuration.getCargoPath();
-        cargoPath = escapeSpaces(cargoPath, shell);
+        executable = escapeSpaces(executable, shell);
         args = args.map((arg) => escapeSpaces(arg, shell));
-        command = escapeSpaces(command, shell);
         // Start a requested command
-        this._runningTerminal.sendText(`${cargoPath} ${command} ${args.join(' ')}`);
+        this._runningTerminal.sendText(`${executable} ${args.join(' ')}`);
         this._runningTerminal.show(true);
     }
 }

@@ -36,7 +36,7 @@ export class CargoTaskManager {
         this._terminalTaskManager = new TerminalTaskManager(context, configuration);
     }
 
-    public async invokeCargoInit(crateType: CrateType, name: string, cwd: string): Promise<void> {
+    public async invokeCargoInit(crateType: CrateType, name: string, workingDirectory: string): Promise<void> {
         const args = ['--name', name];
         switch (crateType) {
             case CrateType.Application:
@@ -48,7 +48,16 @@ export class CargoTaskManager {
             default:
                 throw new Error(`Unhandled crate type=${crateType}`);
         }
-        this._outputChannelTaskManager.startTask('init', args, cwd, false, true);
+        await this.processRequestToStartTask(
+            'init',
+            args,
+            workingDirectory,
+            true,
+            CommandInvocationReason.CommandExecution,
+            false,
+            false,
+            false
+        );
     }
 
     public invokeCargoBuildWithArgs(args: string[], reason: CommandInvocationReason): void {
@@ -83,9 +92,18 @@ export class CargoTaskManager {
         this.invokeCargoDocWithArgs(UserDefinedArgs.getDocArgs(), reason);
     }
 
-    public async invokeCargoNew(projectName: string, isBin: boolean, cwd: string): Promise<void> {
+    public async invokeCargoNew(projectName: string, isBin: boolean, workingDirectory: string): Promise<void> {
         const args = [projectName, isBin ? '--bin' : '--lib'];
-        await this._outputChannelTaskManager.startTask('new', args, cwd, false, true);
+        await this.processRequestToStartTask(
+            'new',
+            args,
+            workingDirectory,
+            true,
+            CommandInvocationReason.CommandExecution,
+            false,
+            false,
+            false
+        );
     }
 
     public invokeCargoRunWithArgs(args: string[], reason: CommandInvocationReason): void {
@@ -114,7 +132,47 @@ export class CargoTaskManager {
         }
     }
 
-    private async runCargo(command: string, args: string[], force: boolean, reason: CommandInvocationReason): Promise<void> {
+    private async processRequestToStartTask(
+        command: string,
+        args: string[],
+        workingDirectory: string,
+        isStoppingRunningTaskAllowed: boolean,
+        reason: CommandInvocationReason,
+        shouldStartTaskInTerminal: boolean,
+        shouldUseUserWorkingDirectory: boolean,
+        shouldParseOutput: boolean
+    ): Promise<void> {
+        const canStartTask = this.processPossiblyRunningTask(
+            isStoppingRunningTaskAllowed,
+            shouldStartTaskInTerminal
+        );
+        if (!canStartTask) {
+            return;
+        }
+        if (shouldUseUserWorkingDirectory) {
+            ({ args, workingDirectory } = this.processPossibleUserRequestToChangeWorkingDirectory(
+                args,
+                workingDirectory
+            ));
+        }
+        const cargoPath = this._configuration.getCargoPath();
+        this.startTask(
+            cargoPath,
+            command,
+            args,
+            workingDirectory,
+            reason,
+            shouldStartTaskInTerminal,
+            shouldParseOutput
+        );
+    }
+
+    private async runCargo(
+        command: string,
+        args: string[],
+        force: boolean,
+        reason: CommandInvocationReason
+    ): Promise<void> {
         let workingDirectory: string;
         try {
             workingDirectory = await this._currentWorkingDirectoryManager.cwd();
@@ -123,20 +181,15 @@ export class CargoTaskManager {
             return;
         }
         const shouldExecuteCargoCommandInTerminal = this._configuration.shouldExecuteCargoCommandInTerminal();
-        const canStartTask = this.processPossiblyRunningTask(force, shouldExecuteCargoCommandInTerminal);
-        if (!canStartTask) {
-            return;
-        }
-        ({ args, workingDirectory } = this.processPossibleUserRequestToChangeWorkingDirectory(
-            args,
-            workingDirectory
-        ));
-        this.startTask(
+        this.processRequestToStartTask(
             command,
             args,
             workingDirectory,
+            force,
             reason,
-            shouldExecuteCargoCommandInTerminal
+            shouldExecuteCargoCommandInTerminal,
+            true,
+            true
         );
     }
 
@@ -187,21 +240,30 @@ export class CargoTaskManager {
     }
 
     private async startTask(
+        executable: string,
         command: string,
         args: string[],
         cwd: string,
         reason: CommandInvocationReason,
-        shouldExecuteCargoCommandInTerminal: boolean
+        shouldExecuteCargoCommandInTerminal: boolean,
+        shouldParseOutput: boolean
     ): Promise<void> {
         if (shouldExecuteCargoCommandInTerminal) {
-            await this._terminalTaskManager.startTask(command, args, cwd);
+            await this._terminalTaskManager.startTask(executable, command, args, cwd);
         } else {
             // The output channel should be shown only if the user wants that.
             // The only exception is checking invoked on saving the active document - in that case the output channel shouldn't be shown.
             const shouldShowOutputChannel: boolean =
                 this._configuration.shouldShowRunningCargoTaskOutputChannel() &&
                 !(command === 'check' && reason === CommandInvocationReason.ActionOnSave);
-            await this._outputChannelTaskManager.startTask(command, args, cwd, true, shouldShowOutputChannel);
+            await this._outputChannelTaskManager.startTask(
+                executable,
+                command,
+                args,
+                cwd,
+                shouldParseOutput,
+                shouldShowOutputChannel
+            );
         }
     }
 
