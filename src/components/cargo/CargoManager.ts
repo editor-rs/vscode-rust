@@ -232,7 +232,7 @@ export class CargoManager {
                         .then(() => {
                             const uri = Uri.parse(path);
 
-                            commands.executeCommand('openFolder', uri, true);
+                            commands.executeCommand('vscode.openFolder', uri, true);
                         });
                 });
             });
