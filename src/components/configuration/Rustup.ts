@@ -36,7 +36,7 @@ export class Rustup {
     /**
      * Components received by invoking rustup
      */
-    private components: { [toolchain: string]: string[] };
+    private components: { [toolchain: string]: string[] | undefined };
 
     /**
      * Toolchains received by invoking rustup
@@ -321,6 +321,10 @@ export class Rustup {
             return false;
         }
         const components = this.components[nightlyToolchain.toString(true, false)];
+        if (!components) {
+            logger.error('no components');
+            return false;
+        }
         const rlsComponent = components.find(component => component.startsWith(Rustup.getRlsComponentName()));
         if (!rlsComponent) {
             return false;
@@ -373,6 +377,10 @@ export class Rustup {
             return false;
         }
         const components = this.components[nightlyToolchain.toString(true, false)];
+        if (!components) {
+            logger.error('no components');
+            return false;
+        }
         const component: string | undefined = components.find(c => c.startsWith(Rustup.getRustAnalysisComponentName()));
         if (!component) {
             return false;
@@ -517,6 +525,9 @@ export class Rustup {
     private getInstalledComponents(toolchain: Toolchain): string[] {
         const toolchainAsString = toolchain.toString(true, false);
         const components = this.components[toolchainAsString];
+        if (!components) {
+            return [];
+        }
         const installedComponents = components.filter(component => {
             return component.endsWith(Rustup.getSuffixForInstalledComponent());
         });
