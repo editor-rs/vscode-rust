@@ -373,8 +373,13 @@ export class CompletionManager {
         });
     }
 
-    private completionProvider(document: TextDocument, position: Position): Thenable<CompletionItem[]> {
+    private completionProvider(document: TextDocument, position: Position): Thenable<CompletionItem[]> | undefined {
         const commandArgs = [position.line + 1, position.character, document.fileName, this.tmpFile];
+        const range = new Range(position.line, 0, position.line, position.character);
+        const text = document.getText(range).trim();
+        if (text.startsWith('//')) {
+            return undefined;
+        }
         return this.runCommand(document, 'complete-with-snippet', commandArgs).then(lines => {
             lines.shift();
             // Split on MATCH, as a definition can span more than one line
