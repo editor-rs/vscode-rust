@@ -1,5 +1,6 @@
 import { join } from 'path';
 import { ExtensionContext, window } from 'vscode';
+import { CargoInvocationManager } from '../../CargoInvocationManager';
 import { Configuration } from '../configuration/Configuration';
 import { CurrentWorkingDirectoryManager }
     from '../configuration/current_working_directory_manager';
@@ -13,6 +14,7 @@ import { UserDefinedArgs } from './UserDefinedArgs';
 
 export class CargoTaskManager {
     private _configuration: Configuration;
+    private _cargoInvocationManager: CargoInvocationManager;
     private _currentWorkingDirectoryManager: CurrentWorkingDirectoryManager;
     private _logger: ChildLogger;
     private _outputChannelTaskManager: OutputChannelTaskManager;
@@ -21,11 +23,13 @@ export class CargoTaskManager {
     public constructor(
         context: ExtensionContext,
         configuration: Configuration,
+        cargoInvocationManager: CargoInvocationManager,
         currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
         logger: ChildLogger,
         stopCommandName: string
     ) {
         this._configuration = configuration;
+        this._cargoInvocationManager = cargoInvocationManager;
         this._currentWorkingDirectoryManager = currentWorkingDirectoryManager;
         this._logger = logger;
         this._outputChannelTaskManager = new OutputChannelTaskManager(
@@ -155,9 +159,10 @@ export class CargoTaskManager {
                 workingDirectory
             ));
         }
-        const cargoPath = this._configuration.getCargoPath();
+        const { executable, args: preCommandArgs } = this._cargoInvocationManager.getExecutableAndArgs();
         this.startTask(
-            cargoPath,
+            executable,
+            preCommandArgs,
             command,
             args,
             workingDirectory,
@@ -241,6 +246,7 @@ export class CargoTaskManager {
 
     private async startTask(
         executable: string,
+        preCommandArgs: string[],
         command: string,
         args: string[],
         cwd: string,
@@ -249,7 +255,13 @@ export class CargoTaskManager {
         shouldParseOutput: boolean
     ): Promise<void> {
         if (shouldExecuteCargoCommandInTerminal) {
-            await this._terminalTaskManager.startTask(executable, command, args, cwd);
+            await this._terminalTaskManager.startTask(
+                executable,
+                preCommandArgs,
+                command,
+                args,
+                cwd
+            );
         } else {
             // The output channel should be shown only if the user wants that.
             // The only exception is checking invoked on saving the active document - in that case the output channel shouldn't be shown.
@@ -258,6 +270,7 @@ export class CargoTaskManager {
                 !(command === 'check' && reason === CommandInvocationReason.ActionOnSave);
             await this._outputChannelTaskManager.startTask(
                 executable,
+                preCommandArgs,
                 command,
                 args,
                 cwd,

@@ -206,8 +206,8 @@ export class Configuration {
         return Configuration.getPathConfigParameter('cargoCwd');
     }
 
-    public getCargoPath(): string {
-        return Configuration.getPathConfigParameterOrDefault('cargoPath', 'cargo');
+    public getCargoPath(): string | undefined {
+        return Configuration.getPathConfigParameter('cargoPath');
     }
 
     public getCargoHomePath(): string | undefined {

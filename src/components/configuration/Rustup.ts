@@ -48,6 +48,14 @@ export class Rustup {
      */
     private _userToolchain: Toolchain | undefined;
 
+
+    /**
+     * Returns the executable of Rustup
+     */
+    public static getRustupExecutable(): string {
+        return 'rustup';
+    }
+
     /**
      * Creates a new instance of the class.
      * The method is asynchronous because it tries to find Rust's source code
@@ -371,13 +379,6 @@ export class Rustup {
         }
         const componentInstalled: boolean = component.endsWith(Rustup.getSuffixForInstalledComponent());
         return !componentInstalled;
-    }
-
-    /**
-     * Returns the executable of Rustup
-     */
-    private static getRustupExecutable(): string {
-        return 'rustup';
     }
 
     /**

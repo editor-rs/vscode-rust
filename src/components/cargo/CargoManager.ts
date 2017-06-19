@@ -1,5 +1,6 @@
 import * as tmp from 'tmp';
 import { Disposable, ExtensionContext, Uri, commands, window, workspace } from 'vscode';
+import { CargoInvocationManager } from '../../CargoInvocationManager';
 import { Configuration } from '../configuration/Configuration';
 import { CurrentWorkingDirectoryManager }
     from '../configuration/current_working_directory_manager';
@@ -17,6 +18,7 @@ export class CargoManager {
     public constructor(
         context: ExtensionContext,
         configuration: Configuration,
+        cargoInvocationManager: CargoInvocationManager,
         currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
         logger: ChildLogger
     ) {
@@ -24,6 +26,7 @@ export class CargoManager {
         this._cargoTaskManager = new CargoTaskManager(
             context,
             configuration,
+            cargoInvocationManager,
             currentWorkingDirectoryManager,
             logger.createChildLogger('CargoTaskManager: '),
             stopCommandName
