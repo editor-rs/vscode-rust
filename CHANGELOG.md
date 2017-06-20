@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.4.0
+
+### Breaking changes
+
+* `"rust.forceLegacyMode"` has been removed and `rust.mode` has been introduced as a replacement. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/251)
+
+### Bug fixes
+
+* The extension logs errors happened during racer initialization properly. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/258)
+
+* The extension can start racer even if the path to it contains spaces. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/233)
+
+* The extension can execute Cargo command in the terminal even if the arguments contain spaces. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/234)
+
+* The extension can create a playground even if `"rust.cargoCwd"` is specified. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/275)
+
+* The extension can create a playground on the latest version of vscode. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/275)
+
+### Features
+
+* The extension uses the nightly toolchain to work with RLS. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/246)
+
+* The extension asks to install the nightly toolchain and installs it. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/249)
+
+* The extension shows installing components via rustup in the output channel. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/250)
+
+* The extension asks to choose the mode in which the function will function. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/251)
+
+* The extension can use rustfmt when functioning in the RLS mode. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/257)
+
+* The extension asks to choose the toolchain which will be used for installing components, running Cargo commands. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/267)
+
+* The completion is not shown when the cursor in the comment. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/278)
+
+### Misc
+
+* The extension does not ask to update rustup before installing rls. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/244)
+
 ## 0.3.14
 
 ### Bug fixes
