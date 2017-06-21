@@ -44,7 +44,9 @@ export class RlsConfiguration {
      * Returns arguments for RLS
      */
     public getArgs(): string[] {
-        if (this._rustup && this._rustup.isRlsInstalled()) {
+        // When the user specifies some executable path, the user expects the extension not to add
+        // some arguments
+        if (this._executableUserPath === undefined && this._rustup && this._rustup.isRlsInstalled()) {
             return ['run', 'nightly', 'rls'].concat(this._userArgs);
         } else {
             return this._userArgs;
