@@ -206,10 +206,6 @@ export class Configuration {
         return Configuration.getPathConfigParameter('cargoCwd');
     }
 
-    public getCargoPath(): string | undefined {
-        return Configuration.getPathConfigParameter('cargoPath');
-    }
-
     public getCargoHomePath(): string | undefined {
         const configPath = Configuration.getPathConfigParameter('cargoHomePath');
         const envPath = Configuration.getPathEnvParameter('CARGO_HOME');

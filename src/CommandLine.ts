@@ -77,6 +77,18 @@ export function escapeSpaces(s: string, shell: Shell): string {
 }
 
 /**
+ * Prepares the specified arguments to be passed to the specified shell and constructs the command
+ * from the arguments
+ * @param shell The shell in which the command will be executed
+ * @param args The arguments to prepare and construct the command from
+ * @return The command which is constructed from the specified arguments
+ */
+export function getCommandForArgs(shell: Shell, args: string[]): string {
+    args = args.map(a => escapeSpaces(a, shell));
+    return args.join(' ');
+}
+
+/**
  * Creates a command to execute several statements one by one if the previous one is succeed
  * @param shell The shell which the command is going to be passed to
  * @param statements The statements to execute

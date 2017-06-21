@@ -1,28 +1,32 @@
 import { existsSync } from 'fs';
 import * as path from 'path';
 import { ExtensionContext, commands, window, workspace } from 'vscode';
-import { getCommandToExecuteStatementsOneByOneIfPreviousIsSucceed, parseShell }
+import { CargoInvocationManager } from '../../CargoInvocationManager';
+import { getCommandForArgs, getCommandToExecuteStatementsOneByOneIfPreviousIsSucceed, parseShell }
     from '../../CommandLine';
 import { Configuration } from '../configuration/Configuration';
 import { ChildLogger } from '../logging/child_logger';
 import { MissingToolsStatusBarItem } from './missing_tools_status_bar_item';
 
 export class Installator {
-    private configuration: Configuration;
-    private logger: ChildLogger;
-    private missingToolsStatusBarItem: MissingToolsStatusBarItem;
-    private missingTools: string[];
+    private _configuration: Configuration;
+    private _cargoInvocationManager: CargoInvocationManager;
+    private _logger: ChildLogger;
+    private _missingToolsStatusBarItem: MissingToolsStatusBarItem;
+    private _missingTools: string[];
 
     public constructor(
         context: ExtensionContext,
         configuration: Configuration,
+        cargoInvocationManager: CargoInvocationManager,
         logger: ChildLogger
     ) {
-        this.configuration = configuration;
-        this.logger = logger;
+        this._configuration = configuration;
+        this._cargoInvocationManager = cargoInvocationManager;
+        this._logger = logger;
         const installToolsCommandName = 'rust.install_missing_tools';
-        this.missingToolsStatusBarItem = new MissingToolsStatusBarItem(context, installToolsCommandName);
-        this.missingTools = [];
+        this._missingToolsStatusBarItem = new MissingToolsStatusBarItem(context, installToolsCommandName);
+        this._missingTools = [];
         commands.registerCommand(installToolsCommandName, () => {
             this.offerToInstallMissingTools();
         });
@@ -30,16 +34,16 @@ export class Installator {
 
     public addStatusBarItemIfSomeToolsAreMissing(): void {
         this.getMissingTools();
-        if (this.missingTools.length === 0) {
+        if (this._missingTools.length === 0) {
             return;
         }
-        this.missingToolsStatusBarItem.show();
+        this._missingToolsStatusBarItem.show();
     }
 
     private offerToInstallMissingTools(): void {
         // Plurality is important. :')
-        const group = this.missingTools.length > 1 ? 'them' : 'it';
-        const message = `You are missing ${this.missingTools.join(', ')}. Would you like to install ${group}?`;
+        const group = this._missingTools.length > 1 ? 'them' : 'it';
+        const message = `You are missing ${this._missingTools.join(', ')}. Would you like to install ${group}?`;
         const option = { title: 'Install' };
         window.showInformationMessage(message, option).then(selection => {
             if (selection !== option) {
@@ -52,23 +56,27 @@ export class Installator {
     private installMissingTools(): void {
         const terminal = window.createTerminal('Rust tools installation');
         // cargo install tool && cargo install another_tool
-        const cargoBinPath = this.configuration.getCargoPath();
+        const { executable: cargoExecutable, args: cargoArgs } = this._cargoInvocationManager.getExecutableAndArgs();
         const shell = parseShell(workspace.getConfiguration('terminal')['integrated']['shell']['windows']);
-        const statements = this.missingTools.map(tool => `${cargoBinPath} install ${tool}`);
+
+        const statements = this._missingTools.map(tool => {
+            const args = [cargoExecutable, ...cargoArgs, 'install', tool];
+            return getCommandForArgs(shell, args);
+        });
         const command = getCommandToExecuteStatementsOneByOneIfPreviousIsSucceed(shell, statements);
         terminal.sendText(command);
         terminal.show();
-        this.missingToolsStatusBarItem.hide();
+        this._missingToolsStatusBarItem.hide();
     }
 
     private getMissingTools(): void {
-        const logger = this.logger.createChildLogger('getMissingTools(): ');
+        const logger = this._logger.createChildLogger('getMissingTools(): ');
         const pathDirectories: string[] = (process.env.PATH || '').split(path.delimiter);
         logger.debug(`pathDirectories=${JSON.stringify(pathDirectories)}`);
         const tools: { [tool: string]: string | undefined } = {
-            'racer': this.configuration.getPathToRacer(),
-            'rustfmt': this.configuration.getRustfmtPath(),
-            'rustsym': this.configuration.getRustsymPath()
+            'racer': this._configuration.getPathToRacer(),
+            'rustfmt': this._configuration.getRustfmtPath(),
+            'rustsym': this._configuration.getRustsymPath()
         };
         logger.debug(`tools=${JSON.stringify(tools)}`);
         const keys = Object.keys(tools);
@@ -99,7 +107,7 @@ export class Installator {
             // The tool wasn't found, we should install it
             return tool;
         }).filter(tool => tool !== undefined);
-        this.missingTools = <string[]>missingTools;
-        logger.debug(`this.missingTools = ${JSON.stringify(this.missingTools)}`);
+        this._missingTools = <string[]>missingTools;
+        logger.debug(`this.missingTools = ${JSON.stringify(this._missingTools)}`);
     }
 }

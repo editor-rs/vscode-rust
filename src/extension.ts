@@ -408,7 +408,7 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
     }
     const rustSource = await RustSource.create(rustup);
     const configuration = new Configuration(logger.createChildLogger('Configuration: '));
-    const cargoInvocationManager = new CargoInvocationManager(configuration, rustup);
+    const cargoInvocationManager = new CargoInvocationManager(rustup);
     const rlsConfiguration = await RlsConfiguration.create(rustup, rustSource);
     if (configuration.mode() === undefined) {
         // The current configuration does not contain any specified mode and hence we should try to
@@ -455,6 +455,7 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
             await runInLegacyMode(
                 ctx,
                 configuration,
+                cargoInvocationManager,
                 rustSource,
                 rustup,
                 currentWorkingDirectoryManager,
@@ -469,6 +470,7 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
 async function runInLegacyMode(
     context: ExtensionContext,
     configuration: Configuration,
+    cargoInvocationManager: CargoInvocationManager,
     rustSource: RustSource,
     rustup: Rustup | undefined,
     currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
@@ -477,6 +479,7 @@ async function runInLegacyMode(
     const legacyModeManager = await LegacyModeManager.create(
         context,
         configuration,
+        cargoInvocationManager,
         rustSource,
         rustup,
         currentWorkingDirectoryManager,
