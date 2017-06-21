@@ -57,7 +57,7 @@ export class RlsConfiguration {
      * Returns environment to run RLS in
      */
     public getEnv(): object {
-        const env = Object.create(this._userEnv);
+        const env: any = Object.assign({}, this._userEnv);
         if (!env.RUST_SRC_PATH) {
             const rustSourcePath = this._rustSource.getPath();
             if (rustSourcePath) {
