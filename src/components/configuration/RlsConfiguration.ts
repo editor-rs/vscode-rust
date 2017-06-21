@@ -157,10 +157,8 @@ function getUserEnv(): object {
 
 function getUserRevealOutputChannelOn(): RevealOutputChannelOn {
     const configuration = getUserConfiguration();
-    if (!configuration) {
-        return RevealOutputChannelOn.Error;
-    }
-    switch (configuration.revealOutputChannelOn) {
+    const value = configuration ? configuration.revealOutputChannelOn : undefined;
+    switch (value) {
         case 'info':
             return RevealOutputChannelOn.Info;
         case 'warn':
@@ -168,6 +166,7 @@ function getUserRevealOutputChannelOn(): RevealOutputChannelOn {
         case 'error':
             return RevealOutputChannelOn.Error;
         case 'never':
+            return RevealOutputChannelOn.Never;
         default:
             return RevealOutputChannelOn.Error;
     }
