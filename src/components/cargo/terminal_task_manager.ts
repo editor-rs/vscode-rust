@@ -1,5 +1,6 @@
 import { ExtensionContext, Terminal, window, workspace } from 'vscode';
-import { escapeSpaces, getCommandToSetEnvVar, parseShell } from '../../CommandLine';
+import { getCommandForArgs, getCommandToSetEnvVar, parseShell }
+    from '../../CommandLine';
 import { Configuration } from '../configuration/Configuration';
 
 export class TerminalTaskManager {
@@ -53,13 +54,10 @@ export class TerminalTaskManager {
             }
         };
         setEnvironmentVariables();
-        cwd = escapeSpaces(cwd, shell);
         // Change the current directory to a specified directory
-        this._runningTerminal.sendText(`cd ${cwd}`);
-        executable = escapeSpaces(executable, shell);
-        args = args.map((arg) => escapeSpaces(arg, shell));
+        this._runningTerminal.sendText(getCommandForArgs(shell, ['cd', cwd]));
         // Start a requested command
-        this._runningTerminal.sendText(`${executable} ${args.join(' ')}`);
+        this._runningTerminal.sendText(getCommandForArgs(shell, [executable, ...args]));
         this._runningTerminal.show(true);
     }
 }
