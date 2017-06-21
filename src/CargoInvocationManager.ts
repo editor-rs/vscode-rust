@@ -5,11 +5,9 @@ import { Rustup } from './components/configuration/Rustup';
  * The class defines functions which can be used to get data required to invoke Cargo
  */
 export class CargoInvocationManager {
-    private _configuration: Configuration;
     private _rustup: Rustup | undefined;
 
-    public constructor(configuration: Configuration, rustup: Rustup | undefined) {
-        this._configuration = configuration;
+    public constructor(rustup: Rustup | undefined) {
         this._rustup = rustup;
     }
 
@@ -20,7 +18,7 @@ export class CargoInvocationManager {
      * understand that Cargo is requested. An example is running Cargo using rustup.
      */
     public getExecutableAndArgs(): { executable: string, args: string[] } {
-        const userCargoPath = this._configuration.getCargoPath();
+        const userCargoPath = Configuration.getPathConfigParameter('cargoPath');
         if (userCargoPath) {
             return { executable: userCargoPath, args: [] };
         }

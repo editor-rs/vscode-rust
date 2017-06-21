@@ -13,6 +13,7 @@ import { WorkspaceSymbolProvisionManager }
     from './components/symbol_provision/workspace_symbol_provision_manager';
 import { Installator as MissingToolsInstallator }
     from './components/tools_installation/installator';
+import { CargoInvocationManager } from './CargoInvocationManager';
 
 export class LegacyModeManager {
     private context: ExtensionContext;
@@ -26,6 +27,7 @@ export class LegacyModeManager {
     public static async create(
         context: ExtensionContext,
         configuration: Configuration,
+        cargoInvocationManager: CargoInvocationManager,
         rustSource: RustSource,
         rustup: Rustup | undefined,
         currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
@@ -35,6 +37,7 @@ export class LegacyModeManager {
         return new LegacyModeManager(
             context,
             configuration,
+            cargoInvocationManager,
             rustSource,
             rustup,
             currentWorkingDirectoryManager,
@@ -53,6 +56,7 @@ export class LegacyModeManager {
     private constructor(
         context: ExtensionContext,
         configuration: Configuration,
+        cargoInvocationManager: CargoInvocationManager,
         rustSource: RustSource,
         rustup: Rustup | undefined,
         currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
@@ -78,6 +82,7 @@ export class LegacyModeManager {
         this.missingToolsInstallator = new MissingToolsInstallator(
             context,
             configuration,
+            cargoInvocationManager,
             logger.createChildLogger('MissingToolsInstallator: ')
         );
     }
