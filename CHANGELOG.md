@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.2
+
+### Features
+
+* The extension allows developers to specify which nightly toolchain to use. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/299)
+
 ## 0.4.1
 
 ### Bug fixes
