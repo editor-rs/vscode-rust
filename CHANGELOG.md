@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.1
+
+### Bug fixes
+
+* The extension uses `"rust.rls.env"`. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/291)
+
+* The extension considers if the user specifies `"rust.rls.executable"` when determining arguments passed to RLS. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/291)
+
+* The extension correctly processes `"never"` in `"rust.rls.revealOutputChannelOn"`. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/292)
+
+* The extension can install missing tools. [The Pull Request](https://github.com/editor-rs/vscode-rust/pull/293)
+
 ## 0.4.0
 
 ### Breaking changes
