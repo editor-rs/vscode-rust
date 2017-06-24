@@ -28,6 +28,13 @@ export class RlsConfiguration {
     }
 
     /**
+     * Returns if there is some executable path specified by the user
+     */
+    public isExecutableUserPathSet(): boolean {
+        return this._executableUserPath !== undefined;
+    }
+
+    /**
      * Returns a path to RLS executable
      */
     public getExecutablePath(): string | undefined {
@@ -47,7 +54,12 @@ export class RlsConfiguration {
         // When the user specifies some executable path, the user expects the extension not to add
         // some arguments
         if (this._executableUserPath === undefined && this._rustup && this._rustup.isRlsInstalled()) {
-            return ['run', 'nightly', 'rls'].concat(this._userArgs);
+            const userToolchain = this._rustup.getUserNightlyToolchain();
+            if (!userToolchain) {
+                // It is actually impossible because `isRlsInstalled` uses `getUserNightlyToolchain`
+                return this._userArgs;
+            }
+            return ['run', userToolchain.toString(true, false), 'rls'].concat(this._userArgs);
         } else {
             return this._userArgs;
         }

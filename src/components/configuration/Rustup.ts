@@ -28,12 +28,6 @@ export class Rustup {
     private pathToRustSourceCode: string | undefined;
 
     /**
-     * A path to the executable of RLS.
-     * It can be undefined if the component "rls" is not installed
-     */
-    private pathToRlsExecutable: string | undefined;
-
-    /**
      * Components received by invoking rustup
      */
     private components: { [toolchain: string]: string[] | undefined };
@@ -48,6 +42,10 @@ export class Rustup {
      */
     private _userToolchain: Toolchain | undefined;
 
+    /**
+     * The nightly toolchain chosen by the user
+     */
+    private _userNightlyToolchain: Toolchain | undefined;
 
     /**
      * Returns the executable of Rustup
@@ -71,26 +69,6 @@ export class Rustup {
     }
 
     /**
-     * Return either the only nightly toolchain or undefined if there is no nightly toolchain or
-     * there are several nightly toolchains
-     */
-    public getNightlyToolchain(logger: ChildLogger): Toolchain | undefined {
-        const functionLogger = logger.createChildLogger('getNightlyToolchain: ');
-        const nightlyToolchains = this.getNightlyToolchains();
-        switch (nightlyToolchains.length) {
-            case 0:
-                functionLogger.error('There is no nightly toolchain');
-                return undefined;
-            case 1:
-                functionLogger.debug('There is only one nightly toolchain');
-                return nightlyToolchains[0];
-            default:
-                functionLogger.debug(`There are ${nightlyToolchains.length} nightly toolchains`);
-                return undefined;
-        }
-    }
-
-    /**
      * Returns either the default toolchain or undefined if there are no installed toolchains
      */
     public getDefaultToolchain(): Toolchain | undefined {
@@ -109,6 +87,10 @@ export class Rustup {
         return this.toolchains;
     }
 
+    public getNightlyToolchains(): Toolchain[] {
+        return this.toolchains.filter(t => t.channel === 'nightly');
+    }
+
     /**
      * Checks if the toolchain is installed
      * @param toolchain The toolchain to check
@@ -125,10 +107,24 @@ export class Rustup {
     }
 
     /**
-     * Returns either the path to the executable of RLS or undefined
+     * Returns either the nightly toolchain chosen by the user or undefined
      */
-    public getPathToRlsExecutable(): string | undefined {
-        return this.pathToRlsExecutable;
+    public getUserNightlyToolchain(): Toolchain | undefined {
+        return this._userNightlyToolchain;
+    }
+
+    /**
+     * Sets the new value of the nightly toolchain in the object and in the configuration
+     * @param toolchain The new value
+     */
+    public setUserNightlyToolchain(toolchain: Toolchain | undefined): void {
+        if (this._userNightlyToolchain === toolchain) {
+            return;
+        }
+        this._userNightlyToolchain = toolchain;
+        updateUserConfigurationParameter(c => {
+            c.nightlyToolchain = toolchain ? toolchain.toString(true, false) : null;
+        });
     }
 
     /**
@@ -143,7 +139,9 @@ export class Rustup {
             return;
         }
         this._userToolchain = toolchain;
-        updateUserConfigurationParameter(c => c.toolchain = toolchain ? toolchain.toString(true, false) : null);
+        updateUserConfigurationParameter(c => {
+            c.toolchain = toolchain ? toolchain.toString(true, false) : null;
+        });
     }
 
     /**
@@ -188,7 +186,7 @@ export class Rustup {
      */
     public async installRls(): Promise<boolean> {
         const logger = this.logger.createChildLogger('installRls: ');
-        const nightlyToolchain = this.getNightlyToolchain(logger);
+        const nightlyToolchain = this.getUserNightlyToolchain();
         if (!nightlyToolchain) {
             logger.error('no nightly toolchain');
             return false;
@@ -197,17 +195,7 @@ export class Rustup {
             nightlyToolchain,
             Rustup.getRlsComponentName()
         );
-        if (!isComponentInstalled) {
-            return false;
-        }
-        // We need to update the field
-        await this.updatePathToRlsExecutable();
-        if (!this.pathToRlsExecutable) {
-            logger.error('RLS had been installed successfully, but we failed to find it in PATH. This should have not happened');
-
-            return false;
-        }
-        return true;
+        return isComponentInstalled;
     }
 
     /**
@@ -216,7 +204,7 @@ export class Rustup {
      */
     public async installRustAnalysis(): Promise<boolean> {
         const logger = this.logger.createChildLogger('installRustAnalysis: ');
-        const nightlyToolchain = this.getNightlyToolchain(logger);
+        const nightlyToolchain = this.getUserNightlyToolchain();
         if (!nightlyToolchain) {
             logger.error('no nightly toolchain');
             return false;
@@ -292,30 +280,12 @@ export class Rustup {
     }
 
     /**
-     * Checks if the executable of RLS is installed.
-     * This method assigns either a path to the executable or undefined to the field `pathToRlsExecutable`, depending on if the executable is found
-     * This method is asynchronous because it checks if the executable exists
-     */
-    public async updatePathToRlsExecutable(): Promise<void> {
-        const logger = this.logger.createChildLogger('updatePathToRlsExecutable: ');
-        this.pathToRlsExecutable = undefined;
-        const rlsPath: string | undefined = await FileSystem.findExecutablePath('rls');
-        logger.debug(`rlsPath=${rlsPath}`);
-        if (!rlsPath) {
-            // RLS is installed via Rustup, but isn't found. Let a user know about it
-            logger.error(`Rustup had reported that RLS had been installed, but RLS wasn't found in PATH=${process.env.PATH}`);
-            return;
-        }
-        this.pathToRlsExecutable = rlsPath;
-    }
-
-    /**
      * Requests Rustup give a list of components, parses it, checks if RLS is present in the list and returns if it is
      * @returns true if RLS can be installed otherwise false
      */
     public canInstallRls(): boolean {
         const logger = this.logger.createChildLogger('canInstallRls: ');
-        const nightlyToolchain = this.getNightlyToolchain(logger);
+        const nightlyToolchain = this.getUserNightlyToolchain();
         if (!nightlyToolchain) {
             logger.error('no nightly toolchain');
             return false;
@@ -343,7 +313,7 @@ export class Rustup {
      */
     public isRlsInstalled(): boolean {
         const logger = this.logger.createChildLogger('isRlsInstalled: ');
-        const nightlyToolchain = this.getNightlyToolchain(logger);
+        const nightlyToolchain = this.getUserNightlyToolchain();
         if (!nightlyToolchain) {
             logger.error('no nightly toolchain');
             return false;
@@ -357,7 +327,7 @@ export class Rustup {
      */
     public isRustAnalysisInstalled(): boolean {
         const logger = this.logger.createChildLogger('isRustAnalysisInstalled: ');
-        const nightlyToolchain = this.getNightlyToolchain(logger);
+        const nightlyToolchain = this.getUserNightlyToolchain();
         if (!nightlyToolchain) {
             logger.error('no nightly toolchain');
             return false;
@@ -371,7 +341,7 @@ export class Rustup {
      */
     public canInstallRustAnalysis(): boolean {
         const logger = this.logger.createChildLogger('canInstallRustAnalysis: ');
-        const nightlyToolchain = this.getNightlyToolchain(logger);
+        const nightlyToolchain = this.getUserNightlyToolchain();
         if (!nightlyToolchain) {
             logger.error('no nightly toolchain');
             return false;
@@ -502,20 +472,15 @@ export class Rustup {
      * @param logger A value for the field `logger`
      * @param pathToRustcSysRoot A value for the field `pathToRustcSysRoot`
      * @param pathToRustSourceCode A value for the field `pathToRustSourceCode`
-     * @param pathToRlsExecutable A value fo the field `pathToRlsExecutable`
      */
     private constructor(logger: ChildLogger) {
         this.logger = logger;
         this.pathToRustcSysRoot = undefined;
         this.pathToRustSourceCode = undefined;
-        this.pathToRlsExecutable = undefined;
         this.components = {};
         this.toolchains = [];
         this._userToolchain = getUserToolchain();
-    }
-
-    private getNightlyToolchains(): Toolchain[] {
-        return this.toolchains.filter(t => t.channel === 'nightly');
+        this._userNightlyToolchain = getUserNightlyToolchain();
     }
 
     /**
@@ -580,12 +545,12 @@ function getUserConfiguration(): any {
     return rustupConfiguration;
 }
 
-function getUserToolchain(): Toolchain | undefined {
+function getToolchainFromConfigurationParameter(parameter: string): Toolchain | undefined {
     const rustupConfiguration = getUserConfiguration();
     if (!rustupConfiguration) {
         return undefined;
     }
-    const toolchainAsString = rustupConfiguration.toolchain;
+    const toolchainAsString = rustupConfiguration[parameter];
     if (!toolchainAsString) {
         return undefined;
     }
@@ -595,6 +560,14 @@ function getUserToolchain(): Toolchain | undefined {
     } else {
         return undefined;
     }
+}
+
+function getUserNightlyToolchain(): Toolchain | undefined {
+    return getToolchainFromConfigurationParameter('nightlyToolchain');
+}
+
+function getUserToolchain(): Toolchain | undefined {
+    return getToolchainFromConfigurationParameter('toolchain');
 }
 
 function updateUserConfigurationParameter(updateParameter: (c: any) => void): void {

@@ -477,6 +477,14 @@
                 "string",
                 "null"
               ]
+            },
+            "nightlyToolchain": {
+              "default": null,
+              "description": "The nightly toolchain to use for installing RLS and related components and running RLS",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         },
