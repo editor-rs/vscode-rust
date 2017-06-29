@@ -416,6 +416,16 @@
         ],
         "description": "impl … { … }"
     },
+    "inlinefn": {
+        "prefix": "inlinefn",
+        "body": [
+            "#[inline]",
+            "fn ${1:name}() {",
+            "    ${2:unimplemented!();}",
+            "}"
+        ],
+        "description": "inlined rust function"
+    },    
     "let": {
         "prefix": "let",
         "body": [
