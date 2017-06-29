@@ -168,7 +168,8 @@ export class FormattingManager implements DocumentFormattingEditProvider, Docume
     private parseDiffNewFormat(fileToProcess: Uri, diff: string): RustFmtDiff[] {
         const patches: RustFmtDiff[] = [];
         let currentPatch: RustFmtDiff | undefined = undefined;
-        let currentFile: Uri | undefined = undefined;
+        let currentFilePath: string | undefined = undefined;
+        const fileToProcessPath = Uri.file(fileToProcess.path + '.fmt').fsPath;
 
         for (const line of diff.split(/\n/)) {
             if (line.startsWith('Diff in')) {
@@ -188,7 +189,9 @@ export class FormattingManager implements DocumentFormattingEditProvider, Docume
                     patches.push(currentPatch);
                 }
 
-                currentFile = Uri.file(matches[1]);
+                // The .path uncanonicalizes the path, which then gets turned into a Uri.
+                // The .fsPath on both the current file and file to process fix the remaining differences.
+                currentFilePath = Uri.file(Uri.file(matches[1]).path).fsPath;
                 currentPatch = {
                     startLine: parseInt(matches[2], 10),
                     newLines: [],
@@ -198,11 +201,11 @@ export class FormattingManager implements DocumentFormattingEditProvider, Docume
 
             // We haven't managed to figure out what file we're diffing yet, this shouldn't happen.
             // Probably a malformed diff.
-            if (!currentFile) {
+            if (!currentFilePath) {
                 continue;
             }
 
-            if (currentFile.toString() !== fileToProcess.toString() + '.fmt') {
+            if (currentFilePath !== fileToProcessPath) {
                 continue;
             }
 
