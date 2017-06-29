@@ -416,13 +416,6 @@
         ],
         "description": "impl … { … }"
     },
-    "inline": {
-        "prefix": "inline",
-        "body": [
-            "#[inline]"
-        ],
-        "description": "#[inline]"
-    },    
     "let": {
         "prefix": "let",
         "body": [
