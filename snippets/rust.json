@@ -416,8 +416,8 @@
         ],
         "description": "impl … { … }"
     },
-    "inlinefn": {
-        "prefix": "inlinefn",
+    "inline-fn": {
+        "prefix": "inline-fn",
         "body": [
             "#[inline]",
             "fn ${1:name}() {",
@@ -425,7 +425,7 @@
             "}"
         ],
         "description": "inlined rust function"
-    },    
+    },
     "let": {
         "prefix": "let",
         "body": [
