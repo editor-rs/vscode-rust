@@ -7,7 +7,6 @@ import { ChildProcess, SpawnOptions, spawn } from 'child_process';
 import { writeFileSync } from 'fs';
 import { CompletionItem, CompletionItemKind, Definition, Disposable, ExtensionContext, Hover, Location, MarkedString, ParameterInformation, Position, Range, SignatureHelp, SignatureInformation, TextDocument, Uri, commands, languages, window, workspace } from 'vscode';
 import { fileSync } from 'tmp';
-import { surround_by_double_quotes } from '../../Utils';
 import { Configuration } from '../configuration/Configuration';
 import { RustSource } from '../configuration/RustSource';
 import { Rustup } from '../configuration/Rustup';
@@ -165,13 +164,11 @@ export class CompletionManager {
         this.errorBuffer = '';
         this.lastCommand = '';
         this.providers = [];
-        racerPath = surround_by_double_quotes(racerPath);
         logger.debug(`racerPath=${racerPath}`);
         this.racerStatusBarItem.showTurnedOn();
         const cargoHomePath = this.configuration.getCargoHomePath();
         const racerSpawnOptions: SpawnOptions = {
             stdio: 'pipe',
-            shell: true,
             env: Object.assign({}, process.env)
         };
         const rustSourcePath = this._rustSource.getPath();
