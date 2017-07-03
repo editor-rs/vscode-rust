@@ -420,7 +420,7 @@
         "prefix": "inline-fn",
         "body": [
             "#[inline]",
-            "fn ${1:name}() {",
+            "pub fn ${1:name}() {",
             "    ${2:unimplemented!();}",
             "}"
         ],
