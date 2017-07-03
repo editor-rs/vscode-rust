@@ -416,6 +416,16 @@
         ],
         "description": "impl … { … }"
     },
+    "inline-fn": {
+        "prefix": "inline-fn",
+        "body": [
+            "#[inline]",
+            "pub fn ${1:name}() {",
+            "    ${2:unimplemented!();}",
+            "}"
+        ],
+        "description": "inlined function"
+    },        
     "let": {
         "prefix": "let",
         "body": [
