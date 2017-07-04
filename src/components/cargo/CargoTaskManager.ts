@@ -1,7 +1,7 @@
 import { join } from 'path';
 import { ExtensionContext, window } from 'vscode';
 import { CargoInvocationManager } from '../../CargoInvocationManager';
-import { ShellProvider } from '../../ShellProvider';
+import { ShellProviderManager } from '../../ShellProviderManager';
 import { Configuration } from '../configuration/Configuration';
 import { CurrentWorkingDirectoryManager }
     from '../configuration/current_working_directory_manager';
@@ -26,7 +26,7 @@ export class CargoTaskManager {
         configuration: Configuration,
         cargoInvocationManager: CargoInvocationManager,
         currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
-        shellProvider: ShellProvider,
+        shellProviderManager: ShellProviderManager,
         logger: ChildLogger,
         stopCommandName: string
     ) {
@@ -42,7 +42,7 @@ export class CargoTaskManager {
         this._terminalTaskManager = new TerminalTaskManager(
             context,
             configuration,
-            shellProvider
+            shellProviderManager
         );
     }
 

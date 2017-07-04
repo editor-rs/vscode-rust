@@ -1,16 +1,17 @@
 import { window } from 'vscode';
 import { ILogger } from './components/logging/ILogger';
 import { ConfigurationParameter } from './ConfigurationParameter';
+import { IShellProvider } from './IShellProvider';
 import { Shell, fromString, toString, VALUE_STRINGS } from './Shell';
 
 /**
  * The main goal of the class is to provide the current value of the shell.
  * There are three sources which the class can use to determine the current value of the shell.
- * * From the configuration parameter `rust.shell.kind.*`
- * * From the configuration parameter `terminal.integrated.shell.*`
+ * * From the configuration parameter `rust.shell.kind.windows`
+ * * From the configuration parameter `terminal.integrated.shell.windows`
  * * Asking the user to choose any of possible shell values
  */
-export class ShellProvider {
+export class WindowsShellProvider implements IShellProvider {
     private _logger: ILogger;
     private _specialConfigurationParameter: ConfigurationParameter;
     private _gettingValueFromSpecialConfigurationParameter: GettingValueFromSpecialConfigurationParameter;
@@ -23,8 +24,7 @@ export class ShellProvider {
      * messages
      */
     public constructor(logger: ILogger) {
-        this._logger = logger.createChildLogger('ShellProvider: ');
-        // Only Windows can have different shells. Other OS use Shell
+        this._logger = logger.createChildLogger('WindowsShellProvider: ');
         this._specialConfigurationParameter = new ConfigurationParameter('rust.shell.kind.windows');
         this._gettingValueFromSpecialConfigurationParameter = new GettingValueFromSpecialConfigurationParameter(this._specialConfigurationParameter);
         this._determiningValueFromTerminalExecutable = new DeterminingValueFromTerminalExecutable(

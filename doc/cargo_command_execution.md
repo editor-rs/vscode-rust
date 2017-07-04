@@ -19,7 +19,7 @@ These commands are available through the command palette (<kbd>Ctrl</kbd>+<kbd>S
 
 ## Execute Command On Save
 
-The extension supports executing some of these commands after saving the active document. 
+The extension supports executing some of these commands after saving the active document.
 
 The `"rust.actionOnSave"` configuration parameter specifies which command to execute.
 
@@ -86,6 +86,27 @@ The possible values are:
 ```json
 "rust.cargoEnv": { "RUST_BACKTRACE": 1 }
 ```
+
+### Executing Cargo commands in an integrated terminal
+
+The `"rust.executeCargoCommandInTerminal"` configuration parameter controls whether a Cargo command should be executed in an integrated terminal.
+
+By default, the extension executes Cargo commands as child processes. It then parses the output of the command and publishes diagnostics. Executing Cargo commands in an integrated terminal is useful if you need to run a binary and enter some text.
+
+Unfortunately, there is currently no way to parse output of an integrated terminal. This means diagnostics cannot be shown in the editor.
+
+The configuration parameter supports the following values:
+
+* `true` - A Cargo command should be executed in an integrated terminal.
+* `false` - A Cargo command should be executed as a child process.
+
+### Specifying what kind of integrated terminal is used
+
+The `"rust.shell.kind.windows"` configuration parameter specifies what kind of integrated terminal is used.
+
+The configuration parameter should be specified only if the user uses Windows with [WSL](https://msdn.microsoft.com/en-us/commandline/wsl/install_guide).
+
+In all other cases the extension should be able to determine it itself.
 
 ### Setting An Action To Handle Starting A New Command If There Is Another Command Running
 

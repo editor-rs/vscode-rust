@@ -1,7 +1,7 @@
 import * as tmp from 'tmp';
 import { Disposable, ExtensionContext, Uri, commands, window, workspace } from 'vscode';
 import { CargoInvocationManager } from '../../CargoInvocationManager';
-import { ShellProvider } from '../../ShellProvider';
+import { ShellProviderManager } from '../../ShellProviderManager';
 import { Configuration } from '../configuration/Configuration';
 import { CurrentWorkingDirectoryManager }
     from '../configuration/current_working_directory_manager';
@@ -21,7 +21,7 @@ export class CargoManager {
         configuration: Configuration,
         cargoInvocationManager: CargoInvocationManager,
         currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
-        shellProvider: ShellProvider,
+        shellProviderManager: ShellProviderManager,
         logger: ChildLogger
     ) {
         const stopCommandName = 'rust.cargo.terminate';
@@ -30,7 +30,7 @@ export class CargoManager {
             configuration,
             cargoInvocationManager,
             currentWorkingDirectoryManager,
-            shellProvider,
+            shellProviderManager,
             logger.createChildLogger('CargoTaskManager: '),
             stopCommandName
         );

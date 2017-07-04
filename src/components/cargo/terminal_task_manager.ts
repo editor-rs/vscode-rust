@@ -1,21 +1,21 @@
 import { ExtensionContext, Terminal, window } from 'vscode';
 import { getCommandForArgs, getCommandToChangeWorkingDirectory, getCommandToSetEnvVar }
     from '../../CommandLine';
-import { ShellProvider } from '../../ShellProvider';
+import { ShellProviderManager } from '../../ShellProviderManager';
 import { Configuration } from '../configuration/Configuration';
 
 export class TerminalTaskManager {
     private _configuration: Configuration;
     private _runningTerminal: Terminal | undefined;
-    private _shellProvider: ShellProvider;
+    private _shellProvider: ShellProviderManager;
 
     public constructor(
         context: ExtensionContext,
         configuration: Configuration,
-        shellProvider: ShellProvider
+        shellProviderManager: ShellProviderManager
     ) {
         this._configuration = configuration;
-        this._shellProvider = shellProvider;
+        this._shellProvider = shellProviderManager;
         context.subscriptions.push(
             window.onDidCloseTerminal(closedTerminal => {
                 if (closedTerminal === this._runningTerminal) {

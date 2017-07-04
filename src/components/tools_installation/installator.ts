@@ -4,7 +4,7 @@ import { ExtensionContext, commands, window } from 'vscode';
 import { CargoInvocationManager } from '../../CargoInvocationManager';
 import { getCommandForArgs, getCommandToExecuteStatementsOneByOneIfPreviousIsSucceed }
     from '../../CommandLine';
-import { ShellProvider } from '../../ShellProvider';
+import { ShellProviderManager } from '../../ShellProviderManager';
 import { Configuration } from '../configuration/Configuration';
 import { ChildLogger } from '../logging/child_logger';
 import { MissingToolsStatusBarItem } from './missing_tools_status_bar_item';
@@ -12,7 +12,7 @@ import { MissingToolsStatusBarItem } from './missing_tools_status_bar_item';
 export class Installator {
     private _configuration: Configuration;
     private _cargoInvocationManager: CargoInvocationManager;
-    private _shellProvider: ShellProvider;
+    private _shellProvider: ShellProviderManager;
     private _logger: ChildLogger;
     private _missingToolsStatusBarItem: MissingToolsStatusBarItem;
     private _missingTools: string[];
@@ -21,12 +21,12 @@ export class Installator {
         context: ExtensionContext,
         configuration: Configuration,
         cargoInvocationManager: CargoInvocationManager,
-        shellProvider: ShellProvider,
+        shellProviderManager: ShellProviderManager,
         logger: ChildLogger
     ) {
         this._configuration = configuration;
         this._cargoInvocationManager = cargoInvocationManager;
-        this._shellProvider = shellProvider;
+        this._shellProvider = shellProviderManager;
         this._logger = logger;
         const installToolsCommandName = 'rust.install_missing_tools';
         this._missingToolsStatusBarItem = new MissingToolsStatusBarItem(context, installToolsCommandName);
