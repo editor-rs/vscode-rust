@@ -17,6 +17,7 @@ import { RootLogger } from './components/logging/root_logger';
 import { CargoInvocationManager } from './CargoInvocationManager';
 import { LegacyModeManager } from './legacy_mode_manager';
 import * as OutputChannelProcess from './OutputChannelProcess';
+import { ShellProvider } from './ShellProvider';
 import { Toolchain } from './Toolchain';
 
 /**
@@ -501,11 +502,13 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
         }
     }
     const currentWorkingDirectoryManager = new CurrentWorkingDirectoryManager();
+    const shellProvider = new ShellProvider(logger);
     const cargoManager = new CargoManager(
         ctx,
         configuration,
         cargoInvocationManager,
         currentWorkingDirectoryManager,
+        shellProvider,
         logger.createChildLogger('Cargo Manager: ')
     );
     addExecutingActionOnSave(ctx, configuration, cargoManager);
@@ -534,6 +537,7 @@ export async function activate(ctx: ExtensionContext): Promise<void> {
                 rustSource,
                 rustup,
                 currentWorkingDirectoryManager,
+                shellProvider,
                 logger
             );
             break;
@@ -549,6 +553,7 @@ async function runInLegacyMode(
     rustSource: RustSource,
     rustup: Rustup | undefined,
     currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
+    shellProvider: ShellProvider,
     logger: RootLogger
 ): Promise<void> {
     const legacyModeManager = await LegacyModeManager.create(
@@ -558,6 +563,7 @@ async function runInLegacyMode(
         rustSource,
         rustup,
         currentWorkingDirectoryManager,
+        shellProvider,
         logger.createChildLogger('Legacy Mode Manager: ')
     );
     await legacyModeManager.start();

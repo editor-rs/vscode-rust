@@ -536,6 +536,20 @@
               ]
             }
           }
+        },
+        "rust.shell.kind.windows": {
+          "default": "null",
+          "enum": [
+            "cmd",
+            "powershell",
+            "shell",
+            "wsl",
+            "null"
+          ],
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     }

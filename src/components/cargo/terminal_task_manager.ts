@@ -1,14 +1,21 @@
-import { ExtensionContext, Terminal, window, workspace } from 'vscode';
-import { getCommandForArgs, getCommandToSetEnvVar, parseShell }
+import { ExtensionContext, Terminal, window } from 'vscode';
+import { getCommandForArgs, getCommandToChangeWorkingDirectory, getCommandToSetEnvVar }
     from '../../CommandLine';
+import { ShellProvider } from '../../ShellProvider';
 import { Configuration } from '../configuration/Configuration';
 
 export class TerminalTaskManager {
     private _configuration: Configuration;
     private _runningTerminal: Terminal | undefined;
+    private _shellProvider: ShellProvider;
 
-    public constructor(context: ExtensionContext, configuration: Configuration) {
+    public constructor(
+        context: ExtensionContext,
+        configuration: Configuration,
+        shellProvider: ShellProvider
+    ) {
         this._configuration = configuration;
+        this._shellProvider = shellProvider;
         context.subscriptions.push(
             window.onDidCloseTerminal(closedTerminal => {
                 if (closedTerminal === this._runningTerminal) {
@@ -42,7 +49,10 @@ export class TerminalTaskManager {
         args = preCommandArgs.concat(command, ...args);
         const terminal = window.createTerminal('Cargo Task');
         this._runningTerminal = terminal;
-        const shell = parseShell(workspace.getConfiguration('terminal')['integrated']['shell']['windows']);
+        const shell = await this._shellProvider.getValue();
+        if (shell === undefined) {
+            return;
+        }
         const setEnvironmentVariables = () => {
             const cargoEnv = this._configuration.getCargoEnv();
             // Set environment variables
@@ -55,7 +65,7 @@ export class TerminalTaskManager {
         };
         setEnvironmentVariables();
         // Change the current directory to a specified directory
-        this._runningTerminal.sendText(getCommandForArgs(shell, ['cd', cwd]));
+        this._runningTerminal.sendText(getCommandToChangeWorkingDirectory(shell, cwd));
         // Start a requested command
         this._runningTerminal.sendText(getCommandForArgs(shell, [executable, ...args]));
         this._runningTerminal.show(true);
