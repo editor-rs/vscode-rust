@@ -217,7 +217,7 @@ export class Configuration {
     }
 
     public getRustsymPath(): string {
-        return Configuration.getPathConfigParameterOrDefault('rustsymPath', 'rustfmt');
+        return Configuration.getPathConfigParameterOrDefault('rustsymPath', 'rustsym');
     }
 
     public getActionOnStartingCommandIfThereIsRunningCommand(): ActionOnStartingCommandIfThereIsRunningCommand {
