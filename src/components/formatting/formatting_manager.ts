@@ -1,7 +1,5 @@
 import * as cp from 'child_process';
-
 import * as fs from 'fs';
-
 import {
     DocumentFormattingEditProvider,
     DocumentRangeFormattingEditProvider,
@@ -16,6 +14,7 @@ import {
 import { Configuration } from '../configuration/Configuration';
 import { getDocumentFilter } from '../configuration/mod';
 import { FileSystem } from '../file_system/FileSystem';
+import { ChildLogger } from '../logging/child_logger';
 
 const ansiRegex = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
 
@@ -26,16 +25,20 @@ interface RustFmtDiff {
 }
 
 export class FormattingManager implements DocumentFormattingEditProvider, DocumentRangeFormattingEditProvider {
-    private configuration: Configuration;
+    private _newFormatRegex: RegExp = /^Diff in (.*) at line (\d+):$/;
+    private _configuration: Configuration;
+    private _logger: ChildLogger;
 
-    private newFormatRegex: RegExp = /^Diff in (.*) at line (\d+):$/;
-
-    public static async create(context: ExtensionContext, configuration: Configuration): Promise<FormattingManager | undefined> {
+    public static async create(
+        context: ExtensionContext,
+        configuration: Configuration,
+        logger: ChildLogger
+    ): Promise<FormattingManager | undefined> {
         const rustfmtPath: string | undefined = await FileSystem.findExecutablePath(configuration.getRustfmtPath());
         if (rustfmtPath === undefined) {
             return undefined;
         }
-        return new FormattingManager(context, configuration);
+        return new FormattingManager(context, configuration, logger);
     }
 
     public provideDocumentFormattingEdits(document: TextDocument): Thenable<TextEdit[]> {
@@ -50,9 +53,15 @@ export class FormattingManager implements DocumentFormattingEditProvider, Docume
      * To create an instance of the class use the method `create`
      * @param context The extension context
      * @param configuration The configuration
+     * @param logger the logger used to create a child logger to log messages
      */
-    private constructor(context: ExtensionContext, configuration: Configuration) {
-        this.configuration = configuration;
+    private constructor(
+        context: ExtensionContext,
+        configuration: Configuration,
+        logger: ChildLogger
+    ) {
+        this._configuration = configuration;
+        this._logger = logger.createChildLogger('FormattingManager: ');
         context.subscriptions.push(
             languages.registerDocumentFormattingEditProvider(
                 getDocumentFilter(),
@@ -66,10 +75,12 @@ export class FormattingManager implements DocumentFormattingEditProvider, Docume
     }
 
     private formattingEdits(document: TextDocument, range?: Range): Thenable<TextEdit[]> {
+        const logger = this._logger.createChildLogger('formattingEdits: ');
         return new Promise((resolve, reject) => {
             const fileName = document.fileName + '.fmt';
             fs.writeFileSync(fileName, document.getText());
-
+            const rustfmtPath = this._configuration.getRustfmtPath();
+            logger.debug(`rustfmtPath=${rustfmtPath}`);
             const args = ['--skip-children', '--write-mode=diff'];
             if (range !== undefined) {
                 args.push('--file-lines',
@@ -77,8 +88,9 @@ export class FormattingManager implements DocumentFormattingEditProvider, Docume
             } else {
                 args.push(fileName);
             }
+            logger.debug(`args=${JSON.stringify(args)}`);
             const env = Object.assign({ TERM: 'xterm' }, process.env);
-            cp.execFile(this.configuration.getRustfmtPath(), args, { env: env }, (err, stdout, stderr) => {
+            cp.execFile(rustfmtPath, args, { env: env }, (err, stdout, stderr) => {
                 try {
                     if (err && (<any>err).code === 'ENOENT') {
                         window.showInformationMessage('The "rustfmt" command is not available. Make sure it is installed.');
@@ -92,12 +104,14 @@ export class FormattingManager implements DocumentFormattingEditProvider, Docume
                     const hasFatalError = (err && (err as any).code < 3);
 
                     if ((err || stderr.length) && hasFatalError) {
+                        logger.debug('cannot format due to syntax errors');
                         window.setStatusBarMessage('$(alert) Cannot format due to syntax errors', 5000);
                         return reject();
                     }
 
                     return resolve(this.parseDiff(document.uri, stdout));
                 } catch (e) {
+                    logger.error(`e=${e}`);
                     reject(e);
                 } finally {
                     fs.unlinkSync(fileName);
@@ -173,7 +187,7 @@ export class FormattingManager implements DocumentFormattingEditProvider, Docume
 
         for (const line of diff.split(/\n/)) {
             if (line.startsWith('Diff in')) {
-                const matches = this.newFormatRegex.exec(line);
+                const matches = this._newFormatRegex.exec(line);
 
                 if (!matches) {
                     continue;
