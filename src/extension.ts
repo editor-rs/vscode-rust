@@ -153,7 +153,8 @@ class RlsMode {
                 logger.debug('User decided to use rustfmt');
                 const formattingManager = await FormattingManager.create(
                     this._extensionContext,
-                    this._configuration
+                    this._configuration,
+                    this._logger
                 );
                 if (formattingManager === undefined) {
                     await this.handleMissingRustfmt();
@@ -161,7 +162,8 @@ class RlsMode {
                     if (this._rlsConfiguration.getUseRustfmt()) {
                         const anotherFormattingManager = await FormattingManager.create(
                             this._extensionContext,
-                            this._configuration
+                            this._configuration,
+                            this._logger
                         );
                         if (anotherFormattingManager === undefined) {
                             window.showErrorMessage('Formatting: some error happened');
