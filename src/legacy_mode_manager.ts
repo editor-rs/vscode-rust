@@ -35,7 +35,7 @@ export class LegacyModeManager {
         shellProviderManager: ShellProviderManager,
         logger: ChildLogger
     ): Promise<LegacyModeManager> {
-        const formattingManager: FormattingManager | undefined = await FormattingManager.create(context, configuration);
+        const formattingManager: FormattingManager | undefined = await FormattingManager.create(context, configuration, logger);
         return new LegacyModeManager(
             context,
             configuration,
