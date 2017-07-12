@@ -29,6 +29,7 @@ Furthermore, the extension provides:
 * [Executing one of built-in cargo command](cargo_command_execution.md)
 * [Creating a playground](playground_creation.md)
 * [Formatting a document opened in the active text editor](format.md)
+* [Debugging Rust programs](debugging.md)
 
 Also it provides snippets and keybindings.
 
