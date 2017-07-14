@@ -3,3 +3,4 @@ node_modules
 npm-*.log
 vsc-extension-quickstart.md
 .DS_Store
+*.vsix
