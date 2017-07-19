@@ -1,11 +1,14 @@
 import { CapturedMessage, CapturedMessageSeverity } from './captured_message';
+import { ILogger } from './ILogger';
 
-export abstract class Logger {
+export abstract class Logger implements ILogger {
     private loggingMessagePrefix: (() => string) | string;
 
     private messageCaptureEnabled: boolean;
 
     private capturedMessages: CapturedMessage[];
+
+    public abstract createChildLogger(loggingMessagePrefix: (() => string) | string): ILogger;
 
     public debug(message: string): void {
         const log = this.debugProtected.bind(this);

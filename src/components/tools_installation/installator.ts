@@ -1,9 +1,10 @@
 import { existsSync } from 'fs';
 import * as path from 'path';
-import { ExtensionContext, commands, window, workspace } from 'vscode';
+import { ExtensionContext, commands, window } from 'vscode';
 import { CargoInvocationManager } from '../../CargoInvocationManager';
-import { getCommandForArgs, getCommandToExecuteStatementsOneByOneIfPreviousIsSucceed, parseShell }
+import { getCommandForArgs, getCommandToExecuteStatementsOneByOneIfPreviousIsSucceed }
     from '../../CommandLine';
+import { ShellProviderManager } from '../../ShellProviderManager';
 import { Configuration } from '../configuration/Configuration';
 import { ChildLogger } from '../logging/child_logger';
 import { MissingToolsStatusBarItem } from './missing_tools_status_bar_item';
@@ -11,6 +12,7 @@ import { MissingToolsStatusBarItem } from './missing_tools_status_bar_item';
 export class Installator {
     private _configuration: Configuration;
     private _cargoInvocationManager: CargoInvocationManager;
+    private _shellProvider: ShellProviderManager;
     private _logger: ChildLogger;
     private _missingToolsStatusBarItem: MissingToolsStatusBarItem;
     private _missingTools: string[];
@@ -19,10 +21,12 @@ export class Installator {
         context: ExtensionContext,
         configuration: Configuration,
         cargoInvocationManager: CargoInvocationManager,
+        shellProviderManager: ShellProviderManager,
         logger: ChildLogger
     ) {
         this._configuration = configuration;
         this._cargoInvocationManager = cargoInvocationManager;
+        this._shellProvider = shellProviderManager;
         this._logger = logger;
         const installToolsCommandName = 'rust.install_missing_tools';
         this._missingToolsStatusBarItem = new MissingToolsStatusBarItem(context, installToolsCommandName);
@@ -53,12 +57,14 @@ export class Installator {
         });
     }
 
-    private installMissingTools(): void {
+    private async installMissingTools(): Promise<void> {
         const terminal = window.createTerminal('Rust tools installation');
         // cargo install tool && cargo install another_tool
         const { executable: cargoExecutable, args: cargoArgs } = this._cargoInvocationManager.getExecutableAndArgs();
-        const shell = parseShell(workspace.getConfiguration('terminal')['integrated']['shell']['windows']);
-
+        const shell = await this._shellProvider.getValue();
+        if (shell === undefined) {
+            return;
+        }
         const statements = this._missingTools.map(tool => {
             const args = [cargoExecutable, ...cargoArgs, 'install', tool];
             return getCommandForArgs(shell, args);

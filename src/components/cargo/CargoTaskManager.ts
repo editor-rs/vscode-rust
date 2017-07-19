@@ -1,6 +1,7 @@
 import { join } from 'path';
 import { ExtensionContext, window } from 'vscode';
 import { CargoInvocationManager } from '../../CargoInvocationManager';
+import { ShellProviderManager } from '../../ShellProviderManager';
 import { Configuration } from '../configuration/Configuration';
 import { CurrentWorkingDirectoryManager }
     from '../configuration/current_working_directory_manager';
@@ -25,6 +26,7 @@ export class CargoTaskManager {
         configuration: Configuration,
         cargoInvocationManager: CargoInvocationManager,
         currentWorkingDirectoryManager: CurrentWorkingDirectoryManager,
+        shellProviderManager: ShellProviderManager,
         logger: ChildLogger,
         stopCommandName: string
     ) {
@@ -37,7 +39,11 @@ export class CargoTaskManager {
             logger.createChildLogger('OutputChannelTaskManager: '),
             stopCommandName
         );
-        this._terminalTaskManager = new TerminalTaskManager(context, configuration);
+        this._terminalTaskManager = new TerminalTaskManager(
+            context,
+            configuration,
+            shellProviderManager
+        );
     }
 
     public async invokeCargoInit(crateType: CrateType, name: string, workingDirectory: string): Promise<void> {

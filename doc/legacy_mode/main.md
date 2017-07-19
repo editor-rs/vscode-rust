@@ -47,16 +47,3 @@ The output channel will not be shown under any of the following conditions:
 
 - `"rust.executeCargoCommandInTerminal"` is set to `true`
 - `"rust.actionOnSave"` is set to `"check"`
-
-### Executing Cargo commands in an integrated terminal
-
-The `"rust.executeCargoCommandInTerminal"` configuration parameter controls whether [a Cargo command should be executed](../cargo_command_execution.md) in an integrated terminal.
-
-By default, the extension executes Cargo commands as child processes. It then parses the output of the command and publishes diagnostics. Executing Cargo commands in an integrated terminal is useful if you need to run a binary and enter some text.
-
-Unfortunately, there is currently no way to parse output of an integrated terminal. This means diagnostics cannot be shown in the editor.
-
-The configuration parameter supports the following values:
-
-* `true` - A Cargo command should be executed in an integrated terminal.
-* `false` - A Cargo command should be executed as a child process.

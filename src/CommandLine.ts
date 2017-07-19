@@ -1,24 +1,5 @@
-export enum Shell {
-    PowerShell,
-    CMD,
-    Shell
-}
-
-/**
- * Parses the specified string as a variant of the enum `Shell`.
- * If it fails to match the string, it returns `Shell.Shell`
- * @param shell The shell textual representation
- * @return The shell matching the specified string
- */
-export function parseShell(shell: string): Shell {
-    if (shell.includes('powershell')) {
-        return Shell.PowerShell;
-    }
-    if (shell.includes('cmd')) {
-        return Shell.CMD;
-    }
-    return Shell.Shell;
-}
+import { Shell } from './Shell';
+import { correctPath } from './WslShellUtils';
 
 /**
  * Creates a command to set the environment variable
@@ -32,9 +13,10 @@ export function getCommandToSetEnvVar(shell: Shell, varName: string, varValue: s
     switch (shell) {
         case Shell.PowerShell:
             return `$ENV:${varName}="${varValue}"`;
-        case Shell.CMD:
+        case Shell.Cmd:
             return `set ${varName}=${varValue}`;
         case Shell.Shell:
+        case Shell.Wsl:
             return ` export ${varName}=${varValue}`;
     }
 }
@@ -55,7 +37,7 @@ export function escapeSpaces(s: string, shell: Shell): string {
             s = s.replace(new RegExp('` ', 'g'), ' ');
             // Escape
             return s.replace(new RegExp(' ', 'g'), '` ');
-        case Shell.CMD:
+        case Shell.Cmd:
             s = s.concat();
             if (!s.startsWith('"')) {
                 s = '"'.concat(s);
@@ -65,6 +47,7 @@ export function escapeSpaces(s: string, shell: Shell): string {
             }
             return s;
         case Shell.Shell:
+        case Shell.Wsl:
             s = s.concat();
             if (!s.startsWith('\'')) {
                 s = '\''.concat(s);
@@ -74,6 +57,16 @@ export function escapeSpaces(s: string, shell: Shell): string {
             }
             return s;
     }
+}
+
+export function getCommandToChangeWorkingDirectory(
+    shell: Shell,
+    workingDirectory: string
+): string {
+    if (shell === Shell.Wsl) {
+        workingDirectory = correctPath(workingDirectory);
+    }
+    return getCommandForArgs(shell, ['cd', workingDirectory]);
 }
 
 /**
@@ -95,28 +88,26 @@ export function getCommandForArgs(shell: Shell, args: string[]): string {
  * @return A created command which if it is passed to a terminal,
  * it will execute the statements
  */
-export function getCommandToExecuteStatementsOneByOneIfPreviousIsSucceed(shell: Shell, statements: string[]): string {
+export function getCommandToExecuteStatementsOneByOneIfPreviousIsSucceed(
+    shell: Shell,
+    statements: string[]
+): string {
     if (statements.length === 0) {
         return '';
     }
-
-    if (process.platform === 'win32' && shell === Shell.PowerShell) {
+    if (shell === Shell.PowerShell) {
         let command = statements[0];
-
         for (let i = 1; i < statements.length; ++i) {
             command += `; if ($?) { ${statements[i]}; }`;
         }
-
         return command;
     } else {
         // The string starts with space to make sh not save the command.
         // This code is also executed for cmd on Windows, but leading space doesn't break anything
         let command = ' ' + statements[0];
-
         for (let i = 1; i < statements.length; ++i) {
             command += ` && ${statements[i]}`;
         }
-
         return command;
     }
 }
