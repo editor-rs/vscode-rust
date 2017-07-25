@@ -226,7 +226,7 @@ export class CargoTaskManager {
         if (!hasRunningTask) {
             return true;
         }
-        if (isStoppingRunningTaskAllowed) {
+        if (!isStoppingRunningTaskAllowed) {
             return false;
         }
         let shouldStopRunningTask = false;
