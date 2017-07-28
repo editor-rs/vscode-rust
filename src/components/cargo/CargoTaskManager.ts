@@ -152,7 +152,7 @@ export class CargoTaskManager {
         shouldUseUserWorkingDirectory: boolean,
         shouldParseOutput: boolean
     ): Promise<void> {
-        const canStartTask = this.processPossiblyRunningTask(
+        const canStartTask = await this.processPossiblyRunningTask(
             isStoppingRunningTaskAllowed,
             shouldStartTaskInTerminal
         );
@@ -226,7 +226,7 @@ export class CargoTaskManager {
         if (!hasRunningTask) {
             return true;
         }
-        if (isStoppingRunningTaskAllowed) {
+        if (!isStoppingRunningTaskAllowed) {
             return false;
         }
         let shouldStopRunningTask = false;
