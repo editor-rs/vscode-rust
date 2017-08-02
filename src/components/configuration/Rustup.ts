@@ -110,7 +110,14 @@ export class Rustup {
      * Returns either the nightly toolchain chosen by the user or undefined
      */
     public getUserNightlyToolchain(): Toolchain | undefined {
-        return this._userNightlyToolchain;
+        if (this._userNightlyToolchain) {
+            return this._userNightlyToolchain;
+        }
+        const defaultToolchain = this.getDefaultToolchain();
+        if (defaultToolchain && defaultToolchain.channel === 'nightly') {
+            return defaultToolchain;
+        }
+        return undefined;
     }
 
     /**
@@ -128,10 +135,10 @@ export class Rustup {
     }
 
     /**
-     * Returns either the toolchain chosen by the user or undefined
+     * Returns either the toolchain chosen by the user or the default or undefined
      */
     public getUserToolchain(): Toolchain | undefined {
-        return this._userToolchain;
+        return this._userToolchain || this.getDefaultToolchain();
     }
 
     public setUserToolchain(toolchain: Toolchain | undefined): void {
