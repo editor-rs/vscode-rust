@@ -15,8 +15,14 @@ export class ConfigurationParameter {
         return this.getConfiguration().get(this._parameterName);
     }
 
-    public async setValue(value: any): Promise<void> {
-        await this.getConfiguration().update(this._parameterName, value, true);
+    /**
+     * Sets the value in either the user configuration or the workspace configuration
+     * @param value The value to set
+     * @param setToUserConfiguration The flag indicating if the value has to be set to the user settings instead
+     * of the workspace settings
+     */
+    public async setValue(value: any, setToUserConfiguration: boolean): Promise<void> {
+        await this.getConfiguration().update(this._parameterName, value, setToUserConfiguration);
     }
 
     private getConfiguration(): WorkspaceConfiguration {

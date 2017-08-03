@@ -1,8 +1,10 @@
 import { window } from 'vscode';
 import { ILogger } from './components/logging/ILogger';
+import askUserWhatConfigurationToSaveParameterIn from './UserInteraction/AskUserWhatConfigurationToSaveParameterIn';
 import { ConfigurationParameter } from './ConfigurationParameter';
 import { IShellProvider } from './IShellProvider';
 import { Shell, fromString, toString, VALUE_STRINGS } from './Shell';
+import UserOrWorkspaceConfiguration from './UserOrWorkspaceConfiguration';
 
 /**
  * The main goal of the class is to provide the current value of the shell.
@@ -51,13 +53,25 @@ export class WindowsShellProvider implements IShellProvider {
         }
         const userValue = await this._askingUserToChooseValue.askUser();
         if (userValue !== undefined) {
-            logger.debug(`userValue=${toString(userValue)}`);
             // The user has chosen some value. We need to save it to the special configuration
             // parameter to avoid asking the user in the future
-            this._specialConfigurationParameter.setValue(toString(userValue));
+            logger.debug(`userValue=${toString(userValue)}`);
+            await this.trySaveUserValueToConfiguration(userValue);
             return userValue;
         }
         return undefined;
+    }
+
+    /**
+     * Asks the user what configuration to save the value in and if the user chooses any, saves it
+     * to the chosen configuration
+     * @param userValue The value chosen by the user
+     */
+    private async trySaveUserValueToConfiguration(userValue: Shell): Promise<void> {
+        const chosenConfiguration = await askUserWhatConfigurationToSaveParameterIn();
+        if (chosenConfiguration !== undefined) {
+            this._specialConfigurationParameter.setValue(toString(userValue), chosenConfiguration === UserOrWorkspaceConfiguration.User);
+        }
     }
 }
 
