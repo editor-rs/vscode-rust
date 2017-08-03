@@ -241,8 +241,7 @@ class RlsMode {
                 async () => {
                     if (this._rustup) {
                         return await this._rustup.installRls();
-                    }
-                    else {
+                    } else {
                         return false;
                     }
                 }
