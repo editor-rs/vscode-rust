@@ -488,54 +488,51 @@
             }
           }
         },
-        "rust.rls": {
+        "rust.rls.executable": {
           "default": null,
-          "description": "Rust Language Server configuration",
-          "properties": {
-            "executable": {
-              "default": "rls",
-              "description": "An executable to run as a language server",
-              "type": "string"
-            },
-            "args": {
-              "default": null,
-              "description": "Arguments to pass to the executable",
-              "items": {
-                "type": "string"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
-            "env": {
-              "default": null,
-              "description": "An environment to run the executable in",
-              "type": [
-                "object",
-                "null"
-              ]
-            },
-            "revealOutputChannelOn": {
-              "default": "error",
-              "description": "Specifies when the output channel should be revealed",
-              "enum": [
-                "info",
-                "warn",
-                "error",
-                "never"
-              ],
-              "type": "string"
-            },
-            "useRustfmt": {
-              "default": null,
-              "description": "Specified whether rustfmt should be used for formatting",
-              "type": [
-                "boolean",
-                "null"
-              ]
-            }
-          }
+          "description": "An executable (absolute path or name if it's available through PATH) to run as a language server",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "rust.rls.args": {
+          "default": null,
+          "description": "Arguments to run the language server with",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "rust.rls.env": {
+          "default": null,
+          "description": "An environment to run the language server in",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "rust.rls.revealOutputChannelOn": {
+          "default": "error",
+          "description": "Specifies on what kind of message received from the language server the output channel is revealed",
+          "enum": [
+            "info",
+            "warn",
+            "error",
+            "never"
+          ],
+          "type": "string"
+        },
+        "rust.rls.useRustfmt": {
+          "default": null,
+          "description": "Specified whether rustfmt should be used for formatting when the RLS mode is active",
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "rust.shell.kind.windows": {
           "default": "null",

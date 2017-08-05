@@ -27,10 +27,10 @@ export class WindowsShellProvider implements IShellProvider {
      */
     public constructor(logger: ILogger) {
         this._logger = logger.createChildLogger('WindowsShellProvider: ');
-        this._specialConfigurationParameter = new ConfigurationParameter('rust.shell.kind.windows');
+        this._specialConfigurationParameter = new ConfigurationParameter('rust.shell.kind', 'windows');
         this._gettingValueFromSpecialConfigurationParameter = new GettingValueFromSpecialConfigurationParameter(this._specialConfigurationParameter);
         this._determiningValueFromTerminalExecutable = new DeterminingValueFromTerminalExecutable(
-            new ConfigurationParameter('terminal.integrated.shell.windows')
+            new ConfigurationParameter('terminal.integrated.shell', 'windows')
         );
         this._askingUserToChooseValue = new AskingUserToChooseValue(logger);
     }
