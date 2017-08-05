@@ -238,7 +238,13 @@ class RlsMode {
             }
             const rlsInstalled = await installComponent(
                 'RLS',
-                async () => { return this._rustup && await this._rustup.installRls(); }
+                async () => {
+                    if (this._rustup) {
+                        return await this._rustup.installRls();
+                    } else {
+                        return false;
+                    }
+                }
             );
             if (rlsInstalled) {
                 logger.debug('RLS has been installed');
@@ -263,7 +269,13 @@ class RlsMode {
             }
             const rustAnalysisInstalled = await installComponent(
                 'rust-analysis',
-                async () => { return this._rustup && await this._rustup.installRustAnalysis(); }
+                async () => {
+                    if (this._rustup) {
+                        return await this._rustup.installRustAnalysis();
+                    } else {
+                        return false;
+                    }
+                }
             );
             if (rustAnalysisInstalled) {
                 logger.debug('rust-analysis has been installed');
