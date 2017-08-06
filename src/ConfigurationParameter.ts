@@ -5,9 +5,11 @@ import { WorkspaceConfiguration, workspace } from 'vscode';
  * the value of the parameter
  */
 export class ConfigurationParameter {
+    private _sectionName: string;
     private _parameterName: string;
 
-    public constructor(parameterName: string) {
+    public constructor(sectionName: string, parameterName: string) {
+        this._sectionName = sectionName;
         this._parameterName = parameterName;
     }
 
@@ -22,10 +24,16 @@ export class ConfigurationParameter {
      * of the workspace settings
      */
     public async setValue(value: any, setToUserConfiguration: boolean): Promise<void> {
-        await this.getConfiguration().update(this._parameterName, value, setToUserConfiguration);
+        // The configuration doesn't support `undefined`. We must convert it to `null`
+        const convertedValue = value === undefined ? null : value;
+        await this.getConfiguration().update(
+            this._parameterName,
+            convertedValue,
+            setToUserConfiguration
+        );
     }
 
     private getConfiguration(): WorkspaceConfiguration {
-        return workspace.getConfiguration('');
+        return workspace.getConfiguration(this._sectionName);
     }
 }

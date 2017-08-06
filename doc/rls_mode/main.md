@@ -1,41 +1,74 @@
 # Rust Language Server Mode Page
 
-The extension supports integration with [Rust Language Server](https://github.com/rust-lang-nursery/rls).
+The extension supports integration with [Rust Language Server].
 
 ## Configuration
 
-The `"rust.rls"` configuration parameter specifies how to run RLS if it is requested.
+There are configuration parameters which names start with `"rust.rls"`.
+The RLS mode can be configured by changing the parameters.
 
-The type of the parameter is an object with the following fields:
+### Parameters
 
-* `"executable"` - a string. The path to an executable to execute
-* `"args"` - an array of strings. Arguments to pass to the executable
-* `"env"` - an environment to append to the current environment to execute the executable
-* `"revealOutputChannelOn"` - a string. Specifies the condition when the output channel should be revealed
-* `"useRustfmt"` - either a boolean or `null`. Specifies whether [rustfmt] should be used for formatting
+#### rust.rls.executable
 
-By default, it is `null`.
+Using the parameter it is possible to specify either absolute path to RLS or name of RLS.
 
-### More about configuration parameter
+The default value is `"rls"`.
 
-#### revealOutputChannelOn
+It can be useful when:
 
-This determines when the Output channel is revealed.
+* There is a need in running RLS built from its source
+* There is a need in running RLS through some proxy (see [rust.rls.args](#rust.rls.executable]))
 
-The possible values are:
+#### rust.rls.args
 
-* `"info"` - revealed on each info line
-* `"warn"` - revealed on each warn line
-* `"error"` - revealed on each error line (default)
-* `"never"` - the output channel never reveals automatically
+Using the parameter it is possible to specify what arguments to run the RLS executable with.
 
-#### useRustfmt
+The default value is `null`.
 
-The possible values are:
+It can be useful when:
 
-* `null` - the extension will ask whether [rustfmt] should be used for formatting
-* `false` - the extension will not use [rustfmt] for formatting
-* `true` - the extension will use [rustfmt] for formatting
+* There is a need in running RLS through some proxy, i.e., rustup
+
+#### rust.rls.env
+
+Using the parameter it is possible to specify what environment to run the RLS executable in.
+
+The default value is `null`.
+
+It can be useful when:
+
+* There is a need to pass some environment variables to the RLS executable, i.e., `RUST_LOG`, `RUST_BACKTRACE`
+
+#### rust.rls.revealOutputChannelOn
+
+Using the parameter it is possible to specify on what kind of message received from the RLS the output channel is revealed.
+
+It supports one of the following values:
+
+* `"info"` - the output channel is revealed on literally all messages
+* `"warn"` - the output channel is revealed on warnings
+* `"error"` - the output channel is revealed on errors (default)
+* `"never"` - the output channel is never revealed automatically (it can be revealed manually through *View->Output*)
+
+The default value is `error`.
+
+It can be useful when:
+
+* There is some problem with RLS and it sometimes sends error messages on which the output channel is revealed and it is annoying
+* There is a need in revealing the output channel on other kinds of message
+
+#### rust.rls.useRustfmt
+
+Using the parameter it is possible to specify if the standalone [rustfmt] is used to format code instead of the [rustfmt] embedded into RLS.
+
+It supports one of the following values:
+
+* `null` - the extension will ask if [rustfmt] is used to format code
+* `false` - the extension will not use [rustfmt] to format code
+* `true` - the extension will use [rustfmt] to format code
+
+The default value is `null`.
 
 ## Setting up
 
@@ -80,10 +113,8 @@ rustup run nightly cargo install
 Because at the moment RLS links to the compiler and it assumes the compiler to be globally installed, one has to use rustup to start the `rls` (rustup will configure the environment accordingly):
 
 ```json
-"rust.rls": {
-    "executable": "rustup",
-    "args": ["run", "nightly", "rls"]
-}
+"rust.rls.executable": "rustup",
+"rust.rls.args": ["run", "nightly", "rls"]
 ```
 
 --
@@ -91,10 +122,8 @@ Because at the moment RLS links to the compiler and it assumes the compiler to b
 You can also run from source by passing `+nightly` to rustup's cargo proxy:
 
 ```json
-"rust.rls": {
-    "executable": "cargo",
-    "args": ["+nightly", "run", "--manifest-path=/path/to/rls/Cargo.toml", "--release"]
-}
+"rust.rls.executable": "cargo",
+"rust.rls.args": ["+nightly", "run", "--manifest-path=/path/to/rls/Cargo.toml", "--release"]
 ```
 
 #### Without rustup
@@ -113,9 +142,7 @@ cargo install
 and set `"executable"` to `"rls"`:
 
 ```json
-"rust.rls": {
-    "executable": "rls"
-}
+"rust.rls.executable": "rls"
 ```
 
 --
@@ -123,10 +150,8 @@ and set `"executable"` to `"rls"`:
 If you don't want to have it installed you can also run it from sources:
 
 ```json
-"rust.rls": {
-    "executable": "cargo",
-    "args": ["run", "--manifest-path=/path/to/rls/Cargo.toml", "--release"]
-}
+"rust.rls.executable": "cargo",
+"rust.rls.args": ["run", "--manifest-path=/path/to/rls/Cargo.toml", "--release"]
 ```
 
 ## Debugging
@@ -140,14 +165,11 @@ To open it, perform the following steps:
 * Click on the listbox which is to the right of the shown panel
 * Choose "Rust Language Server"
 
-For making RLS print more data, you have to add the following lines to your `"rust.rls"` configuration:
+For making RLS print more data, you have to add the following lines to your [RLS] configuration:
 
 ```json
-"rust.rls": {
-    ...
-    "env": {
-        "RUST_LOG": "rls=debug"
-    }
+"rust.rls.env": {
+    "RUST_LOG": "rls=debug"
 }
 ```
 
@@ -170,3 +192,5 @@ Clicking on the indicator restarts RLS.
 Create a `rls.toml` file in your project's root and add `unstable_features = true` and RLS will be able to auto format on save and renaming.
 
 [rustfmt]: https://github.com/rust-lang-nursery/rustfmt
+[Rust Language Server]: https://github.com/rust-lang-nursery/rls
+[RLS]: https://github.com/rust-lang-nursery/rls
