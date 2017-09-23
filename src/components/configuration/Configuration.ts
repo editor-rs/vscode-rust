@@ -179,10 +179,6 @@ export class Configuration {
     }
 
     public shouldExecuteCargoCommandInTerminal(): boolean {
-        // When RLS is used any cargo command is executed in an integrated terminal.
-        if (this.mode() === Mode.RLS) {
-            return true;
-        }
         const configuration = Configuration.getConfiguration();
         const shouldExecuteCargoCommandInTerminal = configuration['executeCargoCommandInTerminal'];
         return shouldExecuteCargoCommandInTerminal;
