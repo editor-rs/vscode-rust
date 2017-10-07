@@ -1,5 +1,5 @@
 import * as tmp from 'tmp';
-import { Disposable, ExtensionContext, Uri, commands, window, workspace } from 'vscode';
+import { Disposable, ExtensionContext, Uri, commands, window } from 'vscode';
 import { CargoInvocationManager } from '../../CargoInvocationManager';
 import { ShellProviderManager } from '../../ShellProviderManager';
 import { Configuration } from '../configuration/Configuration';
@@ -12,6 +12,7 @@ import { CrateType } from './CrateType';
 import { CustomConfigurationChooser } from './custom_configuration_chooser';
 
 export class CargoManager {
+    private readonly _currentWorkingDirectoryManager: CurrentWorkingDirectoryManager;
     private _cargoTaskManager: CargoTaskManager;
     private _customConfigurationChooser: CustomConfigurationChooser;
     private _logger: ChildLogger;
@@ -25,6 +26,7 @@ export class CargoManager {
         logger: ChildLogger
     ) {
         const stopCommandName = 'rust.cargo.terminate';
+        this._currentWorkingDirectoryManager = currentWorkingDirectoryManager;
         this._cargoTaskManager = new CargoTaskManager(
             context,
             configuration,
@@ -113,18 +115,19 @@ export class CargoManager {
 
     public registerCommandHelpingCreateProject(commandName: string, isBin: boolean): Disposable {
         return commands.registerCommand(commandName, () => {
-            const cwd = workspace.rootPath;
-            if (!cwd) {
-                window.showErrorMessage('Current document not in the workspace');
-                return;
-            }
-            const projectType = isBin ? 'executable' : 'library';
-            const placeHolder = `Enter ${projectType} project name`;
-            window.showInputBox({ placeHolder: placeHolder }).then((name: string) => {
-                if (!name || name.length === 0) {
+            this._currentWorkingDirectoryManager.cwd().then(cwd => {
+                if (!cwd) {
+                    window.showErrorMessage('The current document is not in the workspace');
                     return;
                 }
-                this._cargoTaskManager.invokeCargoNew(name, isBin, cwd);
+                const projectType = isBin ? 'executable' : 'library';
+                const placeHolder = `Enter ${projectType} project name`;
+                window.showInputBox({ placeHolder: placeHolder }).then((name: string) => {
+                    if (!name || name.length === 0) {
+                        return;
+                    }
+                    this._cargoTaskManager.invokeCargoNew(name, isBin, cwd);
+                });
             });
         });
     }

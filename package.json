@@ -16,7 +16,7 @@
     "email": "kalita.alexey@outlook.com"
   },
   "engines": {
-    "vscode": "^1.12.0"
+    "vscode": "^1.15.0"
   },
   "categories": [
     "Languages",

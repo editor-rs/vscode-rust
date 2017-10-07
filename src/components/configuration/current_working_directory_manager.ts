@@ -1,8 +1,8 @@
 import { access } from 'fs';
 
-import { dirname, join } from 'path';
+import { dirname, join, sep } from 'path';
 
-import { window, workspace } from 'vscode';
+import { window, workspace, WorkspaceFolder } from 'vscode';
 
 import findUp = require('find-up');
 
@@ -34,9 +34,10 @@ export class CurrentWorkingDirectoryManager {
                 return this.getPreviousCwd(error);
             })
             .catch((error: Error) => {
-                return this.checkWorkspaceCanBeUsedAsCwd().then(canBeUsed => {
+                const workspaceFolder = (workspace.workspaceFolders || [])[0];
+                return this.checkWorkspaceCanBeUsedAsCwd(workspaceFolder).then(canBeUsed => {
                     if (canBeUsed) {
-                        return Promise.resolve(workspace.rootPath);
+                        return Promise.resolve(workspaceFolder.uri.fsPath);
                     } else {
                         return Promise.reject(error);
                     }
@@ -44,12 +45,12 @@ export class CurrentWorkingDirectoryManager {
             });
     }
 
-    private checkWorkspaceCanBeUsedAsCwd(): Promise<boolean> {
-        if (!workspace.rootPath) {
+    private checkWorkspaceCanBeUsedAsCwd(workspaceFolder: WorkspaceFolder): Promise<boolean> {
+        if (!workspaceFolder) {
             return Promise.resolve(false);
         }
 
-        const filePath = join(workspace.rootPath, 'Cargo.toml');
+        const filePath = join(workspaceFolder.uri.fsPath, 'Cargo.toml');
 
         return this.checkPathExists(filePath);
     }
@@ -61,7 +62,11 @@ export class CurrentWorkingDirectoryManager {
 
         const fileName = window.activeTextEditor.document.fileName;
 
-        if (!workspace.rootPath || !fileName.startsWith(workspace.rootPath)) {
+        const workspaceFolder = (workspace.workspaceFolders || [])
+            .find(workspaceFolderTmp =>
+                fileName.startsWith(join(workspaceFolderTmp.uri.fsPath, sep)));
+
+        if (!workspaceFolder) {
             return Promise.reject(new Error('Current document not in the workspace'));
         }
 
@@ -76,7 +81,11 @@ export class CurrentWorkingDirectoryManager {
                 return Promise.reject(new Error('Cargo.toml hasn\'t been found'));
             }
 
-            if (!workspace.rootPath || !cargoTomlDirPath.startsWith(workspace.rootPath)) {
+            const workspaceFolder = (workspace.workspaceFolders || [])
+                .find(workspaceFolderTmp =>
+                    cargoTomlDirPath.startsWith(join(workspaceFolderTmp.uri.fsPath, sep)));
+
+            if (!workspaceFolder) {
                 return Promise.reject(new Error('Cargo.toml hasn\'t been found within the workspace'));
             }
 
@@ -93,7 +102,7 @@ export class CurrentWorkingDirectoryManager {
 
         return this.checkPathExists(pathToCargoTomlInPreviousCwd).then<string>(exists => {
             if (exists) {
-                return Promise.resolve(this.rememberedCwd);
+                return Promise.resolve(this.rememberedCwd!);
             } else {
                 return Promise.reject(error);
             }
