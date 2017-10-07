@@ -1,6 +1,8 @@
 [![Build Status](https://api.travis-ci.org/editor-rs/vscode-rust.svg)](https://travis-ci.org/editor-rs/vscode-rust)
 [![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/vscode-rust/Lobby)
 
+**Hello everyone. I'm a maintainer and I'm very busy. At some point rls-vscode will supersede the extension. Until that moment someone should maintain the extension. If you are interested in it, please send me an email to kalita.alexey@outlook.com**
+
 # Rust for Visual Studio Code (Latest: 0.4.2)
 
 ## What is the repository?
