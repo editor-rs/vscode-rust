@@ -24,7 +24,7 @@ This extension adds advanced language support for the Rust programming language 
 - Go To Symbol (via `rustsym` or RLS).
 - Code formatting (via `rustfmt`).
 - Code Snippets.
-- Cargo tasks (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> and type `cargo` to view them).
+- Cargo tasks (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> / <kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> and type `cargo` to view them).
 - …and a lot of other features. To learn more, see the [documentation](doc/main.md).
 
 On update, please review the [changelog](CHANGELOG.md).
@@ -33,7 +33,7 @@ On update, please review the [changelog](CHANGELOG.md).
 
 1. Firstly, you will need to install [VS Code](https://code.visualstudio.com/) `1.8` or later.
 
-2. Now in VS Code, <kbd>Ctrl</kbd>+<kbd>P</kbd> and type `ext install vscode-rust`.
+2. Now in VS Code, <kbd>Ctrl</kbd>+<kbd>P</kbd> / <kbd>⌘</kbd>+<kbd>P</kbd> and type `ext install vscode-rust`.
 
 3. Choose to install the "Rust" extension.
 
