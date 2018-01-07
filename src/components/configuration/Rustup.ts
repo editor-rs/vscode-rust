@@ -377,7 +377,7 @@ export class Rustup {
      * Returns the name of the component RLS
      */
     private static getRlsComponentName(): string {
-        return 'rls';
+        return 'rls-preview';
     }
 
     /**
