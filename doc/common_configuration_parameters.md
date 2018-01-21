@@ -9,7 +9,7 @@ Users should adjust properties of this configuration parameter to customize rust
 This configuration parameter specifies which toolchain the extension will invoke rustup with.
 It is used for getting sysroot, installing components, invoking Cargo
 
-However there are few exceptions. Currently RLS is available for nightly hence RLS and rust-analysis are installed for the nightly toolchain.
+However there are few exceptions. RLS is available in stable, beta and nightly. At time of writing nightly is sometimes missing RLS.
 
 ### nightlyToolchain
 

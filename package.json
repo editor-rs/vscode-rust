@@ -471,7 +471,7 @@
           "description": "rustup configuration",
           "properties": {
             "toolchain": {
-              "default": null,
+              "default": "stable",
               "description": "The toolchain to use for installing components (rust-src), except RLS",
               "type": [
                 "string",
@@ -479,7 +479,7 @@
               ]
             },
             "nightlyToolchain": {
-              "default": null,
+              "default": "stable",
               "description": "The nightly toolchain to use for installing RLS and related components and running RLS",
               "type": [
                 "string",
