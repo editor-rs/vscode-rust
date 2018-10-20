@@ -429,12 +429,18 @@ async function handleMissingRustupUserToolchain(
     }
     const functionLogger = logger.createChildLogger('handleMissingRustupUserToolchain: ');
     functionLogger.debug(`toolchainKind=${toolchainKind}`);
-    await window.showInformationMessage(`To properly function, the extension needs to know what ${toolchainKind} you want to use`);
     const toolchains = getToolchains();
     if (toolchains.length === 0) {
         functionLogger.error('no toolchains');
         return;
     }
+    
+    if(toolchains.length === 1){
+        setToolchain(toolchains[0]);
+        return;
+    }
+    
+    await window.showInformationMessage(`To properly function, the extension needs to know what ${toolchainKind} you want to use`);
     const toolchainsHaveOneHost = toolchains.every(t => t.host === toolchains[0].host);
     const items = toolchains.map(t => new Item(t, !toolchainsHaveOneHost));
     const item = await window.showQuickPick(items);
