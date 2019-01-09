@@ -429,7 +429,7 @@ async function handleMissingRustupUserToolchain(
     }
     const functionLogger = logger.createChildLogger('handleMissingRustupUserToolchain: ');
     functionLogger.debug(`toolchainKind=${toolchainKind}`);
-    await window.showInformationMessage(`To properly function, the extension needs to know what ${toolchainKind} you want to use`);
+    await window.showInformationMessage(`To properly function, the extension needs to know what ${toolchainKind} you want to use. Close this message to choose a ${toolchainKind}.`);
     const toolchains = getToolchains();
     if (toolchains.length === 0) {
         functionLogger.error('no toolchains');
